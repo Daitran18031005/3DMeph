@@ -1,0 +1,12 @@
+# Giảm conflict giả cho notebook (cần: pip install nbstripout && nbstripout --install)
+*.ipynb filter=nbstripout
+
+# Đánh dấu rõ là nhị phân — git không cố diff/merge theo dòng
+*.ply binary
+*.docx binary
+*.tar.gz binary
+
+# Bật nếu dùng Git LFS cho asset Unity lớn (sau khi cài git-lfs)
+# *.fbx filter=lfs diff=lfs merge=lfs -text
+# *.png filter=lfs diff=lfs merge=lfs -text
+# *.unity filter=lfs diff=lfs merge=lfs -text
