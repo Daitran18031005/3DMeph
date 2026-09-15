@@ -1,0 +1,13 @@
+# CODEOWNERS — GitHub tự gợi ý đúng reviewer khi PR đụng thư mục tương ứng
+# Thay username1..4 bằng GitHub username thật của từng thành viên
+
+/pipeline/colmap/       @username1
+/pipeline/alignment/    @username1
+/pipeline/vggt/         @username2
+/pipeline/fusion/       @username3
+/pipeline/eval/         @username3
+/app/backend_fastapi/   @username4
+/app/unity_app/         @username4
+/scripts/               @username1 @username2
+/configs/               @username1 @username2 @username3 @username4
+/thesis/                @username1 @username2 @username3 @username4
