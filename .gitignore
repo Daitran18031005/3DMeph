@@ -1,0 +1,11 @@
+data/raw/
+data/self_collected/
+data/processed/
+outputs/
+*.ply
+*.tar.gz
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+app/unity_app/Library/
+app/unity_app/Temp/
