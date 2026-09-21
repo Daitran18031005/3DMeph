@@ -9,3 +9,4 @@ __pycache__/
 .ipynb_checkpoints/
 app/unity_app/Library/
 app/unity_app/Temp/
+reports/

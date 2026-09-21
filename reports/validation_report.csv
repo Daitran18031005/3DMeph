@@ -1,3 +1,0 @@
-dataset,scene_id,status,n_rgb,n_depth,n_highres_depth,rgb_resolution,mesh_vertices,issues
-arkitscenes,raw,ISSUES,0,0,0,,0,"thiếu thư mục lowres_wide; thiếu thư mục lowres_depth; thiếu highres_depth — scene này KHÔNG có ground truth Faro, không dùng cho L_p2s; thiếu/rỗng lowres_wide_intrinsics; không tìm thấy file mesh .ply trong scene_dir; không tìm thấy file .traj (pose)"
-replica,raw,OK,,,,,4564613,
