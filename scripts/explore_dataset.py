@@ -13,8 +13,10 @@ Cách chạy:
         --output_csv reports/eda_stats.csv \
         --sample_stride 10
 
-Chỉ nên chạy SAU KHI validate_dataset.py báo các scene là OK — chạy EDA trên
-scene đã biết lỗi (thiếu file, ảnh corrupt) sẽ cho số liệu sai lệch.
+QUAN TRỌNG: hỗ trợ cả asset ARKitScenes dạng thư mục đã giải nén lẫn file .zip
+chưa giải nén (xem AssetReader) — không cần giải nén thủ công trước khi chạy.
+
+Chỉ nên chạy SAU KHI validate_dataset.py báo các scene là OK.
 """
 
 import argparse
@@ -22,6 +24,7 @@ import csv
 import glob
 import os
 import sys
+import zipfile
 
 import cv2
 import numpy as np
@@ -37,6 +40,60 @@ except ImportError:
 ARKIT_RGB_DIR = "lowres_wide"
 ARKIT_DEPTH_DIR = "lowres_depth"
 DEPTH_MM_TO_M = 1.0 / 1000.0  # ARKitScenes depth thường lưu ở đơn vị mm (uint16)
+
+
+class AssetReader:
+    """Đọc file bên trong 1 asset ARKitScenes, hỗ trợ cả thư mục đã giải nén lẫn
+    file .zip chưa giải nén (tên hiển thị có thể không có đuôi .zip trên Windows).
+    Dùng qua "with" để tự đóng zip sau khi xong."""
+
+    def __init__(self, scene_dir, asset_name):
+        self.kind = None
+        self.zf = None
+        self.dir_path = None
+
+        dir_path = os.path.join(scene_dir, asset_name)
+        if os.path.isdir(dir_path):
+            self.kind = "dir"
+            self.dir_path = dir_path
+            return
+
+        candidates = [dir_path if dir_path.lower().endswith(".zip") else dir_path + ".zip",
+                      dir_path]
+        for c in candidates:
+            if os.path.isfile(c) and zipfile.is_zipfile(c):
+                self.kind = "zip"
+                self.zf = zipfile.ZipFile(c)
+                return
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+    def exists(self):
+        return self.kind is not None
+
+    def list_pngs(self):
+        if self.kind == "dir":
+            return sorted(f for f in os.listdir(self.dir_path) if f.lower().endswith(".png"))
+        if self.kind == "zip":
+            return sorted(n for n in self.zf.namelist() if n.lower().endswith(".png"))
+        return []
+
+    def read(self, entry, flags=cv2.IMREAD_UNCHANGED):
+        if self.kind == "dir":
+            return cv2.imread(os.path.join(self.dir_path, entry), flags)
+        if self.kind == "zip":
+            data = self.zf.read(entry)
+            arr = np.frombuffer(data, dtype=np.uint8)
+            return cv2.imdecode(arr, flags)
+        return None
+
+    def close(self):
+        if self.zf is not None:
+            self.zf.close()
 
 
 def blur_score(img_gray):
@@ -55,27 +112,29 @@ def exposure_score(img_gray):
 
 def explore_arkitscenes_scene(scene_dir, sample_stride=10):
     scene_id = os.path.basename(scene_dir.rstrip("/"))
-    rgb_files = sorted(glob.glob(os.path.join(scene_dir, ARKIT_RGB_DIR, "*.png")))[::sample_stride]
-    depth_files = sorted(glob.glob(os.path.join(scene_dir, ARKIT_DEPTH_DIR, "*.png")))[::sample_stride]
 
     blur_scores, over_scores, under_scores = [], [], []
-    for f in rgb_files:
-        img = cv2.imread(f, cv2.IMREAD_GRAYSCALE)
-        if img is None:
-            continue
-        blur_scores.append(blur_score(img))
-        over, under = exposure_score(img)
-        over_scores.append(over)
-        under_scores.append(under)
+    with AssetReader(scene_dir, ARKIT_RGB_DIR) as rgb_reader:
+        rgb_entries = rgb_reader.list_pngs()[::sample_stride]
+        for entry in rgb_entries:
+            img = rgb_reader.read(entry, cv2.IMREAD_GRAYSCALE)
+            if img is None:
+                continue
+            blur_scores.append(blur_score(img))
+            over, under = exposure_score(img)
+            over_scores.append(over)
+            under_scores.append(under)
 
     depth_chunks = []
-    for f in depth_files:
-        d = cv2.imread(f, cv2.IMREAD_UNCHANGED)
-        if d is None:
-            continue
-        valid = d[d > 0]
-        if valid.size:
-            depth_chunks.append(valid.astype(np.float32) * DEPTH_MM_TO_M)
+    with AssetReader(scene_dir, ARKIT_DEPTH_DIR) as depth_reader:
+        depth_entries = depth_reader.list_pngs()[::sample_stride]
+        for entry in depth_entries:
+            d = depth_reader.read(entry, cv2.IMREAD_UNCHANGED)
+            if d is None:
+                continue
+            valid = d[d > 0]
+            if valid.size:
+                depth_chunks.append(valid.astype(np.float32) * DEPTH_MM_TO_M)
     depth_concat = np.concatenate(depth_chunks) if depth_chunks else np.array([])
 
     mesh_files = glob.glob(os.path.join(scene_dir, "*.ply"))
@@ -90,7 +149,7 @@ def explore_arkitscenes_scene(scene_dir, sample_stride=10):
     return {
         "dataset": "arkitscenes",
         "scene_id": scene_id,
-        "n_frames_sampled": len(rgb_files),
+        "n_frames_sampled": len(rgb_entries),
         "blur_mean": float(np.mean(blur_scores)) if blur_scores else None,
         "blur_min": float(np.min(blur_scores)) if blur_scores else None,
         "overexposed_ratio_mean": float(np.mean(over_scores)) if over_scores else None,
