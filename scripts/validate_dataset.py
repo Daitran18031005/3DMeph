@@ -12,10 +12,15 @@ Cách chạy:
         --replica_root data/raw/replica \
         --output_csv reports/validation_report.csv
 
-Nếu script báo lỗi hàng loạt bất thường (thiếu thư mục ở mọi scene), rất có thể
-tên thư mục con thực tế khác với giả định bên dưới — chạy thêm cờ
---debug_first_scene để in cấu trúc thật của scene đầu tiên rồi chỉnh lại các
-hằng số ARKIT_*_DIR cho khớp.
+QUAN TRỌNG: các asset ARKitScenes (confidence, highres_depth, lowres_depth,
+lowres_wide, lowres_wide_intrinsics) có thể tải về dạng file .zip CHƯA giải nén
+(Windows Explorer ẩn đuôi .zip mặc định nên tên hiển thị giống hệt thư mục).
+Script này tự nhận diện cả 2 trường hợp — thư mục đã giải nén HOẶC file .zip —
+và đọc trực tiếp từ trong zip mà không cần giải nén ra đĩa trước.
+
+Nếu script báo lỗi hàng loạt bất thường (thiếu mọi asset ở mọi scene), chạy thêm
+cờ --debug_first_scene để in cấu trúc thật của scene đầu tiên rồi đối chiếu lại
+với các hằng số ARKIT_*_DIR bên dưới.
 """
 
 import argparse
@@ -23,6 +28,7 @@ import csv
 import glob
 import os
 import sys
+import zipfile
 
 import cv2
 import numpy as np
@@ -36,12 +42,74 @@ except ImportError:
           "Cài bằng: pip install open3d", file=sys.stderr)
 
 
-# ---------- Cấu hình tên thư mục con (chỉnh nếu cấu trúc thực tế khác) ----------
+# ---------- Cấu hình tên asset (chỉnh nếu cấu trúc thực tế khác) ----------
 ARKIT_RGB_DIR = "lowres_wide"
 ARKIT_DEPTH_DIR = "lowres_depth"
 ARKIT_HIGHRES_DEPTH_DIR = "highres_depth"
 ARKIT_INTRINSICS_DIR = "lowres_wide_intrinsics"
+ARKIT_CONFIDENCE_DIR = "confidence"
 FRAME_COUNT_MISMATCH_TOLERANCE = 0.05  # cho phép lệch 5% giữa số RGB và depth
+
+
+class AssetReader:
+    """Đọc file bên trong 1 asset ARKitScenes, hỗ trợ cả 2 dạng:
+    - thư mục đã giải nén (VD: scene_dir/lowres_wide/*.png)
+    - file .zip chưa giải nén (VD: scene_dir/lowres_wide.zip, hoặc file tên
+      "lowres_wide" nhưng thực chất là zip do Explorer ẩn đuôi)
+    Dùng xong nhớ gọi .close() (hoặc dùng qua "with")."""
+
+    def __init__(self, scene_dir, asset_name):
+        self.kind = None      # "dir" | "zip" | None
+        self.zf = None
+        self.dir_path = None
+
+        dir_path = os.path.join(scene_dir, asset_name)
+        if os.path.isdir(dir_path):
+            self.kind = "dir"
+            self.dir_path = dir_path
+            return
+
+        candidates = [dir_path if dir_path.lower().endswith(".zip") else dir_path + ".zip",
+                      dir_path]
+        for c in candidates:
+            if os.path.isfile(c) and zipfile.is_zipfile(c):
+                self.kind = "zip"
+                self.zf = zipfile.ZipFile(c)
+                return
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+    def exists(self):
+        return self.kind is not None
+
+    def list_entries(self):
+        """Tất cả file bên trong, không lọc đuôi — dùng để đếm (VD: intrinsics)."""
+        if self.kind == "dir":
+            return sorted(f for f in os.listdir(self.dir_path)
+                           if os.path.isfile(os.path.join(self.dir_path, f)))
+        if self.kind == "zip":
+            return sorted(n for n in self.zf.namelist() if not n.endswith("/"))
+        return []
+
+    def list_pngs(self):
+        return [f for f in self.list_entries() if f.lower().endswith(".png")]
+
+    def read(self, entry, flags=cv2.IMREAD_UNCHANGED):
+        if self.kind == "dir":
+            return cv2.imread(os.path.join(self.dir_path, entry), flags)
+        if self.kind == "zip":
+            data = self.zf.read(entry)
+            arr = np.frombuffer(data, dtype=np.uint8)
+            return cv2.imdecode(arr, flags)
+        return None
+
+    def close(self):
+        if self.zf is not None:
+            self.zf.close()
 
 
 def list_scene_contents(scene_dir, max_items=25):
@@ -52,16 +120,32 @@ def list_scene_contents(scene_dir, max_items=25):
         return
     for item in sorted(os.listdir(scene_dir))[:max_items]:
         full = os.path.join(scene_dir, item)
-        tag = "DIR " if os.path.isdir(full) else "FILE"
+        if os.path.isdir(full):
+            tag = "DIR "
+        elif zipfile.is_zipfile(full):
+            tag = "ZIP "
+        else:
+            tag = "FILE"
         print(f"  [{tag}] {item}")
 
 
-def _read_first_image(dir_path):
-    files = sorted(glob.glob(os.path.join(dir_path, "*.png")))
-    if not files:
-        return None, 0
-    img = cv2.imread(files[0], cv2.IMREAD_UNCHANGED)
-    return img, len(files)
+def _check_image_asset(scene_dir, asset_name, report, key_n, key_res=None):
+    """Kiểm tra 1 asset dạng ảnh PNG (RGB/depth), ghi kết quả vào report."""
+    with AssetReader(scene_dir, asset_name) as reader:
+        if not reader.exists():
+            report["issues"].append(f"thiếu {asset_name} (không thấy thư mục lẫn file .zip)")
+            report[key_n] = 0
+            return
+        pngs = reader.list_pngs()
+        report[key_n] = len(pngs)
+        if not pngs:
+            report["issues"].append(f"{asset_name} rỗng (0 file .png)")
+            return
+        img = reader.read(pngs[0])
+        if img is None:
+            report["issues"].append(f"ảnh đầu tiên trong {asset_name} không đọc được (nghi corrupt)")
+        elif key_res:
+            report[key_res] = f"{img.shape[1]}x{img.shape[0]}"
 
 
 def validate_arkitscenes_scene(scene_dir):
@@ -73,33 +157,8 @@ def validate_arkitscenes_scene(scene_dir):
         report["status"] = "ISSUES"
         return report
 
-    # --- RGB ---
-    rgb_dir = os.path.join(scene_dir, ARKIT_RGB_DIR)
-    if not os.path.isdir(rgb_dir):
-        report["issues"].append(f"thiếu thư mục {ARKIT_RGB_DIR}")
-        report["n_rgb"] = 0
-    else:
-        rgb_img, n_rgb = _read_first_image(rgb_dir)
-        report["n_rgb"] = n_rgb
-        if n_rgb == 0:
-            report["issues"].append(f"{ARKIT_RGB_DIR} rỗng")
-        elif rgb_img is None:
-            report["issues"].append("ảnh RGB đầu tiên không đọc được (nghi corrupt)")
-        else:
-            report["rgb_resolution"] = f"{rgb_img.shape[1]}x{rgb_img.shape[0]}"
-
-    # --- Depth (lowres) ---
-    depth_dir = os.path.join(scene_dir, ARKIT_DEPTH_DIR)
-    if not os.path.isdir(depth_dir):
-        report["issues"].append(f"thiếu thư mục {ARKIT_DEPTH_DIR}")
-        report["n_depth"] = 0
-    else:
-        depth_img, n_depth = _read_first_image(depth_dir)
-        report["n_depth"] = n_depth
-        if n_depth == 0:
-            report["issues"].append(f"{ARKIT_DEPTH_DIR} rỗng")
-        elif depth_img is None:
-            report["issues"].append("ảnh depth đầu tiên không đọc được (nghi corrupt)")
+    _check_image_asset(scene_dir, ARKIT_RGB_DIR, report, "n_rgb", "rgb_resolution")
+    _check_image_asset(scene_dir, ARKIT_DEPTH_DIR, report, "n_depth")
 
     if report.get("n_rgb", 0) and report.get("n_depth", 0):
         diff_ratio = abs(report["n_rgb"] - report["n_depth"]) / report["n_rgb"]
@@ -110,23 +169,28 @@ def validate_arkitscenes_scene(scene_dir):
             )
 
     # --- Highres depth (ground truth Faro) ---
-    highres_dir = os.path.join(scene_dir, ARKIT_HIGHRES_DEPTH_DIR)
-    if not os.path.isdir(highres_dir):
-        report["issues"].append(
-            f"thiếu {ARKIT_HIGHRES_DEPTH_DIR} — scene này KHÔNG có ground truth Faro, "
-            "không dùng cho L_p2s"
-        )
-        report["n_highres_depth"] = 0
-    else:
-        _, n_hr = _read_first_image(highres_dir)
-        report["n_highres_depth"] = n_hr
-        if n_hr == 0:
-            report["issues"].append(f"{ARKIT_HIGHRES_DEPTH_DIR} rỗng")
+    with AssetReader(scene_dir, ARKIT_HIGHRES_DEPTH_DIR) as reader:
+        if not reader.exists():
+            report["issues"].append(
+                f"thiếu {ARKIT_HIGHRES_DEPTH_DIR} — scene này KHÔNG có ground truth Faro, "
+                "không dùng cho L_p2s"
+            )
+            report["n_highres_depth"] = 0
+        else:
+            n_hr = len(reader.list_pngs())
+            report["n_highres_depth"] = n_hr
+            if n_hr == 0:
+                report["issues"].append(f"{ARKIT_HIGHRES_DEPTH_DIR} rỗng")
 
     # --- Intrinsics ---
-    intr_dir = os.path.join(scene_dir, ARKIT_INTRINSICS_DIR)
-    if not os.path.isdir(intr_dir) or len(os.listdir(intr_dir)) == 0:
-        report["issues"].append(f"thiếu/rỗng {ARKIT_INTRINSICS_DIR}")
+    with AssetReader(scene_dir, ARKIT_INTRINSICS_DIR) as reader:
+        if not reader.exists() or len(reader.list_entries()) == 0:
+            report["issues"].append(f"thiếu/rỗng {ARKIT_INTRINSICS_DIR}")
+
+    # --- Confidence (không bắt buộc nhưng nên có) ---
+    with AssetReader(scene_dir, ARKIT_CONFIDENCE_DIR) as reader:
+        if not reader.exists():
+            report["issues"].append(f"thiếu {ARKIT_CONFIDENCE_DIR} (không bắt buộc, ghi chú lại)")
 
     # --- Mesh ---
     mesh_files = glob.glob(os.path.join(scene_dir, "*.ply"))
@@ -141,8 +205,7 @@ def validate_arkitscenes_scene(scene_dir):
             report["issues"].append(f"mesh {os.path.basename(mesh_files[0])} rỗng — nghi hỏng")
 
     # --- Trajectory / pose ---
-    traj_candidates = glob.glob(os.path.join(scene_dir, "*.traj"))
-    if not traj_candidates:
+    if not glob.glob(os.path.join(scene_dir, "*.traj")):
         report["issues"].append("không tìm thấy file .traj (pose)")
 
     report["status"] = "OK" if not report["issues"] else "ISSUES"
@@ -172,8 +235,8 @@ def validate_replica_scene(scene_dir):
         if n_vert == 0:
             report["issues"].append("mesh rỗng — nghi hỏng")
 
-    texture_dirs = glob.glob(os.path.join(scene_dir, "**", "textures"), recursive=True)
-    if not texture_dirs:
+    if not glob.glob(os.path.join(scene_dir, "**", "textures"), recursive=True) and \
+       not os.path.isdir(os.path.join(scene_dir, "textures")):
         report["issues"].append("không tìm thấy thư mục textures/ (bỏ qua nếu không cần)")
 
     report["status"] = "OK" if not report["issues"] else "ISSUES"
@@ -187,8 +250,7 @@ def main():
     parser.add_argument("--output_csv", default="reports/validation_report.csv")
     parser.add_argument(
         "--debug_first_scene", action="store_true",
-        help="In cấu trúc thư mục của scene đầu tiên mỗi dataset để đối chiếu, "
-             "dùng khi validate báo lỗi hàng loạt bất thường."
+        help="In cấu trúc thư mục của scene đầu tiên mỗi dataset để đối chiếu."
     )
     args = parser.parse_args()
 
