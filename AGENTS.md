@@ -65,7 +65,7 @@ Env conda `3d_metric` (Python 3.12). Python của env: `C:\Users\GIGA\anaconda3\
 | Kiểm tra môi trường (chỉ đọc) | `python environment/check_env.py` | đã chạy: 0 lỗi, 3 cảnh báo |
 | Xem lệnh dựng env (không chạy) | `environment\create_env.bat --dry-run` | **chỉ dry-run đã chạy**; chạy thật cần xác nhận (mục 7) |
 | Test | `python -m pytest tests -q` | đã chạy: 95 passed |
-| Lint | `python -m ruff check pipeline tests scripts environment --select E,F,W --ignore E501,E701,E402` | đã chạy: All checks passed |
+| Lint | `python -m ruff check .` (cấu hình cố định ở `ruff.toml`: E, F, W, I) | UP, PLW1510, RUF, C4 hoãn có chủ ý (WORKING_LOG.md) |
 | Kiểm README ↔ config | `python scripts/check_docs.py` (`--no-run` bỏ qua lệnh trong README) | đã chạy: OK (19 README, 41 khoá) |
 | Đo hai điểm | `python -m pipeline.export.measure --a x y z --b x y z` | đã chạy |
 | EDA / validate dữ liệu | `python scripts/explore_dataset.py`, `python scripts/validate_dataset.py` | chạy lâu; mới chạy `--help` sau khi đổi đường dẫn mặc định sang `reports/statistics/`, [chưa kiểm chứng] chạy đầy đủ |
