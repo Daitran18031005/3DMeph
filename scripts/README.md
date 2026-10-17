@@ -9,6 +9,7 @@ Script chuẩn bị dữ liệu (chạy một lần hoặc theo batch). Dùng Py
 | `validate_dataset.py` | kiểm tra toàn vẹn và định dạng ARKitScenes + Replica | đọc trực tiếp từ zip; mặc định ghi `reports/statistics/validation_report.csv` |
 | `explore_dataset.py` | EDA: blur, exposure, depth, mesh | mặc định ghi `reports/statistics/eda_stats.csv`; đo trên `lowres_wide` 256×192 |
 | `extract_sparse_keyframe.py` | lọc thô keyframe (bản thử nghiệm cũ) | đã có `argparse` và `main()`, không còn đường dẫn cứng; sẽ được `pipeline/keyframe` thay thế |
+| `download_arkitscenes.py` | tải ARKitScenes theo đợt `--batch A\|B\|C\|D\|all`: A `vga_wide`+intrinsics scene dev, B Faro visit của scene dev, C `vga_wide`+intrinsics 6 Validation, D Faro 6 visit Validation. Zip vào `data/raw/arkitscenes/<split>/<id>/` (không có cấp `raw/`), Faro vào `data/raw/arkitscenes/laser_scanner_point_clouds/<visit_id>/`. **Không giải nén, không xoá zip**, tuần tự từng file, resume (`curl -C -`, ghi `.part`), kiểm dung lượng khớp `Content-Length` rồi mới đổi tên, ghi log CSV. `--dry-run` chỉ HEAD và in bảng dung lượng; bắt buộc `--yes` mới tải; ổ phải còn dư ≥ `--min_free_gib` (15 GiB). Chặn scene/visit held-out. Chỉ dùng quy ước URL của `download_data.py` (hàm `download_file` của nó không resume, không kiểm dung lượng) | đã chạy `--dry-run` cả 4 đợt; chưa tải thật |
 | `select_scenes.py` | chọn scene từ **thư mục thật + `metadata.csv`** (không dùng `selected_scenes.csv`), chia train/val/heldout theo `visit_id` với seed 42, ghi `data/splits.csv`, `data/splits.lock`, `data/rejected.csv` | đã chạy; chạy lại phải cho đúng cùng kết quả, khác thì từ chối ghi đè; `--dry-run` chỉ in |
 | `check_docs.py` | kiểm README khớp `configs/default.yaml`, công thức, lệnh chạy được | xem bên dưới |
 
@@ -20,12 +21,11 @@ laser Faro.
 | Script | Làm gì |
 |---|---|
 | `adapters.py` | giao diện chung đọc RGB/intrinsics/pose/depth/Faro (gom `AssetReader` đang bị chép ở hai script) |
-| `download_arkitscenes.py` | bọc `download_data.py` của ARKitScenes: tải zip thẳng vào `data/raw/arkitscenes/<split>/<id>/`, không giải nén; có `--dry-run` và bắt buộc `--yes` |
 | `faro_align.py` | căn point cloud Faro vào hệ scene |
 | `annotate_segments.py` | chấm đầu mút mốc scale và các đoạn test, ghi `ground_truth/measurements.csv` |
 
-Các script trong README cũ (`download_arkitscenes.py`, `download_replica.sh`, `adapters.py`) từng được liệt kê nhưng **chưa tồn tại**; `download_replica.sh`
-hoãn cùng Replica (M5).
+Các script trong README cũ (`download_arkitscenes.py`, `download_replica.sh`, `adapters.py`) từng được liệt kê nhưng **chưa tồn tại**. Hiện
+`download_arkitscenes.py` đã có (bảng "Đang có"); `adapters.py` còn lại ở bảng "Sẽ có"; `download_replica.sh` hoãn cùng Replica (M5).
 
 ## check_docs.py
 

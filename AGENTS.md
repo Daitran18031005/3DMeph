@@ -79,17 +79,17 @@ COLMAP chạy bằng CLI 4.2 (`../colmap/bin/colmap.exe`, hoặc biến `COLMAP_
 - **Danh sách scene = thư mục thật + `data/raw/arkitscenes/metadata.csv`.** `selected_scenes.csv` chỉ để tham khảo
   (lệch: 2 dòng không có trên đĩa, 6 Validation không nằm trong file).
 - **Chia tập theo `visit_id`: 29 train / 6 val / 5 held-out, seed 42**, khoá bằng `data/splits.csv` + `data/splits.lock`
-  (sinh ở M0b, [chưa có]). Val = 6 scene `Validation`. Venue 472473 và 466899 (mỗi venue 2 scene) phải cùng một tập.
+  (đã sinh bằng `scripts/select_scenes.py`, người dùng đã xác nhận; held-out: 43828368, 44796254, 47331622, 47332314, 47332795). Val = 6 scene `Validation`. Venue 472473 và 466899 (mỗi venue 2 scene) phải cùng một tập.
   Scene dev 42444738 luôn ở train. Held-out nội bộ, **không gọi là official test**.
 - **Held-out chạy đúng một lần.** Mọi hàm tính `V_ref`, `G_ref`, ngưỡng phải `raise` nếu thấy scene held-out
-  (`common/splits.py`, [chưa cài, M0b]). **Không bao giờ chỉnh tham số dựa trên held-out** (và không chỉnh trên Replica).
+  (`common/splits.py`, `compute_v_ref`, `compute_g_ref` ở `common/quality.py`; đã cài và có test). **Không bao giờ chỉnh tham số dựa trên held-out** (và không chỉnh trên Replica).
 - **`V_ref`, `G_ref` chỉ đo trên `vga_wide` của 6 Validation.** Không dùng số 581 làm giá trị cấu hình (đo trên 256×192, gồm cả
   scene sẽ là held-out). Tham số `null` nghĩa là chưa có căn cứ; `require()` báo lỗi thay vì đoán.
 - **Không dùng pose GT để suy ra scale.** Mốc scale = một đoạn 1–2 m, dễ thấy, không trên gương/kính; `used_as_anchor=1`
   và **bị loại khỏi chỉ số test** [ĐC §8.1].
 - **`*_3dod_mesh.ply` KHÔNG phải Faro** (là mesh ARKit). Faro là `laser_scanner_point_clouds` (`.ply` + `_pose.txt`).
 - **Không ghi đè, không copy, không giải nén dữ liệu raw.** Raw nằm ngoài git. Tải bằng wrapper không giải nén
-  (`scripts/download_arkitscenes.py`, [chưa có, M0b]); **không** dùng `download_data.py` gốc cho `vga_wide` (nó tự `unzip` và xoá zip).
+  (`scripts/download_arkitscenes.py`: `--batch A|B|C|D`, `--dry-run`, bắt buộc `--yes`, có resume và kiểm dung lượng; đã có và đã chạy `--dry-run`, chưa tải thật); **không** dùng `download_data.py` gốc cho `vga_wide` (nó tự `unzip` và xoá zip).
 - Ảnh ARKit xoay đứng theo `sky_direction` (Up→0°, Left→90° CW, Down→180°, Right→90° CCW); `NA` thì dừng, báo.
 
 ## 7. Quy tắc an toàn (cần người dùng xác nhận trước khi làm)
