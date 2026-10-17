@@ -5,7 +5,12 @@ import numpy as np
 import pytest
 
 from pipeline.common.quality import (
-    exposure_counts, laplacian_variance, q_blur, q_exposure, q_exposure_from_counts, q_texture,
+    exposure_counts,
+    laplacian_variance,
+    q_blur,
+    q_exposure,
+    q_exposure_from_counts,
+    q_texture,
     window_gradient_mean,
 )
 

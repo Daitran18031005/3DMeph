@@ -5,7 +5,11 @@ import pytest
 
 from pipeline.common.quality import f_err
 from pipeline.fusion.fusion import (
-    fuse, gate_weight, normalize_weights, raw_weight, weights_from_signals,
+    fuse,
+    gate_weight,
+    normalize_weights,
+    raw_weight,
+    weights_from_signals,
 )
 
 # Bảng "Bước 1" của §16.4 (đã đổi sang điểm 0..1): c_model, f(e_reproj), f(σ_depth), q_blur, q_texture, q_exposure
