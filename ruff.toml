@@ -1,0 +1,17 @@
+# ruff.toml — cấu hình lint cố định cho 3DMeph (ruff 0.16.3 dùng bộ luật mặc định rộng hơn nếu không có file này).
+#
+# Bộ luật đang bật: E, F, W (pycodestyle, pyflakes) và I (sắp xếp import).
+# Hoãn có chủ ý (chưa bật): UP (nâng cấp kiểu: Dict→dict, Optional→X | None), PLW1510 (subprocess.run thiếu check=),
+# RUF, C4. Khi bật lại sẽ có 62 lỗi cần sửa (xem WORKING_LOG.md, mục "Lệch so với kế hoạch").
+#
+# Chạy: python -m ruff check .
+
+line-length = 120
+
+[lint]
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E501",  # dòng dài: README và docstring tiếng Việt có dấu thường dài
+    "E701",  # nhiều câu lệnh trên một dòng: dùng cho property một dòng trong pipeline/common/io.py
+    "E402",  # import sau sys.path.insert: các script (scripts/*.py) cần chèn đường dẫn repo trước khi import
+]

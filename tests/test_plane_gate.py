@@ -4,7 +4,12 @@ import numpy as np
 import pytest
 
 from pipeline.plane_gate.gate import (
-    angle_to_plane_deg, force_project, gate_mask, is_structural, project_to_plane, residual,
+    angle_to_plane_deg,
+    force_project,
+    gate_mask,
+    is_structural,
+    project_to_plane,
+    residual,
     signed_distance,
 )
 

@@ -4,7 +4,12 @@ import numpy as np
 import pytest
 
 from pipeline.common.geometry import (
-    SKY_TO_ROT, project, rotate_camera_axes, rotate_intrinsics, rotate_pixels, rotation_for_sky,
+    SKY_TO_ROT,
+    project,
+    rotate_camera_axes,
+    rotate_intrinsics,
+    rotate_pixels,
+    rotation_for_sky,
 )
 from pipeline.keyframe.orientation import rotate_image, upright
 

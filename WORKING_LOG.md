@@ -3,6 +3,7 @@
 - **Ngày tạo:** 2026-10-17
 - **Nhánh:** `feature/m0a-foundation` (theo dõi `origin/QuangDai_Work`)
 - **Commit khi tạo file:** `6a7ea50` (commit chứa chính file này sẽ đứng ngay sau)
+- **Chốt M0a:** 2026-10-17 14:2x, trên `c7fa757` (đã đồng bộ `origin/main` bằng merge `8629ac3`); commit cập nhật log này đứng ngay sau
 - **Đối chiếu với:** kế hoạch **v4** (`docs/PLAN_v4.md`), PDF đề cương `Docs/TaiTao3D_Metric_3DMeph.pdf`
 - **Quy tắc cập nhật:** `AGENTS.md` mục 10. Chỉ ☑ khi có bằng chứng (lệnh đã chạy + kết quả hoặc commit); dry-run không tính.
 
@@ -12,7 +13,7 @@ Ký hiệu: ☑ xong có bằng chứng · ☐ chưa làm · ◐ làm dở. Nhã
 
 | Mốc | Trạng thái | Nhánh | Commit | Tiêu chí đạt (PLAN §10) | Đã đạt chưa, bằng chứng |
 |---|---|---|---|---|---|
-| M0a Nền tảng | **Xong** (code); chưa merge vào `main` | `feature/m0a-foundation` (sao lưu `origin/QuangDai_Work`) | `5ffd429`, `6a7ea50` | `check_env.py` exit 0; `pytest` xanh cho vector không cần dữ liệu; `check_docs.py` exit 0 | **Đạt**: check_env exit 0 (0 lỗi, 3 cảnh báo); pytest 95 passed; check_docs OK (19 README, 41 khoá); ruff All checks passed. **Chưa đạt phần phụ:** `create_env.bat` mới chỉ chạy `--dry-run` |
+| M0a Nền tảng | **Xong** (code, đã đồng bộ `origin/main`); chưa mở PR, chưa merge vào `main` | `feature/m0a-foundation` (sao lưu `origin/QuangDai_Work`) | `5ffd429`, `6a7ea50`, `f00b2a3`, merge `8629ac3`, `82f7201`, `c7fa757` | `check_env.py` exit 0; `pytest` xanh cho vector không cần dữ liệu; `check_docs.py` exit 0 | **Đạt** (đo ngày 17/10 trên `c7fa757`, trong worktree `../3DMeph_m0a`): `pytest` **94 passed, 1 skipped** (skip = `test_colmap_compat`, worktree không có `data/processed`; ở thư mục chính 95 passed); `ruff check .` **All checks passed** (E, F, W, I); `check_docs.py` **OK** (18 README trong worktree, 41 khoá); `check_env.py` **exit 0, 0 lỗi, 3 cảnh báo**. **Chưa kiểm chứng:** `create_env.bat` mới chỉ chạy `--dry-run`; chưa có `pipeline.run`; chưa tải dữ liệu |
 | M0b Dữ liệu | Chưa bắt đầu | — | — | `splits.csv` 29/6/5, 0 venue ở 2 tập, chạy lại cho cùng held-out; mỗi đợt tải khớp dung lượng HEAD; residual căn Faro được log; `measurements.csv` ≥ 1 anchor + ≥ 12 đoạn test; `v_ref.vga`, `g_ref.vga` trong config | Chưa |
 | M1 Walking skeleton | Chưa bắt đầu (chờ M0b) | — | — | `python -m pipeline.run` exit 0, `model.glb` mở được bằng trimesh, `measure` đo được 1 đoạn, `run_meta.json` đủ | Chưa |
 | M2 Chất lượng dữ liệu | Chưa bắt đầu | — | — | 40 ≤ N_kf ≤ 80; ≥ 90% keyframe đăng ký SfM; peak VRAM < 8 GB (có số đo) | Chưa |
@@ -37,7 +38,11 @@ Ký hiệu: ☑ xong có bằng chứng · ☐ chưa làm · ◐ làm dở. Nhã
 - ☑ `.gitignore`: `data/scenes/`, `.pytest_cache/` (`5ffd429`); `.env`, `*.pt`, `*.pth`, `*.safetensors`, `*.ckpt` (`6a7ea50`, `git check-ignore` xác nhận cả 5)
 - ☑ Kiểm tra trước push: file lớn nhất trong HEAD 12,9 KB; không có tên file nhạy cảm; `git grep` bí mật không có kết quả
 - ☑ Push `feature/m0a-foundation` → `origin/QuangDai_Work` (người dùng xác nhận, không force) — `git log origin/QuangDai_Work`: `6a7ea50`, `5ffd429`, `b14f47e`
-- ☑ `AGENTS.md`, `CLAUDE.md`, `WORKING_LOG.md`, `docs/PLAN_v4.md` — 2026-10-17 — commit kế tiếp (xem mục 4)
+- ☑ `AGENTS.md`, `CLAUDE.md`, `WORKING_LOG.md`, `docs/PLAN_v4.md` — 2026-10-17 — commit `f00b2a3`
+- ☑ Đồng bộ `origin/main` (người dùng chọn **merge**, không rebase): xem trước `git merge-tree --write-tree` sạch, không xung đột; merge `8629ac3` không đổi file nào (`origin/main` không đổi file so với merge-base `b14f47e`); `git rev-list --left-right --count origin/main...HEAD` = `0 6`
+- ☑ `ruff.toml` cố định (E, F, W, I; ignore E501, E701, E402) và đồng bộ lệnh ruff trong `AGENTS.md` — `82f7201`. Trước đó `ruff check .` (bộ luật mặc định, không có cấu hình) đỏ 70 lỗi kiểu dáng, không có lỗi logic
+- ☑ Sửa 8 lỗi I001 bằng `ruff check --select I --fix` (8 file test, chỉ định dạng lại khối import) — `c7fa757`
+- ☑ Bốn kiểm tra xanh trên `c7fa757` (xem mục 1) rồi push `QuangDai_Work`: `f00b2a3..c7fa757`, không force
 
 ### M0b (PLAN §4.0, §10 M0b)
 
@@ -87,7 +92,12 @@ Ký hiệu: ☑ xong có bằng chứng · ☐ chưa làm · ◐ làm dở. Nhã
 | 2026-10-17 13:16 | Vá `.gitignore` (`.env`, `*.pt`, `*.pth`, `*.safetensors`, `*.ckpt`), commit riêng | `.gitignore` | `git check-ignore -v` xác nhận 5 mẫu; kiểm tra trước push: không file nhạy cảm, lớn nhất 12,9 KB | `6a7ea50` |
 | 2026-10-17 (sau 13:16) | Push `feature/m0a-foundation` → `origin/QuangDai_Work` (không force) | — | `git log origin/QuangDai_Work` = `6a7ea50`, `5ffd429`, `b14f47e` | — |
 | 2026-10-17 (sau push) | Dọn nhánh cũ (người dùng xác nhận từng bước): xoá `feature/Update` (`b14f47e`), `feature/setup-data-scripts` (`5dd829a`) bằng `-d`; `feature/extract_frame` (cục bộ `fd4cd8b`, origin `f0bee5b`) và `feature/gitignore` (`6058077`, chỉ cục bộ) bằng `-D` sau khi được phép | không đổi file | `git branch -a` còn `main`, `feature/m0a-foundation`, `origin/QuangDai_Work`, `origin/main`; `git cat-file -t` xác nhận 3 hash vẫn tồn tại | — |
-| 2026-10-17 | Tạo `AGENTS.md`, `CLAUDE.md`, `WORKING_LOG.md`, sao chép kế hoạch vào `docs/PLAN_v4.md`; kiểm chứng 3 điểm hở của kế hoạch (mục 5) | 4 file mới | xem mục 5 và phần kiểm tra cuối của commit | commit kế tiếp |
+| 2026-10-17 13:37 | Tạo `AGENTS.md`, `CLAUDE.md`, `WORKING_LOG.md`, sao chép kế hoạch vào `docs/PLAN_v4.md`; kiểm chứng 3 điểm hở của kế hoạch (mục 5) | 4 file mới | `pytest` 95 passed; `ruff` xanh; `check_docs` OK; HEAD/Range đo Faro | `f00b2a3` |
+| 2026-10-17 (sau 13:37) | Đo dung lượng Faro 38 visit bằng HEAD (chỉ đọc); sửa ước lượng ngân sách ổ đĩa (đơn vị GiB) | không đổi file repo | script ở scratchpad; 5/38 visit có file cùng kích thước, `_pose.txt` của 8/8 nhóm trùng giống hệt | — |
+| 2026-10-17 | **Chốt M0a.** Tạo worktree `../3DMeph_m0a` (thư mục chính ở `feature/m0b-data` giữ nguyên); push `f00b2a3` lên `QuangDai_Work` (`6a7ea50..f00b2a3`) | không đổi file | `git status` sạch; không force | — |
+| 2026-10-17 14:07 | Xem trước và thực hiện merge `origin/main` → `feature/m0a-foundation` | không đổi file (diff rỗng) | `git merge-tree --write-tree`: mã 0, không xung đột | `8629ac3` |
+| 2026-10-17 14:13 | `ruff check .` đỏ 70 lỗi (bộ luật mặc định): thêm `ruff.toml`, sửa 8 lỗi I001, cập nhật lệnh ruff trong `AGENTS.md` | `ruff.toml`, `AGENTS.md`, 8 file `tests/*.py` | sau sửa: `pytest` 94 passed 1 skipped; `ruff check .` pass; `check_docs` OK; `check_env` exit 0 | `82f7201`, `c7fa757` |
+| 2026-10-17 14:2x | Push `QuangDai_Work` `f00b2a3..c7fa757` (không force); cập nhật log này | `WORKING_LOG.md` | `git log origin/QuangDai_Work` | `c7fa757`; log: commit kế tiếp |
 
 **Hash khôi phục các nhánh đã xoá:** `feature/Update` `b14f47e3c9c52c556c792fa9ef07b8abc48f0d39` · `feature/setup-data-scripts` `5dd829aac0cf078ea3fc2b6b7e56a4ab09988f16`
 · `feature/extract_frame` cục bộ `fd4cd8b28e7383d7003b7d23504a2d103836f659`, origin `f0bee5b8a9dac9e65064745d5a8204e4f1271b39` · `feature/gitignore` `60580776d5ddcb970978a2b2144278d008069f10`.
@@ -104,7 +114,9 @@ Khôi phục: `git branch <tên> <hash>` rồi (nếu cần) `git push origin <t
 | **(b) Ngưỡng keyframe cần ở M1 nhưng chỉ khoá ở M2** | `keyframe.blur.q_drop` đang `null` (PLAN §4.1: "khoá trên 6 Validation"; §10 M2: khoá blur/overlap). Stage `keyframe` của M1 lọc blur nên cần một giá trị; `require()` sẽ `raise` khi `null`. `keyframe.overlap.max/min` đã có mặc định (0,8/0,6, [Suy luận]) | chọn giá trị tạm ghi rõ "tạm, M1" (ví dụ chỉ loại q_blur rất thấp theo ví dụ §7.3: 0,005 loại, 0,35 giữ), hoặc đo sớm trên 6 Validation sau đợt C | người dùng [Cần xác nhận] |
 | **(c) Số điểm mỗi scan Faro** | **Đã kiểm lại, kế hoạch/README ghi sai:** "mỗi scan 42.348.620 điểm" chỉ đúng cho file 1,863 GB. Đo bằng header PLY (Range): `169892` 42.348.620; `169895` 41.467.500; `169897` 40.935.479 (cả ba khớp `332 + n×44 = kích thước`). Ba scan ≈ 124,75 triệu điểm | sửa `data/README.md` và ghi chú trong `docs/PLAN_v4.md` (chưa sửa, ngoài phạm vi nhiệm vụ này) | người dùng [Cần xác nhận] |
 | PR #4 | không có `gh` trên máy; không thấy merge commit của #4 trên `origin/main` (#1, #2, #3, #6, #7, #8 đã merge) | xem trên GitHub | người dùng |
-| Nhánh chưa đồng bộ với `origin/main` | `feature/m0a-foundation` cách `origin/main` 10 commit (merge #1–#8, xoá 2 CSV trong `reports/`); `main` cục bộ `bbc68bc` cũ hơn `origin/main` `8a56a9b` | quyết định merge/rebase khi mở PR | người dùng |
+| `main` cục bộ cũ | `main` cục bộ vẫn ở `bbc68bc`, cũ hơn `origin/main` `8a56a9b` (nhánh M0a đã đồng bộ bằng merge `8629ac3`, không còn lệch) | `git switch main && git pull --ff-only` (chưa làm, chờ xác nhận) | người dùng |
+| PR "M0a: nền tảng" | chưa mở theo yêu cầu; mô tả PR soạn ở bước cuối của lần chốt M0a (chỉ in ra, không lưu file) | người dùng dán mô tả và mở PR | người dùng |
+| Chưa kiểm chứng sau khi chốt M0a | `create_env.bat` chỉ chạy `--dry-run`, chưa chạy thật; **chưa có `pipeline.run`** (không có stage nào chạy trên dữ liệu thật); **chưa tải dữ liệu** (đợt A–D chưa chạy) | M0b, M1 | người dùng |
 | Replica | thiếu `preseg`, `semantic`, `glass.sur`; Habitat-Sim chưa cài, khả năng cài trên Windows [chưa kiểm chứng] | Q6: hoãn đến M5 | người dùng |
 | `setup_3dmeph_structure.sh` | nằm **ngoài** repo (`3D_Metric/`), còn tạo `thesis/`, `zotero/` và ghi đè README bằng bản cũ nếu chạy lại | sửa hoặc bỏ file này | người dùng |
 | Chưa kiểm chứng (từ kế hoạch) | ý nghĩa xoay/tịnh tiến trong Faro `_pose.txt`; xyz toàn bộ các cặp Faro khớp nhau; peak VRAM thật; chất lượng MVS/Poisson trên 640×480; có lệnh `unzip` hay không | làm khi tới mốc liên quan | — |
@@ -121,6 +133,10 @@ Khôi phục: `git branch <tên> <hash>` rồi (nếu cần) `git push origin <t
 | 6 | `docs/PLAN_v4.md` có thêm 3 dòng ghi chú đầu file so với bản gốc trong thư mục plans | cho agent khác biết trạng thái thật | Theo yêu cầu "sao chép"; ghi chú thêm là của tôi, chưa hỏi riêng |
 | 7 | Q11: làm 2/3 (đổi `statistics`, `.gitattributes`); chính sách `reports/` để nhóm quyết | đúng như người dùng ghi ("riêng chính sách reports/ hỏi nhóm") | Có |
 | 8 | Dọn nhánh: dùng `-D` cho `feature/extract_frame` và `feature/gitignore` | `-d` từ chối vì so với nhánh hiện tại; người dùng cho phép `-D` | **Có** |
+| 9 | **Bộ luật ruff chốt ở E, F, W, I** (thêm `ruff.toml`); **hoãn có chủ ý** UP, PLW1510, RUF, C4 | `ruff check .` không cấu hình dùng bộ luật mặc định rộng của ruff 0.16.3: **70 lỗi** trước khi chốt cấu hình, không có lỗi logic. Phân loại: UP006 25, UP035 16, UP045 5, UP037 2 (= **UP 48**); PLW1510 **4**; RUF059 4, RUF100 4, RUF007 1 (= **RUF 9**); C408 **1** (C4); I001 **8** (đã sửa, `c7fa757`). Còn **62 lỗi hoãn** (48 + 4 + 9 + 1) | **Có** (người dùng chọn tạo `ruff.toml` và chỉ sửa I001) |
+| 10 | `ruff.toml` ignore thêm E501, E701, E402 và `line-length = 120` ngoài bộ luật "E, F, W, I" | giữ đúng cấu hình đã chạy xanh từ đầu: README/docstring tiếng Việt dài (E501), property một dòng trong `io.py` (E701), `sys.path.insert` trước import trong `scripts/` (E402) | Chưa hỏi riêng |
+| 11 | Đồng bộ `origin/main` bằng **merge** (`8629ac3`), không rebase | rebase buộc force-push `QuangDai_Work` vì 3 commit đã push | **Có** (người dùng chọn merge) |
+| 12 | Chốt M0a trong worktree `../3DMeph_m0a` thay vì chuyển nhánh ở thư mục chính | thư mục chính có file M0b chưa commit (`select_scenes.py`, `data/splits.*`, `splits.py`, test) | **Có** (theo yêu cầu) |
 
 ## 7. Câu hỏi còn mở
 
@@ -133,4 +149,5 @@ Khôi phục: `git branch <tên> <hash>` rồi (nếu cần) `git push origin <t
 | Q23 | Sửa số điểm Faro sai trong `data/README.md` và kế hoạch (mục 5 điểm c) | Chưa sửa |
 | Q24 | Thêm kiểm tra tiêu đề `WORKING_LOG.md` vào `scripts/check_docs.py` (AGENTS.md mục 10, điểm 7) | Chưa thêm |
 | Q25 | Trạng thái PR #4; tên GitHub thật thay `@username1–4` trong CODEOWNERS | Giữ placeholder |
-| Q26 | Merge hay rebase `QuangDai_Work` với `origin/main` trước khi mở PR; có cập nhật `main` cục bộ không | Chờ quyết định |
+| ~~Q26~~ | ~~Merge hay rebase với `origin/main`~~ **Đã chốt: merge** (`8629ac3`). Còn lại: có cập nhật `main` cục bộ không (xem mục 5) | — |
+| Q27 | Khi nào bật lại UP, PLW1510, RUF, C4 (62 lỗi, mục 6 dòng 9): ở M0a hay các mốc sau, sửa tay hay `--fix` | Hoãn; không bật |

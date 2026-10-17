@@ -4,7 +4,12 @@ import numpy as np
 import pytest
 
 from pipeline.alignment.ransac import (
-    metric_scale, ransac_sim3, reference_distance, threshold_from_ratio, to_metric, total_scale,
+    metric_scale,
+    ransac_sim3,
+    reference_distance,
+    threshold_from_ratio,
+    to_metric,
+    total_scale,
 )
 from pipeline.common.geometry import apply_sim3, rodrigues, umeyama_sim3
 

@@ -4,8 +4,16 @@ import numpy as np
 import pytest
 
 from pipeline.common.geometry import (
-    apply_sim3, camera_center, euclid, invert_pose, overlap_percent, project, reproj_error,
-    rodrigues, umeyama_sim3, valid_depth,
+    apply_sim3,
+    camera_center,
+    euclid,
+    invert_pose,
+    overlap_percent,
+    project,
+    reproj_error,
+    rodrigues,
+    umeyama_sim3,
+    valid_depth,
 )
 from pipeline.common.io import parse_traj_line
 

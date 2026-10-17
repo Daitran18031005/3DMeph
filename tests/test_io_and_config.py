@@ -5,10 +5,18 @@ import pytest
 
 from pipeline.common import config as cfgmod
 from pipeline.common.io import (
-    frame_id_from_name, parse_pincam, parse_traj_line, read_traj, scene_layout,
+    frame_id_from_name,
+    parse_pincam,
+    parse_traj_line,
+    read_traj,
+    scene_layout,
 )
 from pipeline.common.schema import (
-    KEYFRAME_COLUMNS, ScaleInfo, Sim3Result, read_keyframes_csv, write_keyframes_csv,
+    KEYFRAME_COLUMNS,
+    ScaleInfo,
+    Sim3Result,
+    read_keyframes_csv,
+    write_keyframes_csv,
 )
 
 
