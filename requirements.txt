@@ -1,0 +1,12 @@
+# requirements.txt — CHỈ các gói BỔ SUNG của dự án 3DMeph so với môi trường conda `3d_metric`
+# đã có sẵn (Python 3.12, torch 2.5.1+cu121, numpy 1.26.4, open3d 0.19, trimesh 5.0, ...).
+#
+# Các gói nền (đã có) được ghim ở environment/baseline-requirements.txt; torch cài riêng từ
+# index CUDA 12.1 trong environment/create_env.bat.
+#
+# Cài: pip install -r requirements.txt   (trong env 3d_metric)
+
+pytest>=8          # chạy tests/ (test vector lấy từ đề cương)
+
+# --- Chỉ cần ở các mốc sau (chưa cài ở M0a) ---
+# redis            # M6: hàng đợi job FastAPI (ĐC §19); chưa dùng ở mốc đầu

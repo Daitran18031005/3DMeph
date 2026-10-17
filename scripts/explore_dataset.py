@@ -10,7 +10,7 @@ Cách chạy:
     python3 explore_dataset.py \
         --arkitscenes_root data/raw/arkitscenes \
         --replica_root data/raw/replica \
-        --output_csv reports/eda_stats.csv \
+        --output_csv reports/statistics/eda_stats.csv \
         --sample_stride 10
 
 QUAN TRỌNG: hỗ trợ cả asset ARKitScenes dạng thư mục đã giải nén lẫn file .zip
@@ -200,7 +200,7 @@ def main():
     parser = argparse.ArgumentParser(description="EDA ARKitScenes + Replica cho 3DMeph")
     parser.add_argument("--arkitscenes_root", default="data/raw/arkitscenes")
     parser.add_argument("--replica_root", default="data/raw/replica")
-    parser.add_argument("--output_csv", default="reports/eda_stats.csv")
+    parser.add_argument("--output_csv", default="reports/statistics/eda_stats.csv")
     parser.add_argument("--sample_stride", type=int, default=10,
                          help="Chỉ lấy mẫu 1/N frame để tính blur/exposure cho nhanh")
     args = parser.parse_args()

@@ -10,7 +10,7 @@ Cách chạy:
     python3 validate_dataset.py \
         --arkitscenes_root data/raw/arkitscenes \
         --replica_root data/raw/replica \
-        --output_csv reports/validation_report.csv
+        --output_csv reports/statistics/validation_report.csv
 
 QUAN TRỌNG: các asset ARKitScenes (confidence, highres_depth, lowres_depth,
 lowres_wide, lowres_wide_intrinsics) có thể tải về dạng file .zip CHƯA giải nén
@@ -247,7 +247,7 @@ def main():
     parser = argparse.ArgumentParser(description="Validate ARKitScenes + Replica cho 3DMeph")
     parser.add_argument("--arkitscenes_root", default="data/raw/arkitscenes")
     parser.add_argument("--replica_root", default="data/raw/replica")
-    parser.add_argument("--output_csv", default="reports/validation_report.csv")
+    parser.add_argument("--output_csv", default="reports/statistics/validation_report.csv")
     parser.add_argument(
         "--debug_first_scene", action="store_true",
         help="In cấu trúc thư mục của scene đầu tiên mỗi dataset để đối chiếu."
