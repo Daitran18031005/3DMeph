@@ -14,7 +14,7 @@ Nguồn thật của danh sách scene là **thư mục trên đĩa + `metadata.c
 | `scenes/<dataset>/<scene_id>/` | cây thư mục một scene theo ĐC §9 (xem README gốc); sinh từ M1 |
 | `self_collected/` | 6–8 phòng tự quay (cross-domain, chưa có) |
 | `processed/` | kết quả chạy thử cũ (COLMAP trên 121 ảnh); không thuộc cây Mục 9 |
-| `splits.csv`, `splits.lock` | danh sách train/val/heldout và hash khoá (sinh ở M0b) |
+| `splits.csv`, `splits.lock`, `rejected.csv` | danh sách train/val/heldout, hash khoá, scene bị loại (đã sinh bằng `scripts/select_scenes.py`) |
 
 Replica luôn là **test** và không dùng để train (ĐC §11). Tự thu: số đo của các phòng tự thu không dùng làm nhãn train (ĐC §18).
 
@@ -42,13 +42,17 @@ khớp 34/34 scene Training đang có, **lệch 2 dòng không có trên đĩa**
 6 scene Validation **không nằm trong** file. Vì vậy `select_scenes.py` quét thư mục thật và kiểm lại từng scene trong `metadata.csv`
 (`fold` khớp thư mục, `has_laser_scanner_point_clouds=True`, `visit_id` là số nguyên, `sky_direction` hợp lệ); `selected_scenes.csv` chỉ để đối chiếu.
 
-## Chia tập (kế hoạch, sinh ở M0b)
+## Chia tập (đã sinh bằng `scripts/select_scenes.py`, người dùng đã xác nhận)
 
 **29 train / 6 val / 5 held-out**, chia theo `visit_id` (venue), seed **42**; lệch nhỏ so với 30/5/5 của ĐC Hình 9.
+Kết quả ở `data/splits.csv` (cột `video_id, visit_id, split, sky_direction, source_dir, seed`), khoá bằng `data/splits.lock`
+(sha256 của `splits.csv` với xuống dòng chuẩn hoá LF); `data/rejected.csv` ghi scene bị loại (hiện 0 dòng).
 
 - val = 6 scene `Validation`; dùng để khoá `V_ref`, `G_ref`, `τ_e`, `τ_σ`, ngưỡng blur/overlap và ngưỡng plane gate.
-- held-out = 5 scene lấy từ `Training` theo venue (venue 2 scene vào cùng nhau), loại venue của scene dev (421267, scene 42444738 luôn ở train).
-  Khoá bằng `splits.lock`; mọi hàm tính `V_ref`, `G_ref` từ chối scene held-out. Held-out nội bộ, **không gọi là official test** (ĐC §10).
+- held-out = 5 scene lấy từ `Training` theo venue (venue 2 scene vào cùng nhau), loại venue của scene dev (421267, scene 42444738 luôn ở train):
+  **43828368, 44796254, 47331622, 47332314, 47332795** (venue 437534, 464746, 466906, 471674, 469226). Chọn **chỉ bằng seed**, không dựa vào dung lượng Faro.
+  Khoá bằng `splits.lock`; `compute_v_ref` và `compute_g_ref` (`pipeline/common/quality.py`) `raise HeldoutError` khi gặp scene held-out.
+  Held-out nội bộ, **không gọi là official test** (ĐC §10). Chạy lại `select_scenes.py` phải cho đúng cùng danh sách, nếu khác thì từ chối ghi đè.
 - train = phần còn lại (29 scene).
 
 ## Dung lượng cần tải thêm (đã duyệt, chưa tải)

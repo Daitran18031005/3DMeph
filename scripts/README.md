@@ -9,6 +9,7 @@ Script chuẩn bị dữ liệu (chạy một lần hoặc theo batch). Dùng Py
 | `validate_dataset.py` | kiểm tra toàn vẹn và định dạng ARKitScenes + Replica | đọc trực tiếp từ zip; mặc định ghi `reports/statistics/validation_report.csv` |
 | `explore_dataset.py` | EDA: blur, exposure, depth, mesh | mặc định ghi `reports/statistics/eda_stats.csv`; đo trên `lowres_wide` 256×192 |
 | `extract_sparse_keyframe.py` | lọc thô keyframe (bản thử nghiệm cũ) | đã có `argparse` và `main()`, không còn đường dẫn cứng; sẽ được `pipeline/keyframe` thay thế |
+| `select_scenes.py` | chọn scene từ **thư mục thật + `metadata.csv`** (không dùng `selected_scenes.csv`), chia train/val/heldout theo `visit_id` với seed 42, ghi `data/splits.csv`, `data/splits.lock`, `data/rejected.csv` | đã chạy; chạy lại phải cho đúng cùng kết quả, khác thì từ chối ghi đè; `--dry-run` chỉ in |
 | `check_docs.py` | kiểm README khớp `configs/default.yaml`, công thức, lệnh chạy được | xem bên dưới |
 
 Lưu ý khi đọc `validate_dataset.py`: file `*.ply` trong thư mục scene mà script gọi là "mesh" là `*_3dod_mesh.ply`, mesh của ARKit/iPad, **không phải**
@@ -19,7 +20,6 @@ laser Faro.
 | Script | Làm gì |
 |---|---|
 | `adapters.py` | giao diện chung đọc RGB/intrinsics/pose/depth/Faro (gom `AssetReader` đang bị chép ở hai script) |
-| `select_scenes.py` | chọn scene từ **thư mục thật + `metadata.csv`** (không dùng `selected_scenes.csv`), chia train/val/heldout theo `visit_id` với seed 42, ghi `data/splits.csv`, `data/splits.lock`, `rejected.csv` |
 | `download_arkitscenes.py` | bọc `download_data.py` của ARKitScenes: tải zip thẳng vào `data/raw/arkitscenes/<split>/<id>/`, không giải nén; có `--dry-run` và bắt buộc `--yes` |
 | `faro_align.py` | căn point cloud Faro vào hệ scene |
 | `annotate_segments.py` | chấm đầu mút mốc scale và các đoạn test, ghi `ground_truth/measurements.csv` |

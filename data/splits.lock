@@ -1,0 +1,11 @@
+{
+  "sha256": "94b15d18a16cf2b3f74f66b363bbe583a5bfdf232af7e8b71f03fc8adbf6862e",
+  "seed": 42,
+  "n_rows": 40,
+  "counts": {
+    "train": 29,
+    "val": 6,
+    "heldout": 5
+  },
+  "file": "splits.csv"
+}

@@ -1,7 +1,7 @@
 # pipeline/common/
 
 Mã dùng chung: cấu hình, đọc/ghi, hình học Sim(3), chỉ số chất lượng ảnh. Trạng thái (M0a): có đủ `config.py`, `io.py`,
-`schema.py`, `geometry.py`, `quality.py` và test. Chưa có `splits.py` (M0b).
+`schema.py`, `geometry.py`, `quality.py`, `splits.py` (M0b) và test.
 
 ## Vai trò
 
@@ -9,7 +9,9 @@ Mã dùng chung: cấu hình, đọc/ghi, hình học Sim(3), chỉ số chất 
 - `io.py` đọc/ghi JSON, cây thư mục một scene theo ĐC §9, định dạng ARKitScenes (`.traj`, `.pincam`, `frame_id`).
 - `schema.py` hợp đồng I/O giữa các stage (tên cột, `Sim3Result`, `ScaleInfo`).
 - `geometry.py` Umeyama, đảo pose, phép chiếu, xoay intrinsics, overlap, depth hợp lệ, khoảng cách hai điểm.
-- `quality.py` `q_blur`, `q_exposure`, `q_texture`, hàm đổi sai số `f(x) = e^{−x/τ}`.
+- `quality.py` `q_blur`, `q_exposure`, `q_texture`, hàm đổi sai số `f(x) = e^{−x/τ}`; `compute_v_ref`, `compute_g_ref` (trung vị qua scene,
+  **chỉ nhận scene val**, scene held-out thì `raise HeldoutError`).
+- `splits.py` chọn train/val/heldout theo venue (seed 42), ghi và kiểm `splits.lock` (sha256, xuống dòng chuẩn hoá LF), `guard_reference`.
 
 `pipeline/__init__.py` `import torch` **trước mọi thư viện khác** (tránh lỗi DLL của pycolmap).
 

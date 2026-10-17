@@ -43,4 +43,4 @@ Các khoá không thuộc module nào:
 | `loss.alpha_r` | null | (29): hệ số phạt `L_reg` của confidence head; mốc sau, chưa dùng |
 | `paths.colmap_exe` | `${COLMAP_EXE}` | biến môi trường; mặc định `../colmap/bin/colmap.exe` so với repo |
 | `paths.data_root` | data/scenes | cây thư mục Mục 9 (ĐC §9) |
-| `paths.splits` | data/splits.csv | danh sách train/val/heldout (sinh ở M0b) |
+| `paths.splits` | data/splits.csv | danh sách train/val/heldout (đã sinh bằng `scripts/select_scenes.py`) |

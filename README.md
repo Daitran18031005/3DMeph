@@ -95,9 +95,9 @@ Ba nguồn, ba bảng số riêng, không trộn kết quả (ĐC §3).
 
 - **Danh sách scene lấy từ thư mục thật và `metadata.csv`**, không dùng `selected_scenes.csv` (file đó lệch: 2 dòng
   không có trên đĩa, 6 scene Validation không nằm trong file). Chi tiết ở [data/README.md](data/README.md).
-- **Chia tập (kế hoạch, sinh ở M0b):** 29 train / 6 val / 5 held-out, chia theo `visit_id` (venue), seed 42; lệch
-  nhỏ so với 30/5/5 của ĐC Hình 9. `V_ref`, `G_ref`, `τ_e`, `τ_σ` và các ngưỡng khoá trên 6 scene Validation;
-  held-out chạy đúng một lần.
+- **Chia tập (đã sinh ở M0b, `data/splits.csv` + `splits.lock`):** 29 train / 6 val / 5 held-out, chia theo `visit_id` (venue),
+  seed 42; lệch nhỏ so với 30/5/5 của ĐC Hình 9. `V_ref`, `G_ref`, `τ_e`, `τ_σ` và các ngưỡng khoá trên 6 scene Validation;
+  held-out chạy đúng một lần (mã tính tham số `raise` khi gặp scene held-out).
 - `sky_direction` của ARKitScenes (Left, Up, Down) cho biết hướng ảnh; keyframe xoay ảnh về dạng đứng.
 
 ## 5. Cài đặt môi trường

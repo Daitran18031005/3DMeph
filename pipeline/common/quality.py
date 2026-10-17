@@ -64,6 +64,30 @@ def window_gradient_mean(gray: np.ndarray, xy: np.ndarray, window: int = 15) -> 
     return mean_map[rows, cols].astype(np.float64)
 
 
+def _median_over_scenes(values_by_scene, splits) -> float:
+    from .splits import guard_reference  # import muộn để quality.py dùng được khi chưa có splits
+
+    guard_reference(values_by_scene.keys(), splits)
+    return float(np.median([float(v) for v in values_by_scene.values()]))
+
+
+def compute_v_ref(blur_mean_by_scene, splits) -> float:
+    """V_ref = trung vị (qua scene) của blur trung bình mỗi scene  (ĐC §10.3, công thức (3)).
+
+    CHỈ nhận scene thuộc tập val: gặp scene held-out thì raise HeldoutError (xem common/splits.py).
+    blur_mean_by_scene: {video_id: blur trung bình của scene, đo trên vga_wide}.
+    """
+    return _median_over_scenes(blur_mean_by_scene, splits)
+
+
+def compute_g_ref(gradient_by_scene, splits) -> float:
+    """G_ref = trung vị (qua scene) của gradient trung bình mỗi scene  (ĐC §16.1, công thức (20)).
+
+    Đơn vị lấy trung vị (theo scene rồi qua scene, tương tự V_ref) là suy luận của nhóm. Chỉ nhận scene val.
+    """
+    return _median_over_scenes(gradient_by_scene, splits)
+
+
 def f_err(x, tau: float):
     """f(x) = e^{−x/τ}  (21): đổi sai số (càng lớn càng xấu) thành điểm tin cậy. f(0)=1, f(τ)=0,37, f(2τ)=0,14."""
     if tau <= 0:
