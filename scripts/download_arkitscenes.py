@@ -20,6 +20,8 @@ Quy tắc an toàn:
   - Không có --dry-run lẫn --yes thì từ chối. Tải tuần tự, từng file một. Không giải nén, không xoá zip, không ghi đè.
   - File đã có đúng dung lượng thì bỏ qua; có nhưng sai dung lượng thì báo lỗi (không xoá, không ghi đè).
   - File đang tải ghi vào <tên>.part; chỉ đổi tên khi dung lượng khớp Content-Length; bị ngắt thì chạy lại sẽ resume.
+  - Thử lại tự động: curl có --retry-all-errors và bỏ kết nối đứng (--speed-limit/--speed-time); ngoài ra mỗi file được thử
+    tối đa --max_attempts lần (mặc định 5), đợi --retry_wait giây (mặc định 10), mỗi lần resume từ .part.
   - Trước mỗi đợt: ổ trống − dung lượng còn phải tải phải ≥ --min_free_gib (mặc định 15 GiB), nếu không thì DỪNG.
   - splits.csv phải khớp splits.lock; scene/visit held-out bị chặn (HeldoutError).
   - Ghi log từng file vào --log (CSV, nối thêm).
@@ -63,6 +65,8 @@ BATCH_DESC = {
 REPORTED_GIB = {"A": 0.69, "B": 10.22, "C": 9.53, "D": 46.21}
 REPORT_TOLERANCE = 0.01
 DEFAULT_MIN_FREE_GIB = 15.0
+DEFAULT_MAX_ATTEMPTS = 5     # số lần chạy curl cho mỗi file (mỗi lần resume từ .part)
+DEFAULT_RETRY_WAIT = 10.0    # giây đợi giữa hai lần thử
 
 
 class DownloadError(RuntimeError):
@@ -104,10 +108,20 @@ def fetch_mapping() -> Dict[str, List[str]]:
     return dict(out)
 
 
+STALL_SPEED_BYTES = 10240   # dưới 10 KiB/s ...
+STALL_SECONDS = 30          # ... liên tục 30 giây thì coi là kết nối chết (curl thoát mã 28) thay vì treo vô hạn
+
+
 def build_curl_cmd(url: str, part: Path) -> List[str]:
-    """curl có resume (-C -), theo redirect, báo lỗi HTTP (--fail), thử lại 3 lần."""
+    """curl có resume (-C -), theo redirect, báo lỗi HTTP (--fail).
+
+    --retry-all-errors: thử lại cả lỗi như mã 56 ("server closed abruptly"), mặc định curl không thử lại.
+    --speed-limit/--speed-time: bỏ kết nối không tiến triển (lỗi ngày 18/10: đứng ở 36% khoảng 2,5 phút rồi mới báo lỗi).
+    """
     return ["curl", "--fail", "--location", "--silent", "--show-error", "-C", "-",
-            "--retry", "3", "--retry-delay", "5", "-o", str(part), url]
+            "--retry", "3", "--retry-delay", "5", "--retry-all-errors",
+            "--speed-limit", str(STALL_SPEED_BYTES), "--speed-time", str(STALL_SECONDS),
+            "-o", str(part), url]
 
 
 def run_curl(url: str, part: Path, expected: int) -> int:
@@ -257,8 +271,13 @@ def append_log(log_path: Path, row: Dict[str, object]) -> None:
         w.writerow(row)
 
 
-def download_item(item: Item, size: int, log_path: Path) -> bool:
-    """Tải một file (resume nếu có .part), kiểm dung lượng rồi mới đổi tên. Trả về True nếu thành công."""
+def download_item(item: Item, size: int, log_path: Path, max_attempts: int = DEFAULT_MAX_ATTEMPTS,
+                  retry_wait: float = DEFAULT_RETRY_WAIT) -> bool:
+    """Tải một file (resume nếu có .part), kiểm dung lượng rồi mới đổi tên. Trả về True nếu thành công.
+
+    Mỗi lần thử chạy lại curl `-C -` nên luôn nối tiếp từ .part hiện có. Thử lại khi curl lỗi hoặc thoát mã 0 nhưng
+    còn thiếu byte; .part lớn hơn dự kiến là lỗi dữ liệu, không thử lại.
+    """
     t0 = time.time()
     dst = item.dst
     part = part_path(dst)
@@ -281,24 +300,34 @@ def download_item(item: Item, size: int, log_path: Path) -> bool:
 
     resumed = part.exists() and part.stat().st_size > 0
     print(f"  [{'RESUME' if resumed else 'TẢI'}] {dst.name} ({size / GiB:.3f} GiB)", flush=True)
-    if not (part.exists() and part.stat().st_size == size):  # .part đã đủ thì chỉ cần kiểm và đổi tên
+    attempts = 0
+    while not (part.exists() and part.stat().st_size == size):  # .part đã đủ thì chỉ cần kiểm và đổi tên
+        attempts += 1
         try:
             rc = run_curl(item.url, part, size)
         except DownloadError as e:
             log("failed", part.stat().st_size if part.exists() else 0, str(e))
             print(f"  [LỖI] {e}")
             return False
-        if rc != 0:
-            log("failed", part.stat().st_size if part.exists() else 0, f"curl mã {rc}")
-            print(f"  [LỖI] curl mã {rc}; giữ {part.name} để resume")
+        have = part.stat().st_size if part.exists() else 0
+        if have > size:
+            log("failed", have, f"{part.name} lớn hơn dự kiến ({have} > {size})")
+            print(f"  [LỖI] {part.name} lớn hơn dự kiến ({have} > {size}); không đổi tên, hãy kiểm tra tay")
             return False
-    actual = part.stat().st_size if part.exists() else 0
-    if actual != size:
-        log("failed", actual, f"dung lượng {actual} khác Content-Length {size}")
-        print(f"  [LỖI] {dst.name}: {actual} byte, kỳ vọng {size}; giữ {part.name}, không đổi tên")
-        return False
+        if rc == 0 and have == size:
+            break
+        why = f"curl mã {rc}" if rc != 0 else f"dung lượng {have} khác Content-Length {size}"
+        if attempts >= max_attempts:
+            log("failed", have, f"{why}; đã thử {attempts} lần")
+            print(f"  [LỖI] {why}; đã thử {attempts} lần; giữ {part.name} ({have}/{size} byte) để resume, không đổi tên")
+            return False
+        print(f"  [THỬ LẠI {attempts}/{max_attempts - 1}] {why}; có {have / GiB:.3f}/{size / GiB:.3f} GiB, "
+              f"đợi {retry_wait:g}s rồi resume", flush=True)
+        resumed = resumed or have > 0
+        time.sleep(retry_wait)
+    actual = part.stat().st_size
     os.replace(part, dst)
-    log("resumed" if resumed else "downloaded", actual)
+    log("resumed" if resumed else "downloaded", actual, f"đã thử {attempts} lần" if attempts > 1 else "")
     print(f"  [XONG] {dst.name} khớp Content-Length")
     return True
 
@@ -318,6 +347,8 @@ def main(argv=None) -> int:
     ap.add_argument("--dev_scene", default="42444738")
     ap.add_argument("--min_free_gib", type=float, default=DEFAULT_MIN_FREE_GIB, help="ổ phải còn dư ít nhất mức này sau mỗi đợt")
     ap.add_argument("--log", default=None, help="CSV log, mặc định <root>/data/raw/arkitscenes/download_log.csv")
+    ap.add_argument("--max_attempts", type=int, default=DEFAULT_MAX_ATTEMPTS, help="số lần thử mỗi file (resume giữa các lần)")
+    ap.add_argument("--retry_wait", type=float, default=DEFAULT_RETRY_WAIT, help="giây đợi giữa hai lần thử")
     args = ap.parse_args(argv)
 
     if not args.dry_run and not args.yes:
@@ -367,7 +398,7 @@ def main(argv=None) -> int:
             return 3
         print(f"\n== Đợt {b}: {BATCH_DESC[b]}: {len(items)} file, còn phải tải {todo / GiB:.2f} GiB")
         for it, size in zip(items, sizes):
-            if not download_item(it, size, log_path):
+            if not download_item(it, size, log_path, args.max_attempts, args.retry_wait):
                 print(f"[DỪNG] đợt {b} lỗi ở {it.dst.name}. Chạy lại lệnh này để resume.")
                 return 1
 

@@ -39,7 +39,8 @@ def env(tmp_path, monkeypatch):
     sp.write_splits(rows, splits_csv)
     sp.write_lock(splits_csv, 42)
 
-    state = {"curl_calls": [], "active": 0, "max_active": 0, "mode": "ok"}
+    state = {"curl_calls": [], "active": 0, "max_active": 0, "mode": "ok", "flaky_fail_n": 2, "sleeps": []}
+    monkeypatch.setattr(mod.time, "sleep", lambda s: state["sleeps"].append(s))   # không đợi thật giữa các lần thử
     sizes = {}
 
     def fake_head(url):
@@ -62,6 +63,10 @@ def env(tmp_path, monkeypatch):
             elif state["mode"] == "fail":     # curl lỗi giữa chừng, để lại .part dở
                 part.write_bytes(b"x" * (expected // 2))
                 return 56
+            elif state["mode"] == "flaky" and len(state["curl_calls"]) <= state["flaky_fail_n"]:
+                with open(part, "ab") as f:   # lỗi mạng tạm thời: thêm 1/4 dung lượng rồi báo mã 56
+                    f.write(b"x" * (expected // 4))
+                return 56
             else:
                 with open(part, "ab") as f:
                     f.write(b"x" * (expected - existed))
@@ -78,7 +83,7 @@ def env(tmp_path, monkeypatch):
 
 
 def args(root, *extra):
-    return ["--root", str(root), "--dev_scene", "100", "--log", str(root / "log.csv"), *extra]
+    return ["--root", str(root), "--dev_scene", "100", "--log", str(root / "log.csv"), "--retry_wait", "0", *extra]
 
 
 # ---------------------------------------------------------------- dựng đường dẫn
@@ -232,12 +237,12 @@ def test_part_already_complete_skips_curl_and_just_renames(env):
 def test_size_mismatch_keeps_part_and_fails(env):
     mod, root, _r, state, _z = env
     state["mode"] = "short"
-    assert mod.main(args(root, "--batch", "A", "--yes")) == 1
+    assert mod.main(args(root, "--batch", "A", "--yes", "--max_attempts", "3")) == 1
     d = root / "data/raw/arkitscenes/Training/100"
     assert not (d / "vga_wide.zip").exists() and (d / "vga_wide.zip.part").exists()
     with open(root / "log.csv", encoding="utf-8") as f:
         assert next(csv.DictReader(f))["status"] == "failed"
-    assert len(state["curl_calls"]) == 1                                     # dừng ngay sau file lỗi, không tải tiếp
+    assert len(state["curl_calls"]) == 3                                     # thử đủ 3 lần rồi dừng; không tải file kế tiếp
 
 
 def test_curl_failure_keeps_partial_for_resume(env):
@@ -276,3 +281,60 @@ def test_matches_reported_tolerance():
     assert mod.matches_reported("A", int(0.69 * GiB))
     assert mod.matches_reported("D", int(46.21 * GiB * 1.005))
     assert not mod.matches_reported("D", int(40 * GiB))
+
+
+# ---------------------------------------------------------------- thử lại sau lỗi mạng (sự cố 18/10: curl mã 56 ở 36%)
+
+def test_curl_cmd_retries_all_errors_and_drops_stalled_connections():
+    mod = _load()
+    cmd = mod.build_curl_cmd("https://x/y.ply", Path("y.ply.part"))
+    assert "--retry-all-errors" in cmd                                       # mã 56 mặc định không được curl thử lại
+    assert cmd[cmd.index("--speed-limit") + 1] == str(mod.STALL_SPEED_BYTES)
+    assert cmd[cmd.index("--speed-time") + 1] == str(mod.STALL_SECONDS)
+    assert cmd[cmd.index("-C") + 1] == "-"                                   # vẫn resume
+
+
+def test_transient_failures_are_retried_and_resume_from_growing_part(env):
+    mod, root, _r, state, _z = env
+    state["mode"], state["flaky_fail_n"] = "flaky", 2                        # hai lần đầu lỗi mã 56, lần ba xong
+    assert mod.main(args(root, "--batch", "A", "--yes", "--retry_wait", "7")) == 0
+    d = root / "data/raw/arkitscenes/Training/100"
+    url = f"{mod.BASE_URL}/raw/Training/100/vga_wide.zip"
+    size = mod.head_size(url)
+    assert (d / "vga_wide.zip").stat().st_size == size and not (d / "vga_wide.zip.part").exists()
+    first = [c for c in state["curl_calls"] if c[0] == url]
+    assert len(first) == 3 and first[0][2] == 0 and first[1][2] == size // 4 and first[2][2] == 2 * (size // 4)  # offset tăng dần
+    assert state["sleeps"][:2] == [7.0, 7.0]                                 # đợi --retry_wait giữa các lần thử
+    with open(root / "log.csv", encoding="utf-8") as f:
+        row = next(csv.DictReader(f))
+    assert row["status"] == "resumed" and "3 lần" in row["note"]
+
+
+def test_gives_up_after_max_attempts_keeps_part_and_does_not_start_next_file(env):
+    mod, root, _r, state, _z = env
+    state["mode"] = "fail"
+    assert mod.main(args(root, "--batch", "A", "--yes", "--max_attempts", "3")) == 1
+    d = root / "data/raw/arkitscenes/Training/100"
+    assert len(state["curl_calls"]) == 3 and (d / "vga_wide.zip.part").exists()
+    assert not (d / "vga_wide.zip").exists() and not (d / "vga_wide_intrinsics.zip.part").exists()
+    with open(root / "log.csv", encoding="utf-8") as f:
+        row = next(csv.DictReader(f))
+    assert row["status"] == "failed" and "3 lần" in row["note"] and "56" in row["note"]
+
+
+def test_single_attempt_means_no_retry(env):
+    mod, root, _r, state, _z = env
+    state["mode"] = "fail"
+    assert mod.main(args(root, "--batch", "A", "--yes", "--max_attempts", "1")) == 1
+    assert len(state["curl_calls"]) == 1 and state["sleeps"] == []
+
+
+def test_oversized_part_is_a_data_error_not_retried(env):
+    mod, root, _r, state, _z = env
+    d = root / "data/raw/arkitscenes/Training/100"
+    d.mkdir(parents=True)
+    size = mod.head_size(f"{mod.BASE_URL}/raw/Training/100/vga_wide.zip")
+    (d / "vga_wide.zip.part").write_bytes(b"x" * (size + 5))
+    assert mod.main(args(root, "--batch", "A", "--yes")) == 1
+    assert state["curl_calls"] == []                                         # bị chặn từ bước đo, không chạy curl
+    assert (d / "vga_wide.zip.part").stat().st_size == size + 5              # không xoá, không sửa
