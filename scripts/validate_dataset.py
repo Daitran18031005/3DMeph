@@ -30,8 +30,7 @@ import os
 import sys
 import zipfile
 
-import cv2
-import numpy as np
+from adapters import AssetReader
 
 try:
     import open3d as o3d
@@ -51,65 +50,7 @@ ARKIT_CONFIDENCE_DIR = "confidence"
 FRAME_COUNT_MISMATCH_TOLERANCE = 0.05  # cho phép lệch 5% giữa số RGB và depth
 
 
-class AssetReader:
-    """Đọc file bên trong 1 asset ARKitScenes, hỗ trợ cả 2 dạng:
-    - thư mục đã giải nén (VD: scene_dir/lowres_wide/*.png)
-    - file .zip chưa giải nén (VD: scene_dir/lowres_wide.zip, hoặc file tên
-      "lowres_wide" nhưng thực chất là zip do Explorer ẩn đuôi)
-    Dùng xong nhớ gọi .close() (hoặc dùng qua "with")."""
-
-    def __init__(self, scene_dir, asset_name):
-        self.kind = None      # "dir" | "zip" | None
-        self.zf = None
-        self.dir_path = None
-
-        dir_path = os.path.join(scene_dir, asset_name)
-        if os.path.isdir(dir_path):
-            self.kind = "dir"
-            self.dir_path = dir_path
-            return
-
-        candidates = [dir_path if dir_path.lower().endswith(".zip") else dir_path + ".zip",
-                      dir_path]
-        for c in candidates:
-            if os.path.isfile(c) and zipfile.is_zipfile(c):
-                self.kind = "zip"
-                self.zf = zipfile.ZipFile(c)
-                return
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc):
-        self.close()
-
-    def exists(self):
-        return self.kind is not None
-
-    def list_entries(self):
-        """Tất cả file bên trong, không lọc đuôi — dùng để đếm (VD: intrinsics)."""
-        if self.kind == "dir":
-            return sorted(f for f in os.listdir(self.dir_path)
-                           if os.path.isfile(os.path.join(self.dir_path, f)))
-        if self.kind == "zip":
-            return sorted(n for n in self.zf.namelist() if not n.endswith("/"))
-        return []
-
-    def list_pngs(self):
-        return [f for f in self.list_entries() if f.lower().endswith(".png")]
-
-    def read(self, entry, flags=cv2.IMREAD_UNCHANGED):
-        if self.kind == "dir":
-            return cv2.imread(os.path.join(self.dir_path, entry), flags)
-        if self.kind == "zip":
-            data = self.zf.read(entry)
-            arr = np.frombuffer(data, dtype=np.uint8)
-            return cv2.imdecode(arr, flags)
-        return None
-
-    def close(self):
-        if self.zf is not None:
-            self.zf.close()
+# AssetReader nằm ở scripts/adapters.py (gom từ hai script này, kế hoạch §4.0d).
 
 
 def list_scene_contents(scene_dir, max_items=25):
