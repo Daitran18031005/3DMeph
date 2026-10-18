@@ -89,7 +89,7 @@ COLMAP chạy bằng CLI 4.2 (`../colmap/bin/colmap.exe`, hoặc biến `COLMAP_
   và **bị loại khỏi chỉ số test** [ĐC §8.1].
 - **`*_3dod_mesh.ply` KHÔNG phải Faro** (là mesh ARKit). Faro là `laser_scanner_point_clouds` (`.ply` + `_pose.txt`).
 - **Không ghi đè, không copy, không giải nén dữ liệu raw.** Raw nằm ngoài git. Tải bằng wrapper không giải nén
-  (`scripts/download_arkitscenes.py`: `--batch A|B|C|D`, `--dry-run`, bắt buộc `--yes`, có resume và kiểm dung lượng; đã có và đã chạy `--dry-run`, chưa tải thật); **không** dùng `download_data.py` gốc cho `vga_wide` (nó tự `unzip` và xoá zip).
+  (`scripts/download_arkitscenes.py`: `--batch A|B|C|D`, `--dry-run`, bắt buộc `--yes`, có resume và kiểm dung lượng; đã dùng tải đợt A, B, C, D ngày 18/10; Faro held-out chưa tải và bị chặn bằng mã); **không** dùng `download_data.py` gốc cho `vga_wide` (nó tự `unzip` và xoá zip).
 - Ảnh ARKit xoay đứng theo `sky_direction` (Up→0°, Left→90° CW, Down→180°, Right→90° CCW); `NA` thì dừng, báo.
 
 ## 7. Quy tắc an toàn (cần người dùng xác nhận trước khi làm)

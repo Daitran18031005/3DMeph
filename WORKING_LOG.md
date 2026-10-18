@@ -1,9 +1,10 @@
 # WORKING_LOG.md — nhật ký đối chiếu với kế hoạch v4
 
 - **Ngày tạo:** 2026-10-17
-- **Nhánh:** `feature/m0a-foundation` (theo dõi `origin/QuangDai_Work`)
+- **Nhánh:** M0a ở `feature/m0a-foundation` (theo dõi `origin/QuangDai_Work`); M0b ở `feature/m0b-data` (chưa push)
 - **Commit khi tạo file:** `6a7ea50` (commit chứa chính file này sẽ đứng ngay sau)
-- **Chốt M0a:** 2026-10-17 14:2x, trên `c7fa757` (đã đồng bộ `origin/main` bằng merge `8629ac3`); commit cập nhật log này đứng ngay sau
+- **Chốt M0a:** 2026-10-17 14:2x, trên `c7fa757` (đã đồng bộ `origin/main` bằng merge `8629ac3`); commit cập nhật log M0a: `76d9353`
+- **Cập nhật M0b (phần 1: chia scene và tải dữ liệu):** 2026-10-18, trên `feature/m0b-data` sau commit `cdc9643`; commit chứa bản cập nhật này đứng ngay sau
 - **Đối chiếu với:** kế hoạch **v4** (`docs/PLAN_v4.md`), PDF đề cương `Docs/TaiTao3D_Metric_3DMeph.pdf`
 - **Quy tắc cập nhật:** `AGENTS.md` mục 10. Chỉ ☑ khi có bằng chứng (lệnh đã chạy + kết quả hoặc commit); dry-run không tính.
 
@@ -14,7 +15,7 @@ Ký hiệu: ☑ xong có bằng chứng · ☐ chưa làm · ◐ làm dở. Nhã
 | Mốc | Trạng thái | Nhánh | Commit | Tiêu chí đạt (PLAN §10) | Đã đạt chưa, bằng chứng |
 |---|---|---|---|---|---|
 | M0a Nền tảng | **Xong** (code, đã đồng bộ `origin/main`); chưa mở PR, chưa merge vào `main` | `feature/m0a-foundation` (sao lưu `origin/QuangDai_Work`) | `5ffd429`, `6a7ea50`, `f00b2a3`, merge `8629ac3`, `82f7201`, `c7fa757` | `check_env.py` exit 0; `pytest` xanh cho vector không cần dữ liệu; `check_docs.py` exit 0 | **Đạt** (đo ngày 17/10 trên `c7fa757`, trong worktree `../3DMeph_m0a`): `pytest` **94 passed, 1 skipped** (skip = `test_colmap_compat`, worktree không có `data/processed`; ở thư mục chính 95 passed); `ruff check .` **All checks passed** (E, F, W, I); `check_docs.py` **OK** (18 README trong worktree, 41 khoá); `check_env.py` **exit 0, 0 lỗi, 3 cảnh báo**. **Chưa kiểm chứng:** `create_env.bat` mới chỉ chạy `--dry-run`; chưa có `pipeline.run`; chưa tải dữ liệu |
-| M0b Dữ liệu | Chưa bắt đầu | — | — | `splits.csv` 29/6/5, 0 venue ở 2 tập, chạy lại cho cùng held-out; mỗi đợt tải khớp dung lượng HEAD; residual căn Faro được log; `measurements.csv` ≥ 1 anchor + ≥ 12 đoạn test; `v_ref.vga`, `g_ref.vga` trong config | Chưa |
+| M0b Dữ liệu | **Đang làm** (phần 1 xong: chia scene + tải đủ 4 đợt; còn căn Faro, chấm mốc, `V_ref`/`G_ref`) | `feature/m0b-data` (chưa push) | `9047112` (chia tập), `bf6d57a` (wrapper), `cdc9643` (retry); log: commit kế tiếp | `splits.csv` 29/6/5, 0 venue ở 2 tập, chạy lại cho cùng held-out; mỗi đợt tải khớp dung lượng HEAD; residual căn Faro được log; `measurements.csv` ≥ 1 anchor + ≥ 12 đoạn test; `v_ref.vga`, `g_ref.vga` trong config | **Đạt 2/5 tiêu chí:** (1) `splits.csv` 29/6/5, 0 venue ở 2 tập, chạy lại cho cùng kết quả (`pytest` 138 passed, 18 test chia tập); (2) 4 đợt tải khớp HEAD (`--batch all --dry-run`: còn phải tải 0,00 GiB cả 4 đợt; CRC zip OK; header PLY khớp). **Chưa đạt:** residual căn Faro, `measurements.csv`, `v_ref.vga`/`g_ref.vga` |
 | M1 Walking skeleton | Chưa bắt đầu (chờ M0b) | — | — | `python -m pipeline.run` exit 0, `model.glb` mở được bằng trimesh, `measure` đo được 1 đoạn, `run_meta.json` đủ | Chưa |
 | M2 Chất lượng dữ liệu | Chưa bắt đầu | — | — | 40 ≤ N_kf ≤ 80; ≥ 90% keyframe đăng ký SfM; peak VRAM < 8 GB (có số đo) | Chưa |
 | M3 Eval + ablation 1 scene | Chưa bắt đầu | — | — | `metrics.csv` đủ 6 cấu hình; test chỉ số qua; Δ% theo (31) | Chưa (hàm chỉ số + test đã có từ M0a, chưa có stage) |
@@ -46,17 +47,19 @@ Ký hiệu: ☑ xong có bằng chứng · ☐ chưa làm · ◐ làm dở. Nhã
 
 ### M0b (PLAN §4.0, §10 M0b)
 
-- ☐ `scripts/select_scenes.py` (seed 42) → `data/splits.csv`, `data/splits.lock`, `rejected.csv` (§4.0b)
-- ☐ `pipeline/common/splits.py`: đọc `splits.csv`, `raise` khi tính ngưỡng trên scene held-out (§4.0b mục 4, §4.9)
-- ◐ Viết lại `data/README.md` (§7c) — đã viết lại ở M0a (xem mục 6, lệch #1); phần `splits.csv` còn là "kế hoạch"
-- ☐ `scripts/download_arkitscenes.py` (wrapper, không giải nén, `--dry-run`, bắt buộc `--yes`) (§4.0c)
-- ☐ Đợt A: `vga_wide` + intrinsics scene 42444738 (≈ 0,74 GB) — đã duyệt (Q16), chưa tải
-- ☐ Đợt B: Faro visit 421267, 6 file (≈ 10,98 GB) — đã duyệt (Q16, Q18), chưa tải
+- ☑ `scripts/select_scenes.py` (seed 42) → `data/splits.csv`, `data/splits.lock`, `data/rejected.csv` (§4.0b) — 2026-10-17 — 40 scene hợp lệ, 0 bị loại, 29/6/5, 38 venue; chạy lần 2 báo "trùng đúng bản đã khoá"; người dùng xác nhận danh sách; held-out 43828368, 44796254, 47331622, 47332314, 47332795 — `9047112`
+- ☑ `pipeline/common/splits.py` + `compute_v_ref`/`compute_g_ref` (`quality.py`): `raise HeldoutError` khi gặp scene held-out (§4.0b mục 4, §4.9) — `tests/test_splits.py` 18 passed — `9047112`
+- ☑ `data/README.md`, README gốc, `scripts/README.md`, `common/README.md` cập nhật theo chia tập thật — `9047112`; `data/README.md` còn mục "Dung lượng cần tải thêm (đã duyệt, chưa tải)" và dòng "42.348.620 điểm" cần sửa (xem mục 3, Q23)
+- ☑ `scripts/download_arkitscenes.py` (§4.0c): `--batch`, `--dry-run`, bắt buộc `--yes`, tuần tự, resume, kiểm `Content-Length`, log CSV, chặn ổ thấp và held-out — `tests/test_download_arkitscenes.py` 25 passed — `bf6d57a`, sửa retry `cdc9643`
+- ☑ Đợt A: `vga_wide` + intrinsics scene 42444738 — **đã tải thật** 2026-10-18 13:04 (34 s), 2 file 0,69 GiB, CRC zip OK, 1.805 ảnh / 1.805 file intrinsics
+- ☑ Đợt B: Faro visit 421267, 6 `.ply` + 6 `_pose.txt` — **đã tải thật**, 10,22 GiB, 12 file, `--dry-run` đối chiếu HEAD còn 0,00 GiB, header PLY khớp (42.348.620 / 41.467.500 / 40.935.479 điểm), mỗi `.ply` có `_pose.txt`, các cặp trùng pose giống hệt. Có 1 sự cố giữa chừng (mục 4, 18/10 13:15)
 - ☐ `scripts/adapters.py` (gom `AssetReader`) (§4.0d)
 - ☐ `scripts/faro_align.py` (§4.0d)
 - ☐ `scripts/annotate_segments.py`: 1 anchor + ≥ 12 đoạn test → `ground_truth/measurements.csv`, `scale_anchor.json` (§4.0d)
-- ☐ Đợt C: `vga_wide` + intrinsics 6 Validation (≈ 10,23 GB) — đã duyệt (Q16), chưa tải
-- ☐ Đo `V_ref`, `G_ref` trên `vga_wide` của 6 Validation → `default.yaml` (kèm `measured_on`)
+- ☑ Đợt C: `vga_wide` + intrinsics 6 Validation — **đã tải thật** (13:25–13:30, 354 s), 12 file 9,53 GiB, CRC 12 zip OK, số ảnh = số file intrinsics ở cả 6 scene (2.316 / 1.640 / 9.034 / 4.354 / 3.179 / 4.283)
+- ☑ Đợt D (thêm ngoài Q16): Faro 6 visit Validation 421380, 422785, 423477, 434659, 468711, 471952 — **đã tải thật** (13:33–14:12, 2.395 s ≈ 40 phút), 27 `.ply` + 27 `_pose.txt`, 46,21 GiB, 1.127.653.846 điểm, không phải thử lại, header PLY khớp, đủ `_pose.txt`
+- ☑ Kiểm tra sau cả 4 đợt: `--batch all --dry-run` còn phải tải 0,00 GiB ở A, B, C, D; không còn `.part` trong `data/raw`; ổ D trống **25,16 GiB** (1024³)
+- ☐ Đo `V_ref`, `G_ref` trên `vga_wide` của 6 Validation → `default.yaml` (kèm `measured_on`) — dữ liệu (đợt C) đã sẵn sàng, chưa đo
 
 ### M1 (PLAN §10 M1)
 
@@ -79,7 +82,7 @@ Ký hiệu: ☑ xong có bằng chứng · ☐ chưa làm · ◐ làm dở. Nhã
 
 ## 3. Việc chưa nằm trong mốc nào nhưng đã biết
 
-- ☐ Sửa `data/README.md` và kế hoạch: "42.348.620 điểm mỗi scan" chỉ đúng cho 1 file (xem mục 5, điểm c)
+- ◐ "42.348.620 điểm mỗi scan" chỉ đúng cho 1 file: **đã sửa trong `data/README.md`** (số điểm từng file, đo bằng header PLY trên cả 33 file Faro đã tải, không còn là ước tính); **chưa sửa** bản sao `docs/PLAN_v4.md` (giữ nguyên văn bản kế hoạch gốc) — xem mục 5 điểm c, Q23
 - ☐ Quyết định chính sách `reports/` trong `.gitignore` (Q11c)
 
 ## 4. Đã làm (theo thứ tự thời gian)
@@ -97,7 +100,17 @@ Ký hiệu: ☑ xong có bằng chứng · ☐ chưa làm · ◐ làm dở. Nhã
 | 2026-10-17 | **Chốt M0a.** Tạo worktree `../3DMeph_m0a` (thư mục chính ở `feature/m0b-data` giữ nguyên); push `f00b2a3` lên `QuangDai_Work` (`6a7ea50..f00b2a3`) | không đổi file | `git status` sạch; không force | — |
 | 2026-10-17 14:07 | Xem trước và thực hiện merge `origin/main` → `feature/m0a-foundation` | không đổi file (diff rỗng) | `git merge-tree --write-tree`: mã 0, không xung đột | `8629ac3` |
 | 2026-10-17 14:13 | `ruff check .` đỏ 70 lỗi (bộ luật mặc định): thêm `ruff.toml`, sửa 8 lỗi I001, cập nhật lệnh ruff trong `AGENTS.md` | `ruff.toml`, `AGENTS.md`, 8 file `tests/*.py` | sau sửa: `pytest` 94 passed 1 skipped; `ruff check .` pass; `check_docs` OK; `check_env` exit 0 | `82f7201`, `c7fa757` |
-| 2026-10-17 14:2x | Push `QuangDai_Work` `f00b2a3..c7fa757` (không force); cập nhật log này | `WORKING_LOG.md` | `git log origin/QuangDai_Work` | `c7fa757`; log: commit kế tiếp |
+| 2026-10-17 14:2x | Push `QuangDai_Work` `f00b2a3..c7fa757` (không force); cập nhật log này | `WORKING_LOG.md` | `git log origin/QuangDai_Work` | `c7fa757`; log: `76d9353` |
+| 2026-10-17 | Đưa M0a vào `feature/m0b-data` bằng merge `--no-ff` (không rebase, không stash); dọn worktree `../3DMeph_m0a`; soạn mô tả PR M0a (chỉ in ra, chưa mở PR) | các file M0a | trước và sau merge: 7 hash SHA-256 file M0b chưa commit trùng nhau; `pytest` 113 passed, `ruff`, `check_docs` xanh | `c2483e3` |
+| 2026-10-17 | **M0b phần 1:** `select_scenes.py` + `splits.py` + `compute_v_ref/g_ref` + 18 test; chia 29/6/5, seed 42; người dùng xác nhận danh sách held-out | `scripts/select_scenes.py`, `pipeline/common/{splits,quality}.py`, `tests/test_splits.py`, `data/splits.csv`, `data/splits.lock`, `data/rejected.csv`, README | `pytest` 113 passed; `ruff`, `check_docs` xanh; chạy lần 2 báo trùng khoá | `9047112` |
+| 2026-10-17 | `scripts/download_arkitscenes.py` + 20 test; `--dry-run` 4 đợt khớp số đã báo (A 0,69 / B 10,22 / C 9,53 / D 46,21 GiB); đo ổ: trống 91,81 GiB (lần đo trước 55,09 GiB, ổ đã được giải phóng, không do tôi) | `scripts/download_arkitscenes.py`, `tests/test_download_arkitscenes.py`, README, `AGENTS.md` | `pytest` 133 passed; `ruff`, `check_docs` xanh; không tạo file trong `data/raw` | `bf6d57a` |
+| 2026-10-18 13:04 | Đợt A tải nền (người dùng xác nhận "tải đợt A, B, C, D") | `data/raw/arkitscenes/Training/42444738/vga_wide*.zip` | `exit=0`; 2 file khớp `Content-Length`; CRC zip OK (1.805 mục). Kết quả lượt đó bị mất khi phiên đổi; xác nhận lại bằng log ở scratchpad phiên cũ (`dl_A.log`, `download_log.csv`) | — |
+| 2026-10-18 13:08–13:15 | Đợt B: 5/6 `.ply` + 5 `_pose.txt` xong; **lỗi thật** ở `169975.ply` (36%): `curl mã 56: schannel: server closed abruptly`, kết nối đứng ~2,5 phút rồi mới báo lỗi; wrapper dừng đúng thiết kế, giữ `.part` (648.453.686 B). Thông báo tác vụ nền ghi "exit code 0" là mã của lệnh `tail`, không phải của wrapper (log ghi `exit=1`) | — | `dl_B.log`; kiểm tra dữ liệu đã tải: 5 file đúng kích thước, header khớp | — |
+| 2026-10-18 | **Sửa wrapper** sau sự cố (người dùng chọn): `--retry-all-errors`, `--speed-limit 10240 --speed-time 30`, thử tối đa `--max_attempts` 5 lần mỗi file (resume giữa các lần), +5 test | `scripts/download_arkitscenes.py`, `tests/test_download_arkitscenes.py`, `scripts/README.md` | `pytest` 138 passed; `ruff`, `check_docs` xanh | `cdc9643` |
+| 2026-10-18 13:24 | Resume đợt B: bỏ qua 10 file đã xong, nối tiếp `169975.ply` từ `.part` rồi tải `169975_pose.txt` | — | `WRAPPER_EXIT=0`; 12 file; `--dry-run` HEAD còn 0,00 GiB; header PLY, `_pose.txt`, không còn `.part` | — |
+| 2026-10-18 13:25–13:30 | Đợt C tải nền (6 Validation) | `Validation/<id>/vga_wide*.zip` ×6 | `WRAPPER_EXIT=0`; 12 file 9,53 GiB; CRC 12 zip OK | — |
+| 2026-10-18 13:33–14:12 | Đợt D tải nền (Faro 6 visit Validation, 54 file) | `laser_scanner_point_clouds/{421380,422785,423477,434659,468711,471952}/` | `WRAPPER_EXIT=0`; 0 lần thử lại; 27 `.ply` + 27 `_pose.txt`; header PLY khớp (1.127.653.846 điểm); `--batch all --dry-run` còn 0,00 GiB cả 4 đợt; ổ trống 25,16 GiB | — |
+| 2026-10-18 | Cập nhật log này, `AGENTS.md`, `scripts/README.md`, `data/README.md` theo trạng thái tải thật | `WORKING_LOG.md` và 3 file tài liệu | `check_docs` (xem commit) | commit kế tiếp |
 
 **Hash khôi phục các nhánh đã xoá:** `feature/Update` `b14f47e3c9c52c556c792fa9ef07b8abc48f0d39` · `feature/setup-data-scripts` `5dd829aac0cf078ea3fc2b6b7e56a4ab09988f16`
 · `feature/extract_frame` cục bộ `fd4cd8b28e7383d7003b7d23504a2d103836f659`, origin `f0bee5b8a9dac9e65064745d5a8204e4f1271b39` · `feature/gitignore` `60580776d5ddcb970978a2b2144278d008069f10`.
@@ -107,19 +120,21 @@ Khôi phục: `git branch <tên> <hash>` rồi (nếu cần) `git push origin <t
 
 | Việc | Lý do | Cần gì để gỡ | Ai quyết định |
 |---|---|---|---|
-| Toàn bộ M0b trở đi | chưa bắt đầu; M1 bị chặn bởi M0b (cần Faro, đợt C, `v_ref.vga`) [PLAN §10, Q20] | làm M0b theo checklist | người dùng chọn thời điểm |
+| M0b phần 2 và M1 | M0b còn: `adapters.py`, `faro_align.py`, `annotate_segments.py` (1 anchor + ≥ 12 đoạn test), đo `V_ref`/`G_ref`. M1 bị chặn đến khi xong M0b (cần căn Faro và `v_ref.vga`) [PLAN §10, Q20]. Dữ liệu đã sẵn sàng | làm tiếp M0b theo checklist | người dùng chọn thời điểm |
 | `create_env.bat` chạy thật | chỉ mới `--dry-run`; chạy thật cài lại gói, `--recreate` xoá env | xác nhận trước khi chạy | người dùng |
 | Gói `vggt` và trọng số VGGT-1B chưa có trong env | `check_env.py` cảnh báo "chưa import được vggt"; trọng số chưa trong `~/.cache/huggingface/hub`, kích thước [chưa kiểm chứng] | cài `pip install -e <vggt> --no-deps`; xin tải trọng số | người dùng |
-| **(a) Faro ngoài ngân sách ổ đĩa** | Kế hoạch chỉ tính Faro cho scene dev (đợt B). Nhưng M3/M4 cần GT cho 6 Validation + 5 held-out (mốc scale, 12–20 đoạn test mỗi scene, Chamfer/F-score). **Đã đo bằng HEAD (17/10):** Faro 6 venue Validation = **49,62 GB** (5,60 / 7,53 / 10,61 / 9,28 / 7,49 / 9,11 GB), Training 32 venue trung bình 6,06 GB (1,87–11,0 GB), tổng Training 193,8 GB. Ổ D: còn ≈ 55 GB; sau 3 đợt A+B+C còn ≈ **33 GB** < 49,62 GB. Giảm một nửa nếu mỗi cặp pose trùng có xyz giống nhau như ở venue dev (**[chưa kiểm chứng]** cho 6 venue này) | chọn: (1) dùng `highres_depth` (đã có cho cả 40 scene) làm GT dự phòng; (2) chỉ tải 1 file mỗi cặp pose trùng; (3) giải phóng/thêm ổ; (4) giảm số scene có Faro | người dùng [Cần xác nhận] |
+| **(a) Faro held-out chưa tải và chưa vừa ổ** | **Validation đã giải quyết:** người dùng chọn Faro đầy đủ (không `highres_depth`, không giảm một nửa) và đã tải (đợt D, 46,21 GiB). **Còn lại:** Faro 5 held-out (visit 437534, 464746, 466906, 471674, 469226) = **24,44 GiB** đầy đủ (đo HEAD 17/10), chưa tải theo quyết định "quyết sau khi có `splits.csv` và số đo thật". Ổ D trống **25,16 GiB**: tải hết sẽ chỉ còn dư **0,72 GiB**, dưới ngưỡng 15 GiB của wrapper (wrapper sẽ từ chối). Không đợt nào của wrapper có held-out (bị chặn bằng mã) | giải phóng ≥ 14,3 GiB nữa (24,44 + 15 − 25,16), hoặc dùng `highres_depth` cho held-out, hoặc hạ `--min_free_gib` (cần cân nhắc dữ liệu trung gian của M1–M4) | người dùng [Cần xác nhận] |
 | **(b) Ngưỡng keyframe cần ở M1 nhưng chỉ khoá ở M2** | `keyframe.blur.q_drop` đang `null` (PLAN §4.1: "khoá trên 6 Validation"; §10 M2: khoá blur/overlap). Stage `keyframe` của M1 lọc blur nên cần một giá trị; `require()` sẽ `raise` khi `null`. `keyframe.overlap.max/min` đã có mặc định (0,8/0,6, [Suy luận]) | chọn giá trị tạm ghi rõ "tạm, M1" (ví dụ chỉ loại q_blur rất thấp theo ví dụ §7.3: 0,005 loại, 0,35 giữ), hoặc đo sớm trên 6 Validation sau đợt C | người dùng [Cần xác nhận] |
-| **(c) Số điểm mỗi scan Faro** | **Đã kiểm lại, kế hoạch/README ghi sai:** "mỗi scan 42.348.620 điểm" chỉ đúng cho file 1,863 GB. Đo bằng header PLY (Range): `169892` 42.348.620; `169895` 41.467.500; `169897` 40.935.479 (cả ba khớp `332 + n×44 = kích thước`). Ba scan ≈ 124,75 triệu điểm | sửa `data/README.md` và ghi chú trong `docs/PLAN_v4.md` (chưa sửa, ngoài phạm vi nhiệm vụ này) | người dùng [Cần xác nhận] |
+| **(c) Số điểm mỗi scan Faro** | **Đã kiểm lại, kế hoạch/README ghi sai:** "mỗi scan 42.348.620 điểm" chỉ đúng cho file 1,863 GB. Đo bằng header PLY (Range): `169892` 42.348.620; `169895` 41.467.500; `169897` 40.935.479 (cả ba khớp `332 + n×44 = kích thước`). Ba scan ≈ 124,75 triệu điểm | `data/README.md` **đã sửa** (số điểm thật từng file); ghi chú trong bản sao `docs/PLAN_v4.md` chưa sửa | người dùng [Cần xác nhận] |
 | PR #4 | không có `gh` trên máy; không thấy merge commit của #4 trên `origin/main` (#1, #2, #3, #6, #7, #8 đã merge) | xem trên GitHub | người dùng |
 | `main` cục bộ cũ | `main` cục bộ vẫn ở `bbc68bc`, cũ hơn `origin/main` `8a56a9b` (nhánh M0a đã đồng bộ bằng merge `8629ac3`, không còn lệch) | `git switch main && git pull --ff-only` (chưa làm, chờ xác nhận) | người dùng |
 | PR "M0a: nền tảng" | chưa mở theo yêu cầu; mô tả PR soạn ở bước cuối của lần chốt M0a (chỉ in ra, không lưu file) | người dùng dán mô tả và mở PR | người dùng |
-| Chưa kiểm chứng sau khi chốt M0a | `create_env.bat` chỉ chạy `--dry-run`, chưa chạy thật; **chưa có `pipeline.run`** (không có stage nào chạy trên dữ liệu thật); **chưa tải dữ liệu** (đợt A–D chưa chạy) | M0b, M1 | người dùng |
+| Chưa kiểm chứng | `create_env.bat` chỉ chạy `--dry-run`, chưa chạy thật; **chưa có `pipeline.run`** (không có stage nào chạy trên dữ liệu thật). Dữ liệu đợt A–D **đã tải** (xem mục 2). **Chưa kiểm chứng:** ý nghĩa xoay/tịnh tiến trong `_pose.txt` (đã xem 3 dòng 4×4, tịnh tiến ở dòng cuối); xyz của toàn bộ điểm các cặp trùng pose (mới kiểm 100.000 điểm đầu của 3 cặp visit 421267) | M0b (`faro_align.py`), M1 | người dùng |
+| Ổ D còn ít | sau cả 4 đợt chỉ còn **25,16 GiB** trống (88% dùng) để làm M0b phần 2, M1 (COLMAP dense, VGGT, GLB), kể cả dữ liệu trung gian chưa ước tính | theo dõi ổ; giải phóng thêm trước M1 nếu dữ liệu trung gian lớn | người dùng |
+| Đợt A được tải ở lượt trước, kết quả mất khi phiên đổi | không mất dữ liệu; đã đối chiếu lại bằng log scratchpad phiên `573b717e` và CRC zip | — | — |
 | Replica | thiếu `preseg`, `semantic`, `glass.sur`; Habitat-Sim chưa cài, khả năng cài trên Windows [chưa kiểm chứng] | Q6: hoãn đến M5 | người dùng |
 | `setup_3dmeph_structure.sh` | nằm **ngoài** repo (`3D_Metric/`), còn tạo `thesis/`, `zotero/` và ghi đè README bằng bản cũ nếu chạy lại | sửa hoặc bỏ file này | người dùng |
-| Chưa kiểm chứng (từ kế hoạch) | ý nghĩa xoay/tịnh tiến trong Faro `_pose.txt`; xyz toàn bộ các cặp Faro khớp nhau; peak VRAM thật; chất lượng MVS/Poisson trên 640×480; có lệnh `unzip` hay không | làm khi tới mốc liên quan | — |
+| Chưa kiểm chứng (từ kế hoạch) | peak VRAM thật; chất lượng MVS/Poisson trên 640×480; có lệnh `unzip` hay không (wrapper không giải nén nên không còn cần) | làm khi tới mốc liên quan | — |
 
 ## 6. Lệch so với kế hoạch
 
@@ -137,6 +152,12 @@ Khôi phục: `git branch <tên> <hash>` rồi (nếu cần) `git push origin <t
 | 10 | `ruff.toml` ignore thêm E501, E701, E402 và `line-length = 120` ngoài bộ luật "E, F, W, I" | giữ đúng cấu hình đã chạy xanh từ đầu: README/docstring tiếng Việt dài (E501), property một dòng trong `io.py` (E701), `sys.path.insert` trước import trong `scripts/` (E402) | Chưa hỏi riêng |
 | 11 | Đồng bộ `origin/main` bằng **merge** (`8629ac3`), không rebase | rebase buộc force-push `QuangDai_Work` vì 3 commit đã push | **Có** (người dùng chọn merge) |
 | 12 | Chốt M0a trong worktree `../3DMeph_m0a` thay vì chuyển nhánh ở thư mục chính | thư mục chính có file M0b chưa commit (`select_scenes.py`, `data/splits.*`, `splits.py`, test) | **Có** (theo yêu cầu) |
+| 13 | **Thêm "Đợt D"** ngoài Q16: Faro 6 visit Validation (46,21 GiB). **GT cho Validation = Faro đầy đủ**: bỏ phương án `highres_depth` và bỏ Q18 "giảm một nửa" cho Validation | chỉ 5/38 visit có file trùng nên giảm một nửa gần như không tiết kiệm (Validation 46,21 → 44,48 GiB); quyết định của người dùng | **Có** |
+| 14 | Faro held-out **chưa tải**; held-out chọn **chỉ bằng seed 42**, không đổi theo dung lượng Faro | quyết định của người dùng; danh sách đã xác nhận | **Có** |
+| 15 | Wrapper **không gọi `download_file`/`download_laser_scanner_point_clouds`** của `download_data.py` như PLAN §4.0c; chỉ dùng quy ước URL và tên file | `download_file` chạy `curl` không `-C -` (không resume), không kiểm `Content-Length`; yêu cầu của người dùng cần cả hai | Chưa hỏi riêng (đã nêu ở báo cáo Bước 3) |
+| 16 | Wrapper có thêm **vòng thử lại** (`--retry-all-errors`, `--speed-limit/--speed-time`, `--max_attempts`, `--retry_wait`) ngoài kế hoạch | sự cố curl mã 56 ở đợt B (mục 4, 18/10 13:15) | **Có** (người dùng chọn sửa wrapper) |
+| 17 | Chia tập 29/6/5 (kế hoạch v4 Q15) thay vì 30/5/5 của PDF Hình 9 | 6 Validation chính thức làm val; đã ghi ở PLAN v4 | **Có** (Q15) |
+| 18 | `--log` của lệnh tải ghi vào scratchpad (theo yêu cầu) thay vì `data/raw/arkitscenes/download_log.csv` mặc định; log mất theo scratchpad khi hết phiên | yêu cầu "ghi log vào scratchpad" | **Có** |
 
 ## 7. Câu hỏi còn mở
 
@@ -144,10 +165,12 @@ Khôi phục: `git branch <tên> <hash>` rồi (nếu cần) `git push origin <t
 |---|---|---|
 | Q8 | Ngưỡng `blur.q_drop` và cách tính overlap | Khoá trên 6 Validation ở M2 (xem mục 5 điểm b: M1 cần giá trị tạm) |
 | Q11c | Chính sách `reports/` trong `.gitignore` (commit CSV hay không) | Hỏi nhóm; giữ nguyên (không commit) |
-| Q21 | Faro cho 6 Validation + 5 held-out (≈ 50 GB + ≈ 30 GB ước tính) vượt ngân sách ổ: chọn phương án nào (mục 5 điểm a)? | Chưa tải gì; dùng `highres_depth` làm dự phòng |
+| ~~Q21~~ | ~~Faro cho Validation~~ **Đã chốt:** Faro đầy đủ, đã tải (đợt D). Còn: Faro 5 held-out (24,44 GiB) với ổ trống 25,16 GiB và ngưỡng dư 15 GiB (mục 5 điểm a) | Chưa tải; dùng `highres_depth` làm dự phòng |
 | Q22 | Giá trị tạm của `keyframe.blur.q_drop` cho M1 (mục 5 điểm b) | Chưa chạy M1 cho tới khi có giá trị |
-| Q23 | Sửa số điểm Faro sai trong `data/README.md` và kế hoạch (mục 5 điểm c) | Chưa sửa |
+| Q23 | Sửa số điểm Faro sai trong bản sao kế hoạch `docs/PLAN_v4.md` (đã sửa ở `data/README.md`; mục 5 điểm c) | Giữ nguyên văn bản kế hoạch |
 | Q24 | Thêm kiểm tra tiêu đề `WORKING_LOG.md` vào `scripts/check_docs.py` (AGENTS.md mục 10, điểm 7) | Chưa thêm |
 | Q25 | Trạng thái PR #4; tên GitHub thật thay `@username1–4` trong CODEOWNERS | Giữ placeholder |
 | ~~Q26~~ | ~~Merge hay rebase với `origin/main`~~ **Đã chốt: merge** (`8629ac3`). Còn lại: có cập nhật `main` cục bộ không (xem mục 5) | — |
 | Q27 | Khi nào bật lại UP, PLW1510, RUF, C4 (62 lỗi, mục 6 dòng 9): ở M0a hay các mốc sau, sửa tay hay `--fix` | Hoãn; không bật |
+| Q28 | Push `feature/m0b-data` lên `QuangDai_Work`? Hiện nhánh M0b (4 commit: `9047112`, `bf6d57a`, `cdc9643`, log) chưa push | Chưa push |
+| Q29 | Chấp nhận ổ D chỉ còn 25,16 GiB khi bắt đầu M1, hay giải phóng thêm trước (và Faro held-out cần ≥ 39,4 GiB trống: 24,44 + 15) | Chưa tải held-out |

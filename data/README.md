@@ -55,15 +55,20 @@ Kết quả ở `data/splits.csv` (cột `video_id, visit_id, split, sky_directi
   Held-out nội bộ, **không gọi là official test** (ĐC §10). Chạy lại `select_scenes.py` phải cho đúng cùng danh sách, nếu khác thì từ chối ghi đè.
 - train = phần còn lại (29 scene).
 
-## Dung lượng cần tải thêm (đã duyệt, chưa tải)
+## Dữ liệu đã tải thêm (đợt A–D, ngày 18/10/2026, bằng `scripts/download_arkitscenes.py`)
 
-| Đợt | Nội dung | Dung lượng |
-|---|---|---|
-| A | `vga_wide` + intrinsics scene 42444738 | ≈ 0,74 GB |
-| B | Faro visit 421267: 6 file `.ply` (≈ 1,8 GB mỗi file, 42.348.620 điểm) + `_pose.txt` | ≈ 10,98 GB |
-| C | `vga_wide` + intrinsics 6 Validation (riêng 42897599 là 4,12 GB) | ≈ 10,23 GB |
+| Đợt | Nội dung | Dung lượng (GiB, 1024³) | Trạng thái |
+|---|---|---|---|
+| A | `vga_wide` + intrinsics scene 42444738 (1.805 ảnh) | 0,69 | đã tải, khớp HEAD, CRC zip OK |
+| B | Faro visit 421267: 6 `.ply` + 6 `_pose.txt` | 10,22 | đã tải, khớp HEAD, header PLY khớp |
+| C | `vga_wide` + intrinsics 6 Validation (riêng 42897599 là 3,83) | 9,53 | đã tải, khớp HEAD, CRC 12 zip OK |
+| D | Faro 6 visit Validation (421380, 422785, 423477, 434659, 468711, 471952): 27 `.ply` + 27 `_pose.txt` | 46,21 | đã tải, khớp HEAD, header PLY khớp |
 
-Tổng ≈ 21,95 GB; ổ D: còn khoảng 55 GB. Mỗi đợt chạy `--dry-run` trước, rồi mới tải thật.
+Tổng 66,65 GiB; ổ D còn **25,16 GiB** trống. **Faro của 5 scene held-out chưa tải** (24,44 GiB đầy đủ; wrapper từ chối vì ổ phải còn dư ≥ 15 GiB).
+
+Mỗi scan Faro có **số điểm khác nhau** (không phải mọi file đều 42.348.620 điểm): file 1,863 GiB có 42.348.620 điểm, 1,825 GiB có 41.467.500, 1,801 GiB có 40.935.479
+(công thức `332 + điểm × 44 = kích thước`, 44 B/điểm gồm tọa độ double, RGBA, `quality`, `radius`). Tổng 6 file visit 421267: 249.503.198 điểm; 27 file Validation: 1.127.653.846 điểm.
+Wrapper tải zip thẳng vào `data/raw/arkitscenes/<split>/<id>/` (không có cấp `raw/`, không giải nén) và Faro vào `data/raw/arkitscenes/laser_scanner_point_clouds/<visit_id>/`.
 
 ## Ghi chú về asset ARKitScenes
 
