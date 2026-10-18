@@ -45,18 +45,31 @@ def q_texture(grad_mean: float, g_ref: float) -> float:
     return float(min(1.0, max(0.0, grad_mean / g_ref)))
 
 
-def window_gradient_mean(gray: np.ndarray, xy: np.ndarray, window: int = 15) -> np.ndarray:
-    """Độ lớn gradient trung bình trong cửa sổ window×window quanh mỗi điểm (px, cột/hàng liên tục).
-
-    xy: (n, 2) toạ độ (x, y). Trả về mảng (n,). Điểm ngoài ảnh được kẹp vào biên.
-    """
+def _window_gradient_map(gray: np.ndarray, window: int = 15) -> np.ndarray:
+    """Bản đồ độ lớn gradient trung bình trong cửa sổ window×window (Sobel 3×3 không chuẩn hoá, trên cường độ 0–255)."""
     import cv2
 
     g = gray.astype(np.float32)
     gx = cv2.Sobel(g, cv2.CV_32F, 1, 0, ksize=3)
     gy = cv2.Sobel(g, cv2.CV_32F, 0, 1, ksize=3)
     mag = np.sqrt(gx * gx + gy * gy)
-    mean_map = cv2.boxFilter(mag, ddepth=-1, ksize=(window, window), borderType=cv2.BORDER_REPLICATE)
+    return cv2.boxFilter(mag, ddepth=-1, ksize=(window, window), borderType=cv2.BORDER_REPLICATE)
+
+
+def mean_window_gradient(gray: np.ndarray, window: int = 15) -> float:
+    """Trung bình trên cả ảnh của bản đồ gradient cửa sổ: số đo "độ nhiều chi tiết" của một khung, cùng toán tử với q_texture.
+
+    Dùng để đo G_ref (trung bình theo khung → theo scene → trung vị qua scene Validation, tương tự V_ref).
+    """
+    return float(_window_gradient_map(gray, window).mean())
+
+
+def window_gradient_mean(gray: np.ndarray, xy: np.ndarray, window: int = 15) -> np.ndarray:
+    """Độ lớn gradient trung bình trong cửa sổ window×window quanh mỗi điểm (px, cột/hàng liên tục).
+
+    xy: (n, 2) toạ độ (x, y). Trả về mảng (n,). Điểm ngoài ảnh được kẹp vào biên.
+    """
+    mean_map = _window_gradient_map(gray, window)
     h, w = gray.shape
     xy = np.atleast_2d(np.asarray(xy, dtype=np.float64))
     cols = np.clip(np.floor(xy[:, 0]).astype(int), 0, w - 1)

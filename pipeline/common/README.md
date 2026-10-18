@@ -11,6 +11,7 @@ Mã dùng chung: cấu hình, đọc/ghi, hình học Sim(3), chỉ số chất 
 - `geometry.py` Umeyama, đảo pose, phép chiếu, xoay intrinsics, overlap, depth hợp lệ, khoảng cách hai điểm.
 - `quality.py` `q_blur`, `q_exposure`, `q_texture`, hàm đổi sai số `f(x) = e^{−x/τ}`; `compute_v_ref`, `compute_g_ref` (trung vị qua scene,
   **chỉ nhận scene val**, scene held-out thì `raise HeldoutError`).
+- `reference.py` `scene_stats`, `measure_reference`: đo `V_ref`/`G_ref` từ zip `vga_wide` theo `splits.csv` (`quality.mean_window_gradient` cho `G_ref`).
 - `splits.py` chọn train/val/heldout theo venue (seed 42), ghi và kiểm `splits.lock` (sha256, xuống dòng chuẩn hoá LF), `guard_reference`.
 
 `pipeline/__init__.py` `import torch` **trước mọi thư viện khác** (tránh lỗi DLL của pycolmap).
@@ -39,8 +40,16 @@ Các khoá `quality.*` (cho `q_blur`, `q_exposure`, `q_texture`):
 
 | Khoá | Giá trị | Nguồn |
 |---|---|---|
-| `quality.v_ref.vga` | null | (3): đo trên `vga_wide` của 6 scene Validation, **chưa đo**; không có số mặc định |
-| `quality.g_ref.vga` | null | (20): trung vị trên 6 scene Validation, chưa đo |
+| `quality.v_ref.vga` | 205.69 | (3): trung vị qua scene của blur trung bình, đo ngày 2026-10-18 trên `vga_wide` của 6 Validation (`scripts/measure_reference.py`). Số 581 của đề cương không dùng |
+| `quality.v_ref.measured_on` | validation | tập đo: `split = val` trong `splits.csv` |
+| `quality.v_ref.n_scenes` | 6 | số scene đã đo |
+| `quality.v_ref.date` | 2026-10-18 | ngày đo |
+| `quality.v_ref.stride` | 10 | lấy mẫu mỗi 10 khung [kế hoạch §4.1] |
+| `quality.g_ref.vga` | 29.01 | (20): trung vị qua scene của gradient cửa sổ 15×15 trung bình, cùng lần đo. Gộp theo khung → scene → trung vị là [Suy luận], PDF chỉ nói "trung vị trên Validation" |
+| `quality.g_ref.measured_on` | validation | như trên |
+| `quality.g_ref.n_scenes` | 6 | |
+| `quality.g_ref.date` | 2026-10-18 | |
+| `quality.g_ref.stride` | 10 | |
 | `quality.window` | 15 | ĐC §16.1: cửa sổ 15×15 px |
 | `quality.dark_px` | 5 | (20): pixel ≤ 5 là quá tối |
 | `quality.bright_px` | 250 | (20): pixel ≥ 250 là cháy sáng |

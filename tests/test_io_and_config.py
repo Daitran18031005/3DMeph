@@ -93,12 +93,21 @@ def test_default_config_loads_and_exposes_expected_keys():
     assert cfgmod.get(cfg, "plane.alpha") == 0.5
 
 
+def test_v_ref_g_ref_are_measured_on_validation_not_581():
+    cfg = cfgmod.load_config()
+    for k in ("v_ref", "g_ref"):
+        assert cfgmod.require(cfg, f"quality.{k}.vga") > 0
+        assert cfgmod.get(cfg, f"quality.{k}.measured_on") == "validation"
+        assert cfgmod.get(cfg, f"quality.{k}.n_scenes") == 6
+        assert cfgmod.get(cfg, f"quality.{k}.date")
+    assert cfgmod.get(cfg, "quality.v_ref.vga") not in (581.0, 635.3)       # không dùng số cũ của đề cương hay số lowres
+
+
 def test_unmeasured_parameters_are_null_and_require_fails():
     cfg = cfgmod.load_config()
-    assert cfgmod.get(cfg, "quality.v_ref.vga") is None
-    assert cfgmod.get(cfg, "quality.g_ref.vga") is None
+    assert cfgmod.get(cfg, "keyframe.blur.q_drop") is None                  # chưa có căn cứ, khoá ở M2
     with pytest.raises(ValueError):
-        cfgmod.require(cfg, "quality.v_ref.vga")  # không có số mặc định (không dùng 581)
+        cfgmod.require(cfg, "keyframe.blur.q_drop")                         # không có số mặc định
     with pytest.raises(KeyError):
         cfgmod.get(cfg, "khong.ton.tai")
 

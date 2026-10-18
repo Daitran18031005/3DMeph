@@ -15,10 +15,18 @@ keyframe:
     q_drop: null              # loại khung có q_blur dưới ngưỡng; chưa có căn cứ, khoá trên Validation
 
 quality:
-  v_ref:                      # (3): đo trên vga_wide của 6 Validation (chưa đo)
-    vga: null
-  g_ref:                      # (20): trung vị trên 6 Validation (chưa đo)
-    vga: null
+  v_ref:                      # (3): trung vị qua scene của blur trung bình, đo trên vga_wide của 6 Validation
+    vga: 205.69
+    measured_on: validation   # split = val trong splits.csv, asset vga_wide
+    n_scenes: 6
+    date: "2026-10-18"
+    stride: 10               # lấy mẫu mỗi 10 khung
+  g_ref:                      # (20): trung vị qua scene của gradient cửa sổ 15×15 trung bình
+    vga: 29.01
+    measured_on: validation   # split = val trong splits.csv, asset vga_wide
+    n_scenes: 6
+    date: "2026-10-18"
+    stride: 10               # lấy mẫu mỗi 10 khung
   window: 15                  # ĐC §16.1: cửa sổ 15×15 px quanh điểm cho q_texture
   dark_px: 5                  # (20): pixel ≤ 5 là quá tối
   bright_px: 250              # (20): pixel ≥ 250 là cháy sáng
