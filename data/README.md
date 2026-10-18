@@ -9,7 +9,7 @@ Nguồn thật của danh sách scene là **thư mục trên đĩa + `metadata.c
 |---|---|
 | `raw/arkitscenes/{Training,Validation}/<video_id>/` | asset thô: `lowres_wide.zip`, `lowres_wide_intrinsics.zip`, `lowres_wide.traj`, `lowres_depth.zip`, `highres_depth.zip`, `confidence.zip`, `<id>_3dod_mesh.ply` |
 | `raw/arkitscenes/metadata.csv` | `video_id, visit_id, sky_direction, fold, has_laser_scanner_point_clouds, is_in_upsampling, is_in_threedod` |
-| `raw/arkitscenes/laser_scanner_point_clouds/<visit_id>/` | laser Faro: `.ply` + `_pose.txt` (**chưa tải**, M0b) |
+| `raw/arkitscenes/laser_scanner_point_clouds/<visit_id>/` | laser Faro: `.ply` + `_pose.txt` (đã tải 7 visit: scene dev và 6 Validation; held-out **chưa tải**) |
 | `raw/replica/<scene>/` | `mesh.ply` + `textures/`; **thiếu** `preseg`, `semantic`, `glass.sur` (ĐC §11) |
 | `scenes/<dataset>/<scene_id>/` | cây thư mục một scene theo ĐC §9 (xem README gốc); sinh từ M1 |
 | `self_collected/` | 6–8 phòng tự quay (cross-domain, chưa có) |
@@ -59,14 +59,14 @@ Kết quả ở `data/splits.csv` (cột `video_id, visit_id, split, sky_directi
 
 | Đợt | Nội dung | Dung lượng (GiB, 1024³) | Trạng thái |
 |---|---|---|---|
-| A | `vga_wide` + intrinsics scene 42444738 (1.805 ảnh) | 0,69 | đã tải, khớp HEAD, CRC zip OK |
+| A | `vga_wide` + intrinsics scene 42444738 (1.804 ảnh) | 0,69 | đã tải, khớp HEAD, CRC zip OK |
 | B | Faro visit 421267: 6 `.ply` + 6 `_pose.txt` | 10,22 | đã tải, khớp HEAD, header PLY khớp |
 | C | `vga_wide` + intrinsics 6 Validation (riêng 42897599 là 3,83) | 9,53 | đã tải, khớp HEAD, CRC 12 zip OK |
 | D | Faro 6 visit Validation (421380, 422785, 423477, 434659, 468711, 471952): 27 `.ply` + 27 `_pose.txt` | 46,21 | đã tải, khớp HEAD, header PLY khớp |
 
 Tổng 66,65 GiB; ổ D còn **25,16 GiB** trống. **Faro của 5 scene held-out chưa tải** (24,44 GiB đầy đủ; wrapper từ chối vì ổ phải còn dư ≥ 15 GiB).
 
-Mỗi scan Faro có **số điểm khác nhau** (không phải mọi file đều 42.348.620 điểm): file 1,863 GiB có 42.348.620 điểm, 1,825 GiB có 41.467.500, 1,801 GiB có 40.935.479
+Mỗi scan Faro có **số điểm khác nhau** (không phải mọi file đều 42.348.620 điểm): file 1,863 GB (= 1,735 GiB) có 42.348.620 điểm, 1,825 GB (1,699 GiB) có 41.467.500, 1,801 GB (1,677 GiB) có 40.935.479
 (công thức `332 + điểm × 44 = kích thước`, 44 B/điểm gồm tọa độ double, RGBA, `quality`, `radius`). Tổng 6 file visit 421267: 249.503.198 điểm; 27 file Validation: 1.127.653.846 điểm.
 Wrapper tải zip thẳng vào `data/raw/arkitscenes/<split>/<id>/` (không có cấp `raw/`, không giải nén) và Faro vào `data/raw/arkitscenes/laser_scanner_point_clouds/<visit_id>/`.
 

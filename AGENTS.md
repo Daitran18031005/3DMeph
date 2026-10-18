@@ -64,9 +64,9 @@ Env conda `3d_metric` (Python 3.12). Python của env: `C:\Users\GIGA\anaconda3\
 |---|---|---|
 | Kiểm tra môi trường (chỉ đọc) | `python environment/check_env.py` | đã chạy: 0 lỗi, 3 cảnh báo |
 | Xem lệnh dựng env (không chạy) | `environment\create_env.bat --dry-run` | **chỉ dry-run đã chạy**; chạy thật cần xác nhận (mục 7) |
-| Test | `python -m pytest tests -q` | đã chạy: 95 passed |
+| Test | `python -m pytest tests -q` | đã chạy: 150 passed |
 | Lint | `python -m ruff check .` (cấu hình cố định ở `ruff.toml`: E, F, W, I) | UP, PLW1510, RUF, C4 hoãn có chủ ý (WORKING_LOG.md) |
-| Kiểm README ↔ config | `python scripts/check_docs.py` (`--no-run` bỏ qua lệnh trong README) | đã chạy: OK (19 README, 41 khoá) |
+| Kiểm README ↔ config | `python scripts/check_docs.py` (`--no-run` bỏ qua lệnh trong README) | đã chạy: OK (19 README, 49 khoá) |
 | Đo hai điểm | `python -m pipeline.export.measure --a x y z --b x y z` | đã chạy |
 | EDA / validate dữ liệu | `python scripts/explore_dataset.py`, `python scripts/validate_dataset.py` | chạy lâu; mới chạy `--help` sau khi đổi đường dẫn mặc định sang `reports/statistics/`, [chưa kiểm chứng] chạy đầy đủ |
 
@@ -94,8 +94,8 @@ COLMAP chạy bằng CLI 4.2 (`../colmap/bin/colmap.exe`, hoặc biến `COLMAP_
 
 ## 7. Quy tắc an toàn (cần người dùng xác nhận trước khi làm)
 
-- **Tải dữ liệu:** luôn `--dry-run` trước, rồi mới `--yes`, đúng từng đợt đã duyệt: A (≈0,74 GB), B (≈10,98 GB), C (≈10,23 GB).
-  Mọi tải khác (Faro cho scene khác, Replica, trọng số VGGT) cần xin riêng. Ổ D: còn khoảng 55 GB.
+- **Tải dữ liệu:** luôn `--dry-run` trước, rồi mới `--yes`, đúng từng đợt đã duyệt: A (0,69 GiB), B (10,22 GiB), C (9,53 GiB), D (46,21 GiB), cả bốn đã tải xong.
+  Mọi tải khác (Faro cho scene khác, Replica, trọng số VGGT) cần xin riêng. Ổ D: còn khoảng 25 GiB (18/10, sau 4 đợt A–D).
 - **Git:** push, mở/đóng PR, xoá hoặc đổi tên nhánh, rebase, xoá file, sửa `.gitignore`. Không dùng `--force`,
   không `git push --delete` với ký tự đại diện, không `branch -D` khi chưa được phép.
 - **Môi trường:** không chạy `create_env.bat` thật (đặc biệt `--recreate`, có thể xoá env `3d_metric`) khi chưa xác nhận.
@@ -115,8 +115,8 @@ COLMAP chạy bằng CLI 4.2 (`../colmap/bin/colmap.exe`, hoặc biến `COLMAP_
 ## 9. Quy trình git và mốc
 
 Mỗi mốc một nhánh `feature/<tên>` và một PR vào `main` (≥ 1 approve), theo `CONTRIBUTING.md`. Commit nhỏ, thông điệp rõ.
-`QuangDai_Work` (origin) chỉ để **sao lưu** cá nhân. **Nhánh hiện tại:** `feature/m0a-foundation` (theo dõi `origin/QuangDai_Work`).
-`origin/main` đã tiến thêm so với nhánh này (khi mở PR có thể phải merge/rebase; chờ quyết định).
+`QuangDai_Work` (origin) chỉ để **sao lưu** cá nhân. **Nhánh hiện tại:** `feature/m0b-data` (đã gồm M0a; sao lưu ở `origin/QuangDai_Work`, chưa có upstream).
+Nhánh này đã gồm toàn bộ `origin/main` (đồng bộ bằng merge ngày 17/10; `git rev-list --left-right --count origin/main...HEAD` = `0 14`).
 
 | Mốc | Việc | Tiêu chí đạt [PLAN §10] |
 |---|---|---|

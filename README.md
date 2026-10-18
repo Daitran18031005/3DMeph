@@ -89,7 +89,7 @@ Ba nguồn, ba bảng số riêng, không trộn kết quả (ĐC §3).
 
 | Nguồn | Vai trò | Hiện có |
 |---|---|---|
-| ARKitScenes (subset có laser Faro) | train / validation / held-out nội bộ | 40 scene thật: 34 `Training` + 6 `Validation` trong `data/raw/arkitscenes/`, thuộc 38 venue. RGB `lowres_wide` 256×192 đã có; `vga_wide` 640×480 sẽ tải ở M0b |
+| ARKitScenes (subset có laser Faro) | train / validation / held-out nội bộ | 40 scene thật: 34 `Training` + 6 `Validation` trong `data/raw/arkitscenes/`, thuộc 38 venue. RGB `lowres_wide` 256×192 đã có; `vga_wide` 640×480 đã tải cho scene dev 42444738 và 6 Validation (18/10/2026); Faro đã tải cho scene dev và 6 Validation, chưa tải cho 5 held-out |
 | Replica | test, chạy một lần | 18 scene = 13 không gian độc lập (6 `frl_apartment` là một); chỉ có `mesh.ply` + `textures/`, **thiếu** `preseg`, `semantic`, `glass.sur` (ĐC §11) |
 | Tự thu bằng điện thoại | cross-domain, đo ngoài đời | chưa có (6–8 phòng, ĐC §5) |
 
@@ -150,7 +150,7 @@ tuần đầu: một scene chạy xuyên suốt, chưa train confidence head, Đ
 | Mốc | Nội dung | Trạng thái |
 |---|---|---|
 | M0a | môi trường, `default.yaml`, `common/`, lõi toán các module và test, README, sửa lỗi repo | có |
-| M0b | chọn và chia scene, tải `vga_wide` và Faro, căn Faro, chấm mốc scale và đoạn test, đo `V_ref`, `G_ref` | chưa |
+| M0b | chọn và chia scene, tải `vga_wide` và Faro, căn Faro, chấm mốc scale và đoạn test, đo `V_ref`, `G_ref` | đang làm: xong chia scene, tải, `V_ref`/`G_ref`; còn căn Faro, chấm mốc và đoạn test |
 | M1 | cả chín stage chạy một lệnh trên scene 42444738 (CLI, chưa FastAPI/Unity) | chưa |
 | M2 | khoá ngưỡng keyframe trên Validation, đo VRAM và tỷ lệ đăng ký SfM | chưa |
 | M3 | `eval/` đủ chỉ số; B0, B1, B3, Proposed, Ablation 1–2 trên một scene | chưa |
@@ -175,11 +175,11 @@ Bài cốt lõi: ARKitScenes, Replica, VGGT, COLMAP SfM/MVS, GGPT, UniDepthV2, P
 
 ## 10. Giới hạn đã biết
 
-- `V_ref`, `G_ref` chưa đo; số 581 trong đề cương đo trên `lowres_wide` 256×192 và gồm cả scene sẽ làm held-out, nên
+- `V_ref` = 205,69 và `G_ref` = 29,01 đã đo trên `vga_wide` của 6 Validation (18/10/2026); số 581 trong đề cương đo trên `lowres_wide` 256×192 và gồm cả scene sẽ làm held-out, nên
   không dùng làm cấu hình (chỉ xuất hiện như ví dụ trong test).
 - Replica thiếu nhãn phẳng/ngữ nghĩa; Habitat-Sim chưa cài (khả năng cài trên Windows chưa kiểm chứng). Hoãn đến M5.
 - Đề cương không nêu cách nối chunk VGGT cho baseline B1, cách đổi confidence VGGT sang [0,1], định nghĩa `w_k` trong
   cổng, nhãn `s_k` khi không có ngữ nghĩa: nhóm đã chọn và ghi rõ trong README từng module (nhãn "Suy luận").
 - `*_3dod_mesh.ply` trong thư mục scene là mesh ARKit, **không phải** laser Faro. Faro là
-  `laser_scanner_point_clouds` (tải ở M0b).
+  `laser_scanner_point_clouds` (đã tải cho scene dev và 6 Validation).
 - Plane gate trên dataflow HTML khác đề cương (xem mục 2); mặc định theo đề cương.

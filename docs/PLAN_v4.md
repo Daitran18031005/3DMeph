@@ -1,6 +1,7 @@
 > Bản sao NGUYÊN VĂN kế hoạch v4 (tạo ở chế độ Plan của Claude Code, 17/10/2026) để mọi agent đọc được.
 > Kế hoạch là nguồn ưu tiên (b) trong AGENTS.md. Trạng thái thực tế và chỗ lệch so với kế hoạch: xem WORKING_LOG.md.
 > Các câu "chưa sửa file nào, chưa tải gì" ở đầu kế hoạch mô tả thời điểm lập kế hoạch, không phải trạng thái hiện tại.
+> Sửa 18/10/2026 (Q23, người dùng đồng ý): "42.348.620 điểm/scan" chỉ đúng cho file 1,863 GB (= 1,735 GiB). Đo bằng header PLY trên cả 33 file Faro đã tải (`332 + n×44 = kích thước` đúng cả 33 file): scan có từ 39.826.951 đến 43.422.282 điểm; visit 421267 (6 file) = 249.503.198 điểm; 27 file Validation = 1.127.653.846 điểm. Số từng file: `data/README.md`.
 
 # Kế hoạch v4: pipeline 3DMeph end-to-end (mốc đầu) + README + môi trường
 
@@ -12,7 +13,7 @@
 |---|---|---|
 | 1 | Chốt Q15 = **29/6/5**, Q17 = **seed 42**, Q18 = **tải cả 6 file Faro**, Q20 = **M1 đợi đợt C** (không dùng `V_ref` tạm), Q16 = **duyệt cả 3 đợt A, B, C** (mỗi đợt vẫn `--dry-run` trước) | §0, §4.0b, §4.0c, §11 |
 | 2 | Kiểm Faro bằng HTTP Range: 3 cặp cùng kích thước, cùng `_pose.txt`, cùng xyz (100.000 điểm đầu), chỉ khác RGB và `quality`. Dù tải cả 6, `faro_align.py` chỉ dựng GT từ 1 file mỗi cặp pose trùng để không đếm đôi điểm | §4.0c, §4.0d |
-| 3 | Thông tin PLY và pose của Faro đã đo: 42.348.620 điểm/scan, 44 B/điểm, hệ chung Z-up, `_pose.txt` 4 dòng với tịnh tiến ở dòng cuối | §4.0d |
+| 3 | Thông tin PLY và pose của Faro đã đo: số điểm mỗi scan khác nhau (42.348.620 chỉ đúng cho file 1,863 GB; xem ghi chú đầu file), 44 B/điểm, hệ chung Z-up, `_pose.txt` 4 dòng với tịnh tiến ở dòng cuối | §4.0d |
 | 4 | **Thứ tự mốc đổi:** M1 chỉ bắt đầu sau khi M0b xong (đợt A, B, C, căn Faro, `V_ref`/`G_ref` trên `vga_wide`); M1 chạy trên `vga_wide`; bỏ khoá `lowres` khỏi config | §4.1, §4.9, §10 |
 
 ## Nhật ký thay đổi v3 (đánh dấu `[v3]` trong thân kế hoạch)
@@ -254,7 +255,7 @@ Dung lượng đo bằng HEAD request ngày 17/10/2026 (không tải gì). Ổ D
 #### 4.0d Các script còn lại
 
 - **`adapters.py`**: README hứa nhưng chưa có. Gom `AssetReader` đang bị chép ở `validate_dataset.py:54` và `explore_dataset.py:45`. Cung cấp: RGB (zip), intrinsics, pose `.traj` (đảo theo (5)), depth hợp lệ (6), Faro.
-- **`faro_align.py`** [v4]: Faro là point cloud trong hệ riêng, cần căn vào hệ scene. **Đã đo qua HTTP Range (đợt B chưa tải):** mỗi scan 42.348.620 điểm, 44 B/điểm (xyz kiểu double, RGBA, `quality`, `radius`); 3 scan nằm sẵn trong **một hệ chung**, trục lên là **Z** (z ≈ 214,5–216,9 m ở 100.000 điểm đầu); `_pose.txt` là 4 dòng × 4 số, tịnh tiến ở dòng cuối (kiểu vector hàng), ví dụ scan 169892 ở khoảng (−0,19; −0,95; 215,77). **Chỉ 1 file mỗi cặp pose trùng (169892, 169895, 169897) được dùng dựng GT; 3 file còn lại (169970, 169973, 169975) chỉ để đối chiếu xyz toàn bộ** (tránh đếm đôi điểm). Căn vào hệ scene: dựng điểm từ `highres_depth` + pose (scene 42444738 có 105 khung) rồi ICP, khởi tạo từ trục Z-up và `_pose.txt`; ý nghĩa xoay/tịnh tiến trong `_pose.txt` phải xác nhận khi tải. Đọc từng scan, voxel hoá ngay (RAM 15,7 GB). Báo residual; ngưỡng chấp nhận chưa có căn cứ. **Dự phòng: dùng thẳng `highres_depth`** làm GT (phủ một phần ⇒ `Comp` bị lệch, ghi rõ).
+- **`faro_align.py`** [v4]: Faro là point cloud trong hệ riêng, cần căn vào hệ scene. **Đã đo qua HTTP Range (đợt B chưa tải):** số điểm mỗi scan khác nhau (42.348.620 chỉ đúng cho file 1,863 GB; 41.467.500 cho 1,825 GB; 40.935.479 cho 1,801 GB), 44 B/điểm (xyz kiểu double, RGBA, `quality`, `radius`); 3 scan nằm sẵn trong **một hệ chung**, trục lên là **Z** (z ≈ 214,5–216,9 m ở 100.000 điểm đầu); `_pose.txt` là 4 dòng × 4 số, tịnh tiến ở dòng cuối (kiểu vector hàng), ví dụ scan 169892 ở khoảng (−0,19; −0,95; 215,77). **Chỉ 1 file mỗi cặp pose trùng (169892, 169895, 169897) được dùng dựng GT; 3 file còn lại (169970, 169973, 169975) chỉ để đối chiếu xyz toàn bộ** (tránh đếm đôi điểm). Căn vào hệ scene: dựng điểm từ `highres_depth` + pose (scene 42444738 có 105 khung) rồi ICP, khởi tạo từ trục Z-up và `_pose.txt`; ý nghĩa xoay/tịnh tiến trong `_pose.txt` phải xác nhận khi tải. Đọc từng scan, voxel hoá ngay (RAM 15,7 GB). Báo residual; ngưỡng chấp nhận chưa có căn cứ. **Dự phòng: dùng thẳng `highres_depth`** làm GT (phủ một phần ⇒ `Comp` bị lệch, ghi rõ).
 - **`annotate_segments.py`**: chấm tay đầu mút trên Faro (Open3D). Mỗi scene: 1 đoạn mốc 1–2 m (`used_as_anchor=1`) + 12–20 đoạn test [ĐC §8.2], đầu mút khác nhau → `measurements.csv` (`id,type,ground_truth_m,used_as_anchor,endpoints/notes` [ĐC §9]). **Mốc scale (Q3):** click 2D trong ≥2 keyframe rồi tam giác hóa bằng camera COLMAP để ra `L_model`, không dùng pose GT.
 - **`explore_dataset.py`, `validate_dataset.py`**: giữ; sửa đường dẫn mặc định (§7c). `validate_dataset.py` đang gọi `*.ply` trong scene là "mesh" ⇒ ghi chú đó là mesh ARKit, không phải Faro.
 - **`check_docs.py`** (mới): §7d.
@@ -460,7 +461,7 @@ Tạo mới: `pipeline/{keyframe,colmap,vggt,alignment,fusion,plane_gate,export,
 | 256×192 quá nhỏ | COLMAP cũ: 2.377 điểm / 121 ảnh | `vga_wide` (đợt A, C); `lowres` chỉ để dev |
 | Pose ARKit | `.traj` world→camera, 10 Hz (595 pose / 3.607 khung 60 Hz) | Chỉ dùng cho ATE và định vị khi chấm; đảo theo (5); chỉ lấy khung có pose |
 | Scene mờ | 9 scene `blur_min<10` (PDF: 8) | Không loại tự động; gắn cờ xem tay; scene mốc đầu có `blur_min ≥ 30` |
-| **Faro rất nặng** [v3] | ~11 GB cho 1 scene (6 `.ply` × ~1,8 GB, 42,3 triệu điểm/scan); đĩa D: còn 55,1 GB; RAM 15,7 GB | Đã duyệt tải cả 6 (Q16, Q18); đọc từng scan, voxel hoá ngay; chỉ dùng 3 file khác pose để dựng GT; dự phòng `highres_depth` |
+| **Faro rất nặng** [v3] | ~11 GB cho 1 scene (6 `.ply` × ~1,8 GB, ~41–42 triệu điểm/scan); đĩa D: còn 55,1 GB; RAM 15,7 GB | Đã duyệt tải cả 6 (Q16, Q18); đọc từng scan, voxel hoá ngay; chỉ dùng 3 file khác pose để dựng GT; dự phòng `highres_depth` |
 | **Tải bằng `download_data.py`** [v3] | Tự `unzip` (cần lệnh `unzip`), thêm cấp `raw/`, xoá zip trừ `--keep_zip` | Wrapper riêng không giải nén (§4.0c) |
 | **`selected_scenes.csv` lệch** [v3] | 2 dòng không có trên đĩa, 1 dòng không có laser | Dùng thư mục thật + `metadata.csv`, lập `rejected.csv` |
 | **Validation nặng** [v3] | 42897599: 4,12 GB `vga_wide`; M1 **bị chặn** đến khi xong đợt C (Q20) [v4] | Đã duyệt tải (Q16); chạy đợt C ngay sau B |
@@ -470,7 +471,7 @@ Tạo mới: `pipeline/{keyframe,colmap,vggt,alignment,fusion,plane_gate,export,
 | Rò rỉ ngưỡng | `V_ref=581` từng gồm held-out | `splits.lock` + code chặn held-out [v3] |
 | Drift README ↔ code | README cũ đã sai | `check_docs.py` trong PR |
 
-**Chưa kiểm chứng được (ghi để không ngộ nhận):** Habitat-Sim trên Windows; wheel pycolmap 4.2.0 có CUDA; ý nghĩa xoay/tịnh tiến trong `_pose.txt` của Faro; xyz của toàn bộ 42,3 triệu điểm trong mỗi cặp Faro có khớp không (mới kiểm 100.000 điểm đầu); peak VRAM thật; chất lượng MVS/Poisson trên 640×480; có sẵn lệnh `unzip` trên máy hay không.
+**Chưa kiểm chứng được (ghi để không ngộ nhận):** Habitat-Sim trên Windows; wheel pycolmap 4.2.0 có CUDA; ý nghĩa xoay/tịnh tiến trong `_pose.txt` của Faro; xyz của toàn bộ ~41–42 triệu điểm trong mỗi cặp Faro có khớp không (mới kiểm 100.000 điểm đầu); peak VRAM thật; chất lượng MVS/Poisson trên 640×480; có sẵn lệnh `unzip` trên máy hay không.
 
 ## 10. Lộ trình mốc [v3: tách M0a/M0b]
 
