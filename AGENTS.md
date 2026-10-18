@@ -68,6 +68,7 @@ Env conda `3d_metric` (Python 3.12). Python của env: `C:\Users\GIGA\anaconda3\
 | Lint | `python -m ruff check .` (cấu hình cố định ở `ruff.toml`: E, F, W, I) | UP, PLW1510, RUF, C4 hoãn có chủ ý (WORKING_LOG.md) |
 | Kiểm README ↔ config | `python scripts/check_docs.py` (`--no-run` bỏ qua lệnh trong README) | đã chạy: OK (19 README, 49 khoá) |
 | Đo hai điểm | `python -m pipeline.export.measure --a x y z --b x y z` | đã chạy |
+| Căn Faro vào hệ scene | `python scripts/faro_align.py --scene arkitscenes/<id> [--phase 1 \| --commit]` | đã chạy thật trên 42444738 (ứng viên rồi `--commit`); không có ngưỡng chấp nhận trong mã, người dùng duyệt trước `--commit` |
 | EDA / validate dữ liệu | `python scripts/explore_dataset.py`, `python scripts/validate_dataset.py` | chạy lâu; mới chạy `--help` sau khi đổi đường dẫn mặc định sang `reports/statistics/`, [chưa kiểm chứng] chạy đầy đủ |
 
 **Bắt buộc:** `pipeline/__init__.py` `import torch` **trước** `pycolmap`/`open3d`/`cv2`, nếu không `import pycolmap` lỗi

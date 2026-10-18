@@ -150,7 +150,7 @@ tuần đầu: một scene chạy xuyên suốt, chưa train confidence head, Đ
 | Mốc | Nội dung | Trạng thái |
 |---|---|---|
 | M0a | môi trường, `default.yaml`, `common/`, lõi toán các module và test, README, sửa lỗi repo | có |
-| M0b | chọn và chia scene, tải `vga_wide` và Faro, căn Faro, chấm mốc scale và đoạn test, đo `V_ref`, `G_ref` | đang làm: xong chia scene, tải, `V_ref`/`G_ref`; còn căn Faro, chấm mốc và đoạn test |
+| M0b | chọn và chia scene, tải `vga_wide` và Faro, căn Faro, chấm mốc scale và đoạn test, đo `V_ref`, `G_ref` | đang làm: xong chia scene, tải, `V_ref`/`G_ref`, căn Faro scene dev; còn chấm mốc và đoạn test |
 | M1 | cả chín stage chạy một lệnh trên scene 42444738 (CLI, chưa FastAPI/Unity) | chưa |
 | M2 | khoá ngưỡng keyframe trên Validation, đo VRAM và tỷ lệ đăng ký SfM | chưa |
 | M3 | `eval/` đủ chỉ số; B0, B1, B3, Proposed, Ablation 1–2 trên một scene | chưa |

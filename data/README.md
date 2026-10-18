@@ -70,6 +70,15 @@ Mỗi scan Faro có **số điểm khác nhau** (không phải mọi file đều
 (công thức `332 + điểm × 44 = kích thước`, 44 B/điểm gồm tọa độ double, RGBA, `quality`, `radius`). Tổng 6 file visit 421267: 249.503.198 điểm; 27 file Validation: 1.127.653.846 điểm.
 Wrapper tải zip thẳng vào `data/raw/arkitscenes/<split>/<id>/` (không có cấp `raw/`, không giải nén) và Faro vào `data/raw/arkitscenes/laser_scanner_point_clouds/<visit_id>/`.
 
+## Faro đã căn vào hệ scene (scene dev 42444738, bằng `scripts/faro_align.py`)
+
+Đầu ra nằm trong cây scene `data/scenes/arkitscenes/42444738/ground_truth/faro/` (bị `.gitignore`, không vào git):
+`phase1_report.json` (kiểm các cặp Faro cùng pose và ý nghĩa `_pose.txt`), `faro_voxel_*mm_<scan>.npz` (cache voxel từng scan duy nhất),
+`faro_to_scene.candidate.json` (**bản ứng viên**: ma trận 4×4 Faro→scene, mọi số liệu residual). `faro_to_scene.json` và `faro_scene_frame.ply`
+chỉ có sau `--commit`, khi người dùng đã duyệt. Ghi chú đã kiểm: 3 cặp scan cùng `_pose.txt` có **xyz trùng hoàn toàn** (0/124,75 triệu điểm khác);
+`.ply` đã ở một hệ chung (khoảng cách giữa scan khác pose: trung vị 1–5 mm với giả thuyết này, 0,17–11 m nếu áp `_pose.txt`), `_pose.txt` là vị trí máy quét.
+Chiều dài đo giữa hai điểm Faro **không phụ thuộc** phép căn này (phép cứng giữ khoảng cách); phép căn chỉ định vị Faro trong hệ ARKit.
+
 ## Ghi chú về asset ARKitScenes
 
 - Ghép RGB/depth/pose theo `frame_id` = phần sau dấu `_` đầu tiên của tên file bỏ đuôi (`47333462_5201.456.png` → `5201.456`).
