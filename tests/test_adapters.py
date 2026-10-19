@@ -329,6 +329,60 @@ def test_voxel_cung_luoi_giua_cac_lan_goi():
     cen3, _ = ad.voxel_downsample_stream(iter([a]), 0.01)
     assert len(cen1) == len(cen2) == 1 and len(cen3) == 1       # cùng voxel [0, 0.01)
 
+# ---------------------------------------------------------------------------
+# PLY có màu, voxel kèm thuộc tính
+# ---------------------------------------------------------------------------
+
+
+def test_iter_ply_xyz_rgb_doc_mau(tmp_path):
+    rng = np.random.default_rng(5)
+    xyz = rng.uniform(0, 3, (500, 3))
+    f = tmp_path / "c.ply"
+    arr = np.zeros(len(xyz), dtype=FARO_DTYPE)
+    arr["x"], arr["y"], arr["z"] = xyz[:, 0], xyz[:, 1], xyz[:, 2]
+    arr["r"], arr["g"], arr["b"] = 10, 20, np.arange(500) % 256
+    # đổi tên trường màu trong header để khớp red/green/blue
+    f.write_bytes(FARO_HEADER % 500 + arr.tobytes())
+    got = list(ad.iter_ply_xyz_rgb(f, chunk=200))
+    assert [len(g[0]) for g in got] == [200, 200, 100]
+    assert np.array_equal(np.concatenate([g[0] for g in got]), xyz)
+    rgb = np.concatenate([g[1] for g in got])
+    assert rgb.dtype == np.uint8 and (rgb[:, 0] == 10).all() and (rgb[:, 1] == 20).all() and np.array_equal(rgb[:, 2], np.arange(500) % 256)
+
+
+def test_iter_ply_xyz_rgb_thieu_mau(tmp_path):
+    f = tmp_path / "nocolor.ply"
+    header = "\n".join(["ply", "format binary_little_endian 1.0", "element vertex 1", "property float x", "property float y",
+                        "property float z", "end_header", ""]).encode("ascii")
+    f.write_bytes(header + np.zeros(3, dtype="<f4").tobytes())
+    with pytest.raises(ValueError, match="màu"):
+        list(ad.iter_ply_xyz_rgb(f))
+
+
+def test_voxel_attr_trung_binh_va_khong_phu_thuoc_chunk():
+    rng = np.random.default_rng(2)
+    pts = rng.uniform(-1, 1, (3000, 3))
+    col = rng.integers(0, 256, (3000, 3)).astype(np.float64)
+    voxel = 0.3
+    ref_cen, ref_cnt = ad.voxel_downsample_stream(iter([pts]), voxel)
+    for sizes in ([3000], [700, 2300], [1] * 5 + [2995]):
+        chunks, a = [], 0
+        for s in sizes:
+            chunks.append((pts[a:a + s], col[a:a + s]))
+            a += s
+        cen, mean, cnt = ad.voxel_downsample_attr_stream(iter(chunks), voxel)
+        assert np.allclose(cen, ref_cen) and np.array_equal(cnt, ref_cnt)
+        # màu trung bình đúng: kiểm voxel đầu bằng tay
+        key = np.floor(pts / voxel).astype(np.int64)
+        first = tuple(np.floor(cen[0] / voxel + 1e-9).astype(np.int64))
+        sel = np.all(key == np.array(first), axis=1)
+        assert np.allclose(mean[0], col[sel].mean(axis=0))
+    cen, mean, cnt = ad.voxel_downsample_attr_stream(iter([]), 0.1)
+    assert cen.shape == (0, 3) and cnt.shape == (0,)
+    with pytest.raises(ValueError):
+        ad.voxel_downsample_attr_stream(iter([(np.zeros((2, 3)), np.zeros((3, 3)))]), 0.1)
+
+
 
 # ---------------------------------------------------------------------------
 # Dữ liệu thật (bỏ qua nếu thiếu)

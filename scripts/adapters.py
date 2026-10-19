@@ -309,6 +309,22 @@ def iter_ply_xyz(path: os.PathLike, chunk: int = 2_000_000) -> Iterator[np.ndarr
         del mm
 
 
+def iter_ply_xyz_rgb(path: os.PathLike, chunk: int = 2_000_000) -> Iterator[Tuple[np.ndarray, np.ndarray]]:
+    """Như `iter_ply_xyz` nhưng kèm màu: sinh (xyz float64 (m, 3), rgb uint8 (m, 3)). PLY phải có thuộc tính red, green, blue."""
+    h = read_ply_header(path)
+    missing = [n for n in ("red", "green", "blue") if n not in h["names"]]
+    if missing:
+        raise ValueError(f"{path}: thiếu thuộc tính màu {missing}")
+    mm = np.memmap(path, dtype=h["dtype"], mode="r", offset=h["offset"], shape=(h["n"],))
+    try:
+        for a in range(0, h["n"], chunk):
+            blk = mm[a:a + chunk]
+            yield (np.stack([blk["x"], blk["y"], blk["z"]], axis=1).astype(np.float64),
+                   np.stack([blk["red"], blk["green"], blk["blue"]], axis=1).astype(np.uint8))
+    finally:
+        del mm
+
+
 def read_pose_txt(path: os.PathLike) -> np.ndarray:
     """`<scan>_pose.txt` → (4, 4) đúng như lưu (4 dòng × 4 số, tịnh tiến ở dòng cuối: kiểu vector hàng).
     Ý nghĩa với `.ply` [chưa kiểm chứng]; `faro_align.py` kiểm bằng dữ liệu."""
@@ -379,5 +395,44 @@ def voxel_downsample_stream(chunks: Iterable[np.ndarray], voxel: float, origin: 
     return acc_sum / acc_cnt[:, None], acc_cnt
 
 
+def voxel_downsample_attr_stream(chunks: Iterable[Tuple[np.ndarray, np.ndarray]], voxel: float,
+                                 origin: Optional[np.ndarray] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Như `voxel_downsample_stream` nhưng mỗi chunk là (xyz (m, 3), thuộc tính (m, k)); trả về
+    (centroid (n, 3), trung bình thuộc tính (n, k), đếm (n,)). Dùng để lấy màu trung bình mỗi voxel."""
+    if voxel <= 0:
+        raise ValueError("voxel phải > 0")
+    origin = np.zeros(3) if origin is None else np.asarray(origin, dtype=np.float64)
+    acc_key = np.empty(0, dtype=np.int64)
+    acc_sum = None
+    acc_cnt = np.empty(0, dtype=np.int64)
+    k_attr = None
+    for pts, attr in chunks:
+        pts = np.asarray(pts, dtype=np.float64)
+        attr = np.asarray(attr, dtype=np.float64)
+        if len(pts) == 0:
+            continue
+        if attr.shape[0] != pts.shape[0]:
+            raise ValueError("xyz và thuộc tính khác số dòng")
+        k_attr = attr.shape[1]
+        both = np.concatenate([pts, attr], axis=1)
+        keys = _voxel_keys(pts, voxel, origin)
+        ukeys, inv = np.unique(keys, return_inverse=True)
+        sums = np.stack([np.bincount(inv, weights=both[:, a], minlength=len(ukeys)) for a in range(both.shape[1])], axis=1)
+        cnts = np.bincount(inv, minlength=len(ukeys)).astype(np.int64)
+        if acc_sum is None:
+            acc_sum = np.empty((0, both.shape[1]))
+        all_key = np.concatenate([acc_key, ukeys])
+        all_sum = np.concatenate([acc_sum, sums])
+        all_cnt = np.concatenate([acc_cnt, cnts])
+        acc_key, inv2 = np.unique(all_key, return_inverse=True)
+        acc_sum = np.stack([np.bincount(inv2, weights=all_sum[:, a], minlength=len(acc_key)) for a in range(all_sum.shape[1])], axis=1)
+        acc_cnt = np.bincount(inv2, weights=all_cnt, minlength=len(acc_key)).astype(np.int64)
+    if len(acc_key) == 0:
+        return np.empty((0, 3)), np.empty((0, k_attr or 0)), np.empty(0, dtype=np.int64)
+    mean = acc_sum / acc_cnt[:, None]
+    return mean[:, :3], mean[:, 3:], acc_cnt
+
+
 __all__ = ["AssetReader", "frame_timestamp", "read_intrinsics", "intrinsics_matrix", "scale_intrinsics", "Trajectory",
-           "unproject_depth", "read_ply_header", "iter_ply_xyz", "read_pose_txt", "list_scans", "voxel_downsample_stream"]
+           "unproject_depth", "read_ply_header", "iter_ply_xyz", "iter_ply_xyz_rgb", "read_pose_txt", "list_scans", "voxel_downsample_stream",
+           "voxel_downsample_attr_stream"]
