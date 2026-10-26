@@ -1,0 +1,80 @@
+# configs/default.yaml — tham số của pipeline 3DMeph.
+# Mỗi khoá được mô tả trong README của module tương ứng (pipeline/<module>/README.md) và được
+# scripts/check_docs.py đối chiếu hai chiều. `null` = chưa có căn cứ trong đề cương, phải đo/khoá
+# trên 6 scene ARKitScenes Validation (xem configs/README.md). ĐC = đề cương, "(n)" = số công thức.
+
+keyframe:
+  fps: 2                      # ĐC §7: trích 1–2 khung/giây
+  target_min: 40              # ĐC §7: 40–80 keyframe mỗi lượt
+  target_max: 80
+  rotate_from_sky: true       # xoay ảnh upright theo sky_direction (quyết định của nhóm)
+  overlap:
+    max: 0.8                  # trên mức này coi là trùng [Suy luận từ ĐC §6.1, mục tiêu 60–80%]
+    min: 0.6                  # dưới mức này coi là mất kết nối [Suy luận từ ĐC §6.1]
+  blur:
+    q_drop: null              # loại khung có q_blur dưới ngưỡng; chưa có căn cứ, khoá trên Validation
+
+quality:
+  v_ref:                      # (3): trung vị qua scene của blur trung bình, đo trên vga_wide của 6 Validation
+    vga: 205.69
+    measured_on: validation   # split = val trong splits.csv, asset vga_wide
+    n_scenes: 6
+    date: "2026-10-18"
+    stride: 10               # lấy mẫu mỗi 10 khung
+  g_ref:                      # (20): trung vị qua scene của gradient cửa sổ 15×15 trung bình
+    vga: 29.01
+    measured_on: validation   # split = val trong splits.csv, asset vga_wide
+    n_scenes: 6
+    date: "2026-10-18"
+    stride: 10               # lấy mẫu mỗi 10 khung
+  window: 15                  # ĐC §16.1: cửa sổ 15×15 px quanh điểm cho q_texture
+  dark_px: 5                  # (20): pixel ≤ 5 là quá tối
+  bright_px: 250              # (20): pixel ≥ 250 là cháy sáng
+
+colmap:
+  camera_model: PINHOLE       # intrinsics lấy từ camera.json
+  matcher_overlap: null       # số cặp láng giềng của sequential_matcher; chưa có căn cứ (mặc định COLMAP)
+  geom_consistency: true      # PatchMatchStereo.geom_consistency, tạo cả depth photometric và geometric
+  max_image_size: null        # null = giữ nguyên kích thước ảnh
+
+vggt:
+  chunk: 12                   # (2): c = 8–16 ảnh mỗi chunk (GPU 8 GB)
+  overlap: 2                  # (2): o = 2 ảnh gối
+  dtype: bf16
+  c_model_map: one_minus_inv  # c = 1 − 1/conf (conf = 1+exp(x) ∈ [1,∞)); [Suy luận, đã xác nhận]
+
+align:
+  min_pairs: 3                # §15.1: n ≥ 3 cặp tâm camera
+  ransac:
+    max_error_ratio: null     # ngưỡng inlier / khoảng cách camera trung vị; chưa có căn cứ
+  anchor_file: ground_truth/scale_anchor.json   # mốc scale 1–2 m, §8.1
+
+fusion:
+  tau_e: 2.0                  # (19): px, "minh họa" §16.1; khoá trên Validation
+  tau_sigma: 0.20             # (19): m, "minh họa" §16.1; khoá trên Validation
+  e_cap_px: 4.0               # e_reproj gán cho vùng ngoài nội suy [Suy luận: ngưỡng RANSAC 1–4 px, §14.1]
+  use_quality: true           # false = Ablation 1 (bỏ q_blur, q_texture, q_exposure)
+
+plane:
+  tau_r: 0.05                 # (24): m, ví dụ §17.1
+  tau_n_deg: 15               # (24): độ, ví dụ §17.1
+  tau_w: 0.5                  # (24): ví dụ §17.1
+  alpha: 0.5                  # (25): ví dụ §17.2 (khác loss.alpha_r)
+  up_refine_deg: 20           # tinh chỉnh hướng lên trong 20° quanh (0,−1,0) camera (quyết định của nhóm)
+  force: false                # true = Ablation 2: kéo mọi điểm về mặt phẳng, không cổng
+
+export:
+  poisson_depth: 9            # Open3D Poisson; [Suy luận] 8–9
+  up_axis: y                  # glTF dùng +Y là lên
+
+eval:
+  snap_radius_m: 0.02         # bán kính snap đầu mút vào point cloud mô hình (quyết định của nhóm, 2 cm)
+  mode: manual                # manual (chọn trực tiếp trên point cloud) | auto (căn cứng, scale cố định)
+
+loss:
+  alpha_r: null               # (29): hệ số phạt L_reg; mốc train head, chưa dùng
+
+paths:
+  colmap_exe: ${COLMAP_EXE}   # biến môi trường; mặc định ../colmap/bin/colmap.exe so với repo
+  data_root: data/scenes      # cây thư mục Mục 9 (ĐC §9)
+  splits: data/splits.csv     # danh sách train/val/heldout

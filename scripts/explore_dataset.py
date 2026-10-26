@@ -10,7 +10,7 @@ Cách chạy:
     python3 explore_dataset.py \
         --arkitscenes_root data/raw/arkitscenes \
         --replica_root data/raw/replica \
-        --output_csv reports/eda_stats.csv \
+        --output_csv reports/statistics/eda_stats.csv \
         --sample_stride 10
 
 QUAN TRỌNG: hỗ trợ cả asset ARKitScenes dạng thư mục đã giải nén lẫn file .zip
@@ -24,10 +24,10 @@ import csv
 import glob
 import os
 import sys
-import zipfile
 
 import cv2
 import numpy as np
+from adapters import AssetReader
 
 try:
     import open3d as o3d
@@ -42,58 +42,7 @@ ARKIT_DEPTH_DIR = "lowres_depth"
 DEPTH_MM_TO_M = 1.0 / 1000.0  # ARKitScenes depth thường lưu ở đơn vị mm (uint16)
 
 
-class AssetReader:
-    """Đọc file bên trong 1 asset ARKitScenes, hỗ trợ cả thư mục đã giải nén lẫn
-    file .zip chưa giải nén (tên hiển thị có thể không có đuôi .zip trên Windows).
-    Dùng qua "with" để tự đóng zip sau khi xong."""
-
-    def __init__(self, scene_dir, asset_name):
-        self.kind = None
-        self.zf = None
-        self.dir_path = None
-
-        dir_path = os.path.join(scene_dir, asset_name)
-        if os.path.isdir(dir_path):
-            self.kind = "dir"
-            self.dir_path = dir_path
-            return
-
-        candidates = [dir_path if dir_path.lower().endswith(".zip") else dir_path + ".zip",
-                      dir_path]
-        for c in candidates:
-            if os.path.isfile(c) and zipfile.is_zipfile(c):
-                self.kind = "zip"
-                self.zf = zipfile.ZipFile(c)
-                return
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc):
-        self.close()
-
-    def exists(self):
-        return self.kind is not None
-
-    def list_pngs(self):
-        if self.kind == "dir":
-            return sorted(f for f in os.listdir(self.dir_path) if f.lower().endswith(".png"))
-        if self.kind == "zip":
-            return sorted(n for n in self.zf.namelist() if n.lower().endswith(".png"))
-        return []
-
-    def read(self, entry, flags=cv2.IMREAD_UNCHANGED):
-        if self.kind == "dir":
-            return cv2.imread(os.path.join(self.dir_path, entry), flags)
-        if self.kind == "zip":
-            data = self.zf.read(entry)
-            arr = np.frombuffer(data, dtype=np.uint8)
-            return cv2.imdecode(arr, flags)
-        return None
-
-    def close(self):
-        if self.zf is not None:
-            self.zf.close()
+# AssetReader nằm ở scripts/adapters.py (gom từ hai script này, kế hoạch §4.0d).
 
 
 def blur_score(img_gray):
@@ -200,7 +149,7 @@ def main():
     parser = argparse.ArgumentParser(description="EDA ARKitScenes + Replica cho 3DMeph")
     parser.add_argument("--arkitscenes_root", default="data/raw/arkitscenes")
     parser.add_argument("--replica_root", default="data/raw/replica")
-    parser.add_argument("--output_csv", default="reports/eda_stats.csv")
+    parser.add_argument("--output_csv", default="reports/statistics/eda_stats.csv")
     parser.add_argument("--sample_stride", type=int, default=10,
                          help="Chỉ lấy mẫu 1/N frame để tính blur/exposure cho nhanh")
     args = parser.parse_args()

@@ -24,7 +24,7 @@
 
 ## 6. File đặc biệt — KHÔNG đồng biên tập qua git
 - .docx khoá luận: dùng Google Docs khi cần 2+ người sửa cùng lúc, export lại
-  .docx định kỳ để lưu vào thesis/. Không dùng git để đồng biên tập văn bản.
+  .docx định kỳ để lưu vào docs/. Không dùng git để đồng biên tập văn bản.
 - Notebook .ipynb: cài nbstripout trước khi commit để tránh conflict giả:
       pip install nbstripout && nbstripout --install
 - File Unity (.unity, .prefab): Edit > Project Settings > Editor >

@@ -4,10 +4,16 @@
 /pipeline/colmap/       @username1
 /pipeline/alignment/    @username1
 /pipeline/vggt/         @username2
+/pipeline/keyframe/     @username1 @username2
 /pipeline/fusion/       @username3
+/pipeline/plane_gate/   @username3
+/pipeline/export/       @username3 @username4
 /pipeline/eval/         @username3
+/pipeline/common/       @username1 @username2 @username3 @username4
 /app/backend_fastapi/   @username4
 /app/unity_app/         @username4
 /scripts/               @username1 @username2
+/environment/           @username1 @username2
+/tests/                 @username1 @username2 @username3 @username4
 /configs/               @username1 @username2 @username3 @username4
-/thesis/                @username1 @username2 @username3 @username4
+/docs/                  @username1 @username2 @username3 @username4

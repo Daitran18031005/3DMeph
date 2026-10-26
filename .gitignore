@@ -10,3 +10,12 @@ __pycache__/
 app/unity_app/Library/
 app/unity_app/Temp/
 reports/
+data/scenes/
+.pytest_cache/
+
+# bí mật và trọng số mô hình
+.env
+*.pt
+*.pth
+*.safetensors
+*.ckpt
