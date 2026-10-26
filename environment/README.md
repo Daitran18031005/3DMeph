@@ -21,6 +21,8 @@ environment\create_env.bat
 - `--dry-run`: chỉ in lệnh. `--recreate`: xoá env rồi tạo lại. `--with-weights`: `check_env.py` tải trọng số `facebook/VGGT-1B` (nặng; kích thước chưa kiểm chứng).
 - Nếu env `3d_metric` đã có, script bỏ qua bước tạo và chỉ cài/cập nhật gói.
 - Biến `VGGT_DIR` (repo vggt, mặc định `../../vggt`) và `COLMAP_EXE` (mặc định `../../colmap/bin/colmap.exe`).
+  **Hiện đặt `COLMAP_EXE` (mức User) = `D:\Nghien_Cuu\3D_Metric\colmap_4.0.4_cuda12\bin\colmap.exe`**: bản COLMAP 4.2.0 ở `../colmap` build bằng CUDA 13
+  nên không thấy GPU với driver 573.22 (cần ≥ 580); bản 4.0.4 build CUDA 12.9.1 chạy được (tải từ GitHub releases, 430.502.531 B, 27/10).
 - File `.bat` chỉ dùng ký tự ASCII (tránh lỗi mã hoá của `cmd.exe`).
 
 Kiểm tra riêng: `python environment/check_env.py` (xem README gốc, mục "Cài đặt môi trường").

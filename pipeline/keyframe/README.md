@@ -1,7 +1,8 @@
 # pipeline/keyframe/
 
-Trạng thái (M0a): có `orientation.py` (xoay ảnh theo `sky_direction` và cập nhật intrinsics) cùng test. **Chưa có**:
-trích khung, bộ lọc, ghi `keyframes.csv` (M1, M2).
+Trạng thái (M1a): có `orientation.py` (xoay ảnh) và `extract.py` (stage `keyframe`: chọn ứng viên theo `keyframe.fps`, lọc `q_blur`, thưa đều khi vượt
+`target_max`, xoay đứng, ghi `keyframes.csv`, `camera.json`, `raw/source.json`), đã chạy thật trên 42444738. **Chưa có**: lọc overlap, lọc exposure
+(chưa có ngưỡng), phát hiện vật động (M2).
 
 ## Vai trò
 
@@ -41,19 +42,19 @@ Chỉ dùng RGB làm input; LiDAR và pose ARKit chỉ để tham chiếu (ĐC �
 |---|---|---|
 | `keyframe.fps` | 2 | ĐC §7 (1–2 khung/giây) |
 | `keyframe.target_min` | 40 | ĐC §7 |
-| `keyframe.target_max` | 80 | ĐC §7 |
+| `keyframe.target_max` | 120 | ĐC §7 nêu 80; **M1 nâng lên 120 (lệch có chủ ý, người dùng đồng ý 27/10)** vì thưa đều xuống 80 khung làm đứt chuỗi SfM trên 42444738: SfM đăng ký 46–47/80 (GPU) hoặc 65/80 (CPU), còn 112 khung không thưa cho 93–94/112 (84%), lặp 3 lần mỗi cấu hình. M2 thay bằng bộ lọc overlap và xem lại giới hạn |
 | `keyframe.rotate_from_sky` | true | quyết định của nhóm |
 | `keyframe.overlap.max` | 0.8 | Suy luận từ ĐC §6.1 (trên mức này coi là trùng) |
 | `keyframe.overlap.min` | 0.6 | Suy luận từ ĐC §6.1 (dưới mức này coi là mất kết nối) |
-| `keyframe.blur.q_drop` | null | chưa có căn cứ; khoá trên 6 scene Validation |
+| `keyframe.blur.q_drop` | 0.35 | **tạm cho M1** (người dùng chọn 26/10; đo trên scene dev 42444738: loại 9/121 khung, q_blur trung vị 0,757); khoá lại trên 6 scene Validation ở M2. Ví dụ ĐC §7.3: q=0,35 giữ, q=0,005 loại |
 
 `quality.*` (`V_ref`, `G_ref`, `dark_px`, `bright_px`, cửa sổ) nằm ở [common](../common/README.md).
 
 ## Cách chạy riêng
 
 ```bash
-# skip (chưa có CLI riêng cho module này, dự kiến M1)
-python -m pipeline.keyframe --scene arkitscenes/42444738
+# skip (cần dữ liệu thật ở data/raw; mất vài giây, đã chạy thật 27/10)
+python -m pipeline.run --scene arkitscenes/42444738 --from-stage keyframe --to-stage keyframe
 ```
 
 Dùng hàm xoay trong Python: `from pipeline.keyframe.orientation import upright`.

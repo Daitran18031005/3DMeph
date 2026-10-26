@@ -22,7 +22,7 @@ sở hữu nó (tiền tố khoá → module):
 
 - **Có số kèm nguồn**: lấy từ đề cương (ĐC §x hoặc công thức (n)) và ghi nhãn "ví dụ" nếu đề cương gọi là ví dụ/minh họa. Các ngưỡng này vẫn
   phải khoá trên Validation (ĐC §12).
-- **`null`**: đề cương không có số hoặc số phải đo trên dữ liệu (`quality.v_ref.vga`, `quality.g_ref.vga`, `keyframe.blur.q_drop`,
+- **`null`**: đề cương không có số hoặc số phải đo trên dữ liệu (`quality.v_ref.vga`, `quality.g_ref.vga`,
   `align.ransac.max_error_ratio`, `colmap.matcher_overlap`, `colmap.max_image_size`, `loss.alpha_r`). Mã gọi `require()` sẽ báo lỗi thay vì đoán.
 - **Số 581** trong đề cương (`V_ref` trung vị 40 scene, đo trên `lowres_wide` 256×192, gồm cả scene sẽ làm held-out) **không** được dùng làm
   cấu hình; `V_ref`, `G_ref` đo lại trên `vga_wide` của 6 scene Validation.

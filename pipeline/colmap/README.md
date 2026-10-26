@@ -1,7 +1,8 @@
 # pipeline/colmap/
 
-Trạng thái (M0a): chưa có mã stage; đã kiểm chứng pycolmap 3.10 đọc được model do COLMAP CLI 4.2 ghi và công thức
-`e_reproj` theo quan sát khớp COLMAP (`tests/test_colmap_compat.py`). Stage SfM, MVS, tín hiệu: M1.
+Trạng thái (M1a): có `run_colmap.py` (stage `sfm`, `mvs`), `signals.py` (`e_reproj` theo quan sát, bản đồ IDW, `σ_depth`) và `depth_io.py` (đọc depth map `.bin`),
+đã chạy thật trên 42444738 bằng COLMAP 4.0.4 CUDA 12 (xem `WORKING_LOG.md` cho số liệu). pycolmap 3.10 đọc model do CLI ghi và công thức `e_reproj`
+khớp COLMAP (`tests/test_colmap_compat.py`). **Chưa có**: B0 mét (cần `s_m`, M1c).
 
 ## Vai trò
 
@@ -39,6 +40,7 @@ học `e_reproj` (thưa, theo điểm feature) và `σ_depth` (dày, theo pixel)
 | `colmap.matcher_overlap` | null | chưa có căn cứ (dùng mặc định của COLMAP) |
 | `colmap.geom_consistency` | true | tạo cả depth photometric và geometric (cần cho `σ_depth`) |
 | `colmap.max_image_size` | null | null = giữ nguyên kích thước ảnh |
+| `colmap.use_gpu` | true | `false` chạy SIFT và ghép cặp bằng CPU (`patch_match_stereo` vẫn bắt buộc CUDA). COLMAP 4.2 ở `../colmap/bin` build CUDA 13 (có kernel sm_110), cần driver NVIDIA ≥ 580; với driver 573.22 (CUDA 12.8) nó báo `num_cuda_devices = 0`. Cách đã dùng: COLMAP 4.0.4 build CUDA 12.9.1 ở `../colmap_4.0.4_cuda12`, đặt `COLMAP_EXE`; SIFT trên GPU và `patch_match_stereo` chạy được [kiểm 27/10] |
 
 Đường dẫn `colmap.exe`: `paths.colmap_exe` (biến `COLMAP_EXE`), mặc định `../colmap/bin/colmap.exe` so với repo.
 `patch_match_stereo` cần CUDA.
@@ -46,8 +48,8 @@ học `e_reproj` (thưa, theo điểm feature) và `σ_depth` (dày, theo pixel)
 ## Cách chạy riêng
 
 ```bash
-# skip (chưa có CLI, dự kiến M1; cần colmap.exe và GPU)
-python -m pipeline.colmap --scene arkitscenes/42444738 --stage sfm
+# skip (cần keyframe đã tạo, colmap.exe và GPU; SfM mất khoảng nửa phút, MVS vài phút)
+python -m pipeline.run --scene arkitscenes/42444738 --from-stage sfm --to-stage mvs
 ```
 
 ## Test vector và tiêu chí đạt
