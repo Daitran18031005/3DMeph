@@ -24,7 +24,7 @@ from .common.errors import E_NOT_IMPLEMENTED, StageError
 from .common.io import SceneLayout, ensure_dir, read_json, scene_layout, write_json
 
 STAGES: List[str] = ["keyframe", "sfm", "mvs", "vggt", "align", "fuse", "gate", "export", "eval"]
-NOT_IMPLEMENTED = {"vggt": "M1b", "align": "M1c", "fuse": "M1d", "gate": "M1d", "export": "M1d", "eval": "M3"}
+NOT_IMPLEMENTED = {"align": "M1c", "fuse": "M1d", "gate": "M1d", "export": "M1d", "eval": "M3"}
 REPO = Path(__file__).resolve().parents[1]
 
 
@@ -113,7 +113,13 @@ def _stage_mvs(ctx: Dict, log) -> Dict:
     return run_mvs(ctx["info"]["layout"], ctx["cfg"], cfgmod.resolve_colmap_exe(ctx["cfg"]), log)
 
 
-IMPLEMENTED: Dict[str, Callable[[Dict, Callable[[str], None]], Dict]] = {"keyframe": _stage_keyframe, "sfm": _stage_sfm, "mvs": _stage_mvs}
+def _stage_vggt(ctx: Dict, log) -> Dict:
+    from .vggt.infer import run_vggt
+    return run_vggt(ctx["info"]["layout"], ctx["cfg"], log)
+
+
+IMPLEMENTED: Dict[str, Callable[[Dict, Callable[[str], None]], Dict]] = {"keyframe": _stage_keyframe, "sfm": _stage_sfm, "mvs": _stage_mvs,
+                                                                         "vggt": _stage_vggt}
 
 
 def run_stage(name: str, ctx: Dict, log: Callable[[str], None] = print) -> Dict:
@@ -129,6 +135,9 @@ def run_stage(name: str, ctx: Dict, log: Callable[[str], None] = print) -> Dict:
         entry.update(status="ok", error_code=None, stats=stats)
     except StageError as e:
         entry.update(status="failed", error_code=e.code, error=e.message)
+        raise
+    except Exception as e:      # lỗi ngoài dự kiến: vẫn ghi vào run_meta thay vì để "running"
+        entry.update(status="failed", error_code="E_UNEXPECTED", error=f"{type(e).__name__}: {e}")
         raise
     finally:
         entry["seconds"] = round(time.time() - t0, 1)

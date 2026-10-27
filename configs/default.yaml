@@ -42,6 +42,8 @@ vggt:
   chunk: 12                   # (2): c = 8–16 ảnh mỗi chunk (GPU 8 GB)
   overlap: 2                  # (2): o = 2 ảnh gối
   dtype: bf16
+  vram_fraction: 0.95   # trần VRAM của PyTorch (tỉ lệ dung lượng GPU); trên Windows (WDDM) không có trần thì cấp phát tràn sang RAM hệ thống và chậm gấp ~2 lần; 0 = không đặt trần
+  weights_dir: ../vggt_weights/VGGT-1B   # thư mục chứa config.json và model.safetensors (facebook/VGGT-1B, cc-by-nc-4.0); tương đối so với gốc repo, ngoài git
   c_model_map: one_minus_inv  # c = 1 − 1/conf (conf = 1+exp(x) ∈ [1,∞)); [Suy luận, đã xác nhận]
 
 align:

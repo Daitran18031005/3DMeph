@@ -1,7 +1,8 @@
 # pipeline/vggt/
 
-Trạng thái (M0a): có `chunks.py` (chia chunk) và `outputs.py` (`c_model`) cùng test. **Chưa có** `infer.py` (chạy VGGT).
-Trọng số `facebook/VGGT-1B` chưa có trong cache `~/.cache/huggingface/hub`; kích thước chưa kiểm chứng.
+Trạng thái (M1b): có `chunks.py` (chia chunk), `outputs.py` (`c_model`) và `infer.py` (chạy VGGT theo chunk, ảnh đứng chế độ `pad`,
+ánh xạ pixel `original_to_vggt`/`vggt_to_original`), cùng test (phần không cần GPU dùng mô hình giả). Trọng số `facebook/VGGT-1B`
+(`model.safetensors` 5.026.367.224 B + `config.json` 62 B, cc-by-nc-4.0) nằm ngoài repo, trỏ bằng `vggt.weights_dir`; không commit.
 
 ## Vai trò
 
@@ -35,21 +36,23 @@ Chỉ số: view i trong chunk; `(i, pixel)` cho bản đồ.
 |---|---|---|
 | `vggt.chunk` | 12 | ĐC §7: c = 8–16 ảnh trên GPU 8 GB |
 | `vggt.overlap` | 2 | ĐC §7.1: o = 2 |
-| `vggt.dtype` | bf16 | nhóm chọn cho RTX 4060 (chưa đo VRAM) |
+| `vggt.dtype` | bf16 | nhóm chọn cho RTX 4060: aggregator ép về bf16, head giữ fp32, chạy autocast: chunk 12 ảnh peak 6.021 MiB (27/10); aggregator fp32 peak 9.486,7 MiB, vượt GPU 8 GB |
+| `vggt.vram_fraction` | 0.95 | trần VRAM PyTorch (7,6 GiB trên 8 GiB); không có trần thì WDDM tràn sang RAM, `reserved` 10.024 MiB và chậm gấp ~2 lần (đo 27/10); 0.80 thì OOM do phân mảnh; 0 tắt trần |
+| `vggt.weights_dir` | `../vggt_weights/VGGT-1B` | thư mục có `config.json` và `model.safetensors`, tương đối so với gốc repo, ngoài git |
 | `vggt.c_model_map` | one_minus_inv | Suy luận (đã xác nhận) |
 
 ## Cách chạy riêng
 
 ```bash
-# skip (chưa có infer.py, dự kiến M1; cần GPU và trọng số VGGT-1B)
-python -m pipeline.vggt --scene arkitscenes/42444738
+# skip (cần GPU, trọng số VGGT-1B và keyframe của scene)
+python -m pipeline.run --scene arkitscenes/42444738 --from-stage vggt --to-stage vggt
 ```
 
 ## Test vector và tiêu chí đạt
 
 - `tests/test_chunks_and_vggt.py`: N_kf=72, c=12, o=2 → 7 chunk; khoảng chỉ số khớp Hình 7; hai chunk liền kề gối 2 ảnh; phủ
   mọi khung; `conf_to_c_model(1, 2,2, 50) = 0; 0,55; 0,98`; từ chối `conf < 1`.
-- Tiêu chí đạt (M1–M2): peak VRAM < 8 GB (chưa có số đo); camera 1 của chunk là gốc (q = [0,0,0,1], t = 0, ĐC §13).
+- Tiêu chí đạt (M1–M2): peak VRAM < 8 GB (đo 6.021 MiB trên 42444738, chunk 12); camera 1 của chunk là gốc (q = [0,0,0,1], t = 0, ĐC §13).
 
 ## Lỗi thường gặp
 

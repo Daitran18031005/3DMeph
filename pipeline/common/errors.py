@@ -7,6 +7,7 @@ E_SFM_FAILED = "E_SFM_FAILED"                    # SfM không dựng được mo
 E_MISSING_INPUT = "E_MISSING_INPUT"              # thiếu file đầu vào của stage (stage trước chưa chạy)
 E_COLMAP_FAILED = "E_COLMAP_FAILED"              # lệnh COLMAP thoát khác 0
 E_NOT_IMPLEMENTED = "E_NOT_IMPLEMENTED"          # stage chưa cài (ví dụ eval ở M1)
+E_CUDA_OOM = "E_CUDA_OOM"                        # hết bộ nhớ GPU (VGGT quá chunk)
 
 
 class StageError(RuntimeError):
