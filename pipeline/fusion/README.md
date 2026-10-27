@@ -1,7 +1,7 @@
 # pipeline/fusion/
 
-Trạng thái (M0a): có `fusion.py` (trọng số, chuẩn hóa, ghép, `w_k`) và test theo ví dụ đề cương. Chưa có stage lấy mẫu tín hiệu
-từ dữ liệu thật và ghi `fused_points.ply` (M1).
+Trạng thái (M1d): có `fusion.py` (trọng số, chuẩn hóa, ghép, `w_k`; test theo ví dụ đề cương) và `stage.py` (stage `fuse`: đọc `fused.ply.vis`, chiếu điểm vào từng view,
+lấy mẫu bản đồ VGGT và năm tín hiệu còn lại, ghép, ghi `fused_points.ply` và `fusion_log.npz`). Đã chạy thật trên 42444738 (số đo ở `WORKING_LOG.md`).
 
 ## Vai trò
 
@@ -23,7 +23,8 @@ bản đồ điểm VGGT (đã sang mét). COLMAP chỉ cho tín hiệu; nhánh 
 | vào | `baselines/colmap/sfm/e_reproj_map/`, `baselines/colmap/mvs/sigma_depth/` | `e_reproj` (px), `σ_depth` (đổi sang **mét** bằng `s_m`) | |
 | vào | `metadata/keyframes.csv` | `q_blur_i`, `q_exposure_i` (theo view) | |
 | ra | `proposed/fusion/fused_points.ply`: `x, y, z, w_k, n_views` | điểm đã ghép | m |
-| ra | `proposed/fusion/fusion_log.npz`: `view, point, c_model, f_e, f_sigma, q_blur, q_texture, q_exposure, w, w_tilde` | log **theo (i, k)** ("bảng trước/sau, log trọng số", ĐC §25) | |
+| ra | `proposed/fusion/fusion_log.npz`: `view, point, c_model, e_reproj, sigma_m, q_blur, q_texture, q_exposure, w, w_tilde` | log **theo (i, k)** ("bảng trước/sau, log trọng số", ĐC §25) | |
+| ra | `proposed/fusion/fusion_result.json` | số cặp lấy được, phân vị `w_k`, trung vị từng tín hiệu, lệch VGGT so với COLMAP theo cặp (cm) | |
 
 ## Công thức
 
@@ -36,7 +37,9 @@ bản đồ điểm VGGT (đã sang mét). COLMAP chỉ cho tín hiệu; nhánh 
   đây là quyết định của nhóm (ví dụ A/B/C: 0,79; trung bình cộng thô 0,52 sát ngưỡng 0,5; max 0,895).
 - Không xoá view có `w ≈ 0` ("thuật toán không xóa ảnh C, nó hạ phiếu xuống dưới 1%", ĐC §16.4). Điểm có tổng `w` bằng 0: chia đều
   cho view nhìn thấy để tránh NaN (suy luận, nên ghi log).
-- Ngoài vùng nội suy `e_reproj`: gán `e_cap_px` (suy luận). View nằm trong hai chunk (ảnh gối): chọn chunk mà view xa biên hơn (suy luận).
+- Ngoài vùng nội suy `e_reproj`: gán `e_cap_px` (suy luận). Cặp không có `σ_depth` (pixel MVS không hợp lệ): coi `f_σ = 0` (suy luận, ghi `sigma_nan_fraction`).
+  `P_{i,k}` lấy từ vị trí chiếu `k` vào view i; điểm chiếu ngoài ảnh hoặc view không thuộc chunk nào được nhận bị bỏ khỏi `V_k`.
+- View nằm trong hai chunk (ảnh gối): chọn chunk mà view xa biên hơn (suy luận).
 
 ## Tham số
 
@@ -50,12 +53,14 @@ bản đồ điểm VGGT (đã sang mét). COLMAP chỉ cho tín hiệu; nhánh 
 ## Cách chạy riêng
 
 ```bash
-# skip (chưa có CLI, dự kiến M1)
-python -m pipeline.fusion --scene arkitscenes/42444738 --variant proposed
+# skip (cần stage align, mvs, vggt đã chạy)
+python -m pipeline.run --scene arkitscenes/42444738 --from-stage fuse --to-stage fuse
 ```
 
 ## Test vector và tiêu chí đạt
 
+- `tests/test_m1d_stages.py`: `read_vis` (định dạng nhị phân COLMAP), lấy mẫu song tuyến chính xác trên mặt tuyến tính, `view_to_chunk` chọn chunk xa biên hơn; stage `fuse` trên 3 view và mặt phẳng z = 2 biết trước
+  khôi phục đúng `s_m · (điểm COLMAP)` (kiểm cả chuỗi chiếu → `pad_geometry` → Sim(3) chunk → `s_m`), tổng `w̃` mỗi điểm bằng 1.
 - `tests/test_fusion.py`, ví dụ ba ảnh A/B/C của §16.4 (độ sâu 2,00/2,08/3,40 m): `w = 0,895/0,659/0,012`;
   `w̃ = 0,571/0,421/0,008`; `P̂ = 2,04 m` (thật 2,05 m); trung bình đơn giản 2,49 m; ảnh C còn dưới 1% phiếu.
 - `f(e)` với `τ=2 px` cho 0,97/0,92/0,30; `w_k = 0,789` với A/B/C; một view thì `w_k = w`.

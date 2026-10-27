@@ -24,7 +24,7 @@ from .common.errors import E_NOT_IMPLEMENTED, StageError
 from .common.io import SceneLayout, ensure_dir, read_json, scene_layout, write_json
 
 STAGES: List[str] = ["keyframe", "sfm", "mvs", "vggt", "align", "fuse", "gate", "export", "eval"]
-NOT_IMPLEMENTED = {"fuse": "M1d", "gate": "M1d", "export": "M1d", "eval": "M3"}
+NOT_IMPLEMENTED = {"eval": "M3"}
 REPO = Path(__file__).resolve().parents[1]
 
 
@@ -123,8 +123,24 @@ def _stage_align(ctx: Dict, log) -> Dict:
     return run_align(ctx["info"]["layout"], ctx["cfg"], log)
 
 
+def _stage_fuse(ctx: Dict, log) -> Dict:
+    from .fusion.stage import run_fuse
+    return run_fuse(ctx["info"]["layout"], ctx["cfg"], log)
+
+
+def _stage_gate(ctx: Dict, log) -> Dict:
+    from .plane_gate.stage import run_gate
+    return run_gate(ctx["info"]["layout"], ctx["cfg"], log)
+
+
+def _stage_export(ctx: Dict, log) -> Dict:
+    from .export.mesh import run_export
+    return run_export(ctx["info"]["layout"], ctx["cfg"], log)
+
+
 IMPLEMENTED: Dict[str, Callable[[Dict, Callable[[str], None]], Dict]] = {"keyframe": _stage_keyframe, "sfm": _stage_sfm, "mvs": _stage_mvs,
-                                                                         "vggt": _stage_vggt, "align": _stage_align}
+                                                                         "vggt": _stage_vggt, "align": _stage_align, "fuse": _stage_fuse,
+                                                                         "gate": _stage_gate, "export": _stage_export}
 
 
 def run_stage(name: str, ctx: Dict, log: Callable[[str], None] = print) -> Dict:
@@ -161,7 +177,7 @@ def main(argv=None) -> int:
     ap.add_argument("--config", default=str(cfgmod.DEFAULT_CONFIG))
     ap.add_argument("--root", default=str(REPO))
     ap.add_argument("--from-stage", choices=STAGES, default=STAGES[0])
-    ap.add_argument("--to-stage", choices=STAGES, default=STAGES[-1])
+    ap.add_argument("--to-stage", choices=STAGES, default="export", help="mặc định export: stage eval hoãn sang M3 (NOT_IMPLEMENTED)")
     ap.add_argument("--variant", default="proposed", choices=["proposed"], help="M1 chỉ có proposed (B0/B1/B3/ablation ở M3)")
     ap.add_argument("--allow-heldout", action="store_true", help="cho phép scene held-out (chỉ M4, đúng một lần)")
     args = ap.parse_args(argv)

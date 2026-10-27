@@ -47,6 +47,7 @@ vggt:
   c_model_map: one_minus_inv  # c = 1 − 1/conf (conf = 1+exp(x) ∈ [1,∞)); [Suy luận, đã xác nhận]
 
 align:
+  method: orientation_depth   # centers = ĐC §15.1 (tâm camera, RANSAC + Umeyama); orientation_depth = LỆCH ĐC: xoay từ hướng camera, scale từ khoảng cách điểm MVS, tịnh tiến từ tâm camera
   min_pairs: 3                # §15.1: n ≥ 3 cặp tâm camera
   ransac:
     max_error_ratio: 1.5      # ngưỡng inlier / khoảng cách camera trung vị; TẠM cho M1 (chọn trên dev 42444738 bằng CV và nhất quán ảnh gối, xem WORKING_LOG), khoá lại ở M2 trên Validation
@@ -65,10 +66,14 @@ plane:
   alpha: 0.5                  # (25): ví dụ §17.2 (khác loss.alpha_r)
   up_refine_deg: 20           # tinh chỉnh hướng lên trong 20° quanh (0,−1,0) camera (quyết định của nhóm)
   force: false                # true = Ablation 2: kéo mọi điểm về mặt phẳng, không cổng
+  max_planes: 8               # RANSAC tuần tự: tối đa số mặt phẳng; TẠM cho M1 [Suy luận]
+  min_inlier_fraction: 0.02   # mỗi mặt phẳng phải có ≥ tỉ lệ này số điểm; TẠM cho M1 [Suy luận]
+  normal_knn: 30              # số láng giềng của PCA pháp tuyến cục bộ (θ_k, Poisson); TẠM cho M1 [Suy luận]
 
 export:
   poisson_depth: 9            # Open3D Poisson; [Suy luận] 8–9
   up_axis: y                  # glTF dùng +Y là lên
+  density_quantile: 0.05      # cắt các đỉnh Poisson có mật độ dưới phân vị này; TẠM cho M1 [Suy luận]
 
 eval:
   snap_radius_m: 0.02         # bán kính snap đầu mút vào point cloud mô hình (quyết định của nhóm, 2 cm)

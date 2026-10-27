@@ -1,7 +1,7 @@
 # pipeline/alignment/
 
 Trạng thái (M1c): có `ransac.py` (RANSAC + Umeyama, đổi mét), `anchor.py` (tam giác hoá DLT từng đầu mút mốc độc lập từ click 2D, mỗi đầu mút ≥ 2 ảnh, không cần chung một ảnh) và `stage.py`
-(stage `align`: Sim(3) từng chunk, `scale.json`, B0 mét), cộng `scripts/click_anchor_2d.py` (cửa sổ OpenCV để click mốc). Stage chỉ chạy khi
+(stage `align`: Sim(3) từng chunk theo hai phương pháp `align.method`, `scale.json`, B0 mét). **Mặc định `orientation_depth` là LỆCH so với ĐC §15.1** (căn tâm camera), xem Tham số và Công thức, cộng `scripts/click_anchor_2d.py` (cửa sổ OpenCV để click mốc). Stage chỉ chạy khi
 `scale_anchor.json` đã có `L_model` (do `click_anchor_2d.py` điền); `align.ransac.max_error_ratio` đang là 1,5, giá trị TẠM cho M1.
 
 ## Vai trò
@@ -24,7 +24,8 @@ một mốc dài 1–2 m (ĐC §15, Hình 16). Không có bước này app sẽ 
 
 ## Công thức
 
-- Umeyama Sim(3) (13)–(17): `y ≈ s R x + t`; `Σxy = U D Vᵀ`, `R = U S Vᵀ`, `s = tr(DS)/σx²`, `t = μy − s R μx`;
+- **`orientation_depth` (LỆCH ĐC §15.1):** `R = SVD-trung bình của R_wc,COLMAP,i · R_cw,VGGT,i` (loại view lệch hơn `median + 3·max(1,4826·MAD, 1°)`), `s = median_{(i,k)} ‖X_k − C_i‖ / ‖P_{i,k} − c_i‖` (cùng tia nên tỉ lệ khoảng cách = tỉ lệ depth), `t = median_i (y_i − s R x_i)`. Các hằng số 3·MAD và 1° là [Suy luận]. Scale lấy từ chính điểm MVS nên khi đo lệch VGGT so với COLMAP có một phần tự khớp.
+- Umeyama Sim(3) (13)–(17) (`centers`): `y ≈ s R x + t`; `Σxy = U D Vᵀ`, `R = U S Vᵀ`, `s = tr(DS)/σx²`, `t = μy − s R μx`;
   `S = I` nếu `det U · det V ≥ 0`, ngược lại `diag(1, …, 1, −1)`.
 - RANSAC trên cặp tâm camera để bền với camera VGGT ước lượng sai (ĐC §15.1): ví dụ 12 cặp, 2 cặp sai, giữ 10 inlier.
   Công cụ chính theo đề cương là pycolmap (`align_reconstructions_via_proj_centers`); bản numpy trong repo làm oracle và dự phòng.
@@ -37,7 +38,8 @@ một mốc dài 1–2 m (ĐC §15, Hình 16). Không có bước này app sẽ 
 
 | Khoá | Giá trị | Nguồn |
 |---|---|---|
-| `align.min_pairs` | 3 | ĐC §15.1 (n ≥ 3 cặp tâm camera) |
+| `align.method` | orientation_depth | `centers` = ĐC §15.1 (tâm camera, RANSAC + Umeyama). `orientation_depth` = LỆCH ĐC (đã được người dùng duyệt 27/10): xoay R từ hướng camera, scale từ tỉ lệ khoảng cách camera→điểm MVS, tịnh tiến từ tâm camera. Lý do: 6/11 chunk trên 42444738 trải tâm camera < 0,6 m nên căn tâm camera kém điều kiện (lệch VGGT so với COLMAP trung vị 36,8 cm, p90 119 cm); phương pháp mới còn 8,9 cm, p90 21 cm (chưa phải sai số so với GT) |
+| `align.min_pairs` | 3 | ĐC §15.1 (n ≥ 3 cặp tâm camera); cũng là số view đăng ký tối thiểu của `orientation_depth` |
 | `align.ransac.max_error_ratio` | 1.5 | TẠM cho M1: ngưỡng inlier = tỷ lệ này × khoảng cách camera COLMAP trung vị của chunk. Chọn trên 42444738 từ dãy 0,05–3,0: nhỏ nhất trên cao nguyên (≥ 1,5 giữ 112/112 cặp, nghiệm không đổi), CV chéo 50/50 và nhất quán ảnh gối tốt nhất; khoá lại ở M2 trên Validation |
 | `align.anchor_file` | ground_truth/scale_anchor.json | ĐC §9 |
 
@@ -54,7 +56,7 @@ python -m pipeline.run --scene arkitscenes/42444738 --from-stage align --to-stag
 - `tests/test_geometry.py`: 4 camera `x=(0;0),(2;0),(2;1),(0;1)`, `y=(1,0;2,0),(1,0;8,4),(−2,2;8,4),(−2,2;2,0)` cho
   `s=3,20`, `R` xoay 90° ngược chiều kim đồng hồ, `t=(1,0; 2,0)`; số trung gian `σx²=1,25`, `D=(3,2; 0,8)`.
 - `tests/test_alignment_stage.py`: chunk tổng hợp khôi phục đúng `s=3,2`, `R` xoay 90°, `t`; camera lệch 5 đv bị loại (11/12 inlier); chunk dưới 3 view đã đăng ký bị loại kèm lý do;
-  `ratio = null` và thiếu chunk báo lỗi; `s_m = L_real / L_model` và B0 mét nhân đúng tỉ lệ.
+  `ratio = null` và thiếu chunk báo lỗi; `orientation_depth` khôi phục đúng `s`, `R` ngay cả khi tâm camera thẳng hàng và nhiễu (xoay sai < 0,5° trong khi `centers` sai hơn 3°), loại view lệch hướng, từ chối chunk ít view, `run_align` ghi `method`; `s_m = L_real / L_model` và B0 mét nhân đúng tỉ lệ.
 - `tests/test_click_anchor_2d.py`: DLT chính xác khi không nhiễu, `L_model` đúng, nhiễu 1 px cho lệch < 5%, từ chối 1 ảnh; từng đầu mút tam giác hoá độc lập ở ảnh riêng (A ở 3 ảnh, B ở 2 ảnh khác, không ảnh nào có cả hai), từ chối đầu mút chỉ có 1 ảnh; `--from-json` ghi `L_model` giữ các khoá cũ và chặn ghi đè.
 - `tests/test_alignment.py`: RANSAC loại đúng 2 cặp sai trong 12; chuỗi mét 0,215→0,688→1,376 và `s_tổng=6,40`; 1,62 đv × 2,00 = 3,24 m.
 - Tiêu chí đạt (M1): rmse tâm camera sau căn được ghi log; chunk dưới 3 cặp inlier bị loại khỏi fusion.

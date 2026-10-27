@@ -1,6 +1,6 @@
 # pipeline/export/
 
-Trạng thái (M0a): có `measure.py` (đo hai điểm theo (30), có CLI). Chưa có phần dựng mesh và ghi GLB (M1).
+Trạng thái (M1d): có `measure.py` (đo hai điểm theo (30), có CLI) và `mesh.py` (stage `export`: pháp tuyến PCA hướng camera, Poisson, cắt mật độ thấp, xoay hướng lên về +Y, ghi `model.glb`). Đã chạy thật trên 42444738.
 
 ## Vai trò
 
@@ -13,8 +13,9 @@ Poisson (Open3D) + trimesh là quyết định của nhóm. Chỉ số hình h�
 | | Đường dẫn (trong thư mục scene) | Nội dung | Đơn vị |
 |---|---|---|---|
 | vào | `proposed/plane_refinement/refined_points.ply` | điểm sau (25) | m |
-| ra | `proposed/export/model.glb` (và `model.ply`) | mesh | m, trục +Y là lên |
-| ra | `proposed/export/measurements.json` | các đoạn test đã đo, mốc, `s_m` | m |
+| vào | `proposed/plane_refinement/planes.json`, `proposed/alignment/scale.json` | hướng lên `up`, `s_m` (tâm camera COLMAP × `s_m` để hướng pháp tuyến) | m |
+| ra | `proposed/export/model.glb`, `model_points.ply` | mesh và điểm trong cùng hệ mô hình | m, trục +Y là lên, sàn y = 0 |
+| ra | `proposed/export/measurements.json` | hộp bao, số đỉnh/mặt, phép biến đổi hệ COLMAP×s_m → mô hình, danh sách đoạn đã đo (`segments`, hiện rỗng) | m |
 | ra | `run_meta.json` | thời gian, peak VRAM, hash cấu hình, mã lỗi | |
 
 ## Công thức
@@ -30,6 +31,7 @@ Poisson (Open3D) + trimesh là quyết định của nhóm. Chỉ số hình h�
 |---|---|---|
 | `export.poisson_depth` | 9 | Suy luận (8–9) |
 | `export.up_axis` | y | glTF dùng +Y là lên |
+| `export.density_quantile` | 0.05 | TẠM cho M1 [Suy luận]: bỏ đỉnh Poisson có mật độ dưới phân vị này |
 
 ## Cách chạy riêng
 
@@ -38,12 +40,13 @@ Poisson (Open3D) + trimesh là quyết định của nhóm. Chỉ số hình h�
 python -m pipeline.export.measure --a 0.52 0.75 1.20 --b 1.90 0.75 1.20
 ```
 ```bash
-# skip (cần model.glb thật; dự kiến M1)
+# skip (cần model.glb thật từ stage export)
 python -m pipeline.export.measure --glb data/scenes/arkitscenes/42444738/proposed/export/model.glb --a 0 0 0 --b 1 0 0
 ```
 
 ## Test vector và tiêu chí đạt
 
+- `tests/test_m1d_stages.py`: elip 4×1×2 m với hướng lên +z thành GLB mở được bằng trimesh, hộp bao đúng và độ cao 2 m ở trục y; pháp tuyến lật về camera gần nhất; `rotation_up_to_y` đưa mọi `u` về +Y.
 - `tests/test_measure.py`: `‖B − A‖ = 1,38 m`; `1,38² = 1,9044`; CLI in `1.380 m`.
 - Tiêu chí đạt (M1): `model.glb` mở được bằng trimesh, kích thước hộp bao hợp lý theo mét; `measure` đo được ít nhất một đoạn.
 

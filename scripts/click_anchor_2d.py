@@ -39,7 +39,7 @@ import numpy as np  # noqa: E402
 
 from pipeline import run as pr  # noqa: E402
 from pipeline.alignment.anchor import anchor_from_clicks, normalize_obs  # noqa: E402
-from pipeline.alignment.stage import load_colmap_cameras  # noqa: E402
+from pipeline.alignment.stage import load_colmap_cameras, model_fingerprint  # noqa: E402
 from pipeline.common import config as cfgmod  # noqa: E402
 from pipeline.common import splits as sp  # noqa: E402
 from pipeline.common.io import read_json, write_json  # noqa: E402
@@ -59,7 +59,7 @@ def summarize(res: Dict) -> str:
     return f"L_model = {res['L_model']:.5f} đv COLMAP; " + "; ".join(parts)
 
 
-def save_anchor(path: Path, obs: List[Dict], res: Dict, n_registered: int, overwrite: bool = False) -> Dict:
+def save_anchor(path: Path, obs: List[Dict], res: Dict, n_registered: int, overwrite: bool = False, fingerprint: Optional[str] = None) -> Dict:
     """Ghi L_model và chi tiết vào scale_anchor.json (giữ nguyên các khoá cũ). Có sẵn L_model thì cần overwrite."""
     anchor = read_json(path)
     if "L_model" in anchor and not overwrite:
@@ -69,7 +69,7 @@ def save_anchor(path: Path, obs: List[Dict], res: Dict, n_registered: int, overw
                   reproj_px={"a": res["a"]["reproj_px"], "b": res["b"]["reproj_px"]},
                   max_ray_angle_deg={"a": res["a"]["max_ray_angle_deg"], "b": res["b"]["max_ray_angle_deg"]},
                   views_per_endpoint={"a": res["a"]["views"], "b": res["b"]["views"]},
-                  colmap_registered_images=n_registered, clicked_at=time.strftime("%Y-%m-%dT%H:%M:%S"))
+                  colmap_registered_images=n_registered, colmap_model_sha256=fingerprint, clicked_at=time.strftime("%Y-%m-%dT%H:%M:%S"))
     anchor["note"] = "L_real đo trên Faro; L_model do scripts/click_anchor_2d.py (click 2D + tam giác hoá bằng camera COLMAP)"
     write_json(path, anchor)
     return anchor
@@ -233,7 +233,7 @@ def main(argv=None) -> int:
         print(f"[LỖI] {e}")
         return 1
     print("[click] " + summarize(res))
-    save_anchor(path, obs, res, len(cams), overwrite=args.overwrite)
+    save_anchor(path, obs, res, len(cams), overwrite=args.overwrite, fingerprint=model_fingerprint(layout))
     print(f"[click] đã ghi L_model vào {path}")
     return 0
 

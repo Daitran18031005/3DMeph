@@ -75,9 +75,9 @@ def test_run_stage_ghi_run_meta_thanh_cong_va_that_bai(root, cfg, monkeypatch):
     assert meta["stages"]["keyframe"]["status"] == "ok"                     # mục stage trước giữ nguyên
 
     with pytest.raises(StageError) as e:
-        pr.run_stage("fuse", ctx, log=lambda m: None)
-    assert e.value.code == E_NOT_IMPLEMENTED and "M1d" in str(e.value)
-    assert json.loads(meta_path.read_text(encoding="utf-8"))["stages"]["fuse"]["error_code"] == E_NOT_IMPLEMENTED
+        pr.run_stage("eval", ctx, log=lambda m: None)
+    assert e.value.code == E_NOT_IMPLEMENTED and "M3" in str(e.value)
+    assert json.loads(meta_path.read_text(encoding="utf-8"))["stages"]["eval"]["error_code"] == E_NOT_IMPLEMENTED
 
 
 def test_main_ma_thoat(root, monkeypatch, capsys):
@@ -93,9 +93,13 @@ def test_main_ma_thoat(root, monkeypatch, capsys):
     assert pr.main(base + ["arkitscenes/111", "--to-stage", "sfm"]) == 0 and calls == ["keyframe", "sfm"]
     monkeypatch.setitem(pr.IMPLEMENTED, "vggt", lambda c, log: calls.append("vggt") or {})
     monkeypatch.setitem(pr.IMPLEMENTED, "align", lambda c, log: calls.append("align") or {})
-    assert pr.main(base + ["arkitscenes/111", "--from-stage", "sfm", "--to-stage", "gate"]) == 2        # fuse chưa cài
+    for st in ("fuse", "gate", "export"):
+        monkeypatch.setitem(pr.IMPLEMENTED, st, lambda c, log, st=st: calls.append(st) or {})
+    calls.clear()
+    assert pr.main(base + ["arkitscenes/111", "--from-stage", "sfm"]) == 0                              # mặc định dừng ở export
+    assert calls == ["sfm", "mvs", "vggt", "align", "fuse", "gate", "export"]
+    assert pr.main(base + ["arkitscenes/111", "--from-stage", "export", "--to-stage", "eval"]) == 2     # eval chưa cài (M3)
     assert "E_NOT_IMPLEMENTED" in capsys.readouterr().out
-    assert calls == ["keyframe", "sfm", "sfm", "mvs", "vggt", "align"]       # dừng ở fuse, không chạy các stage sau
 
 
 def test_stages_va_not_implemented_nhat_quan():

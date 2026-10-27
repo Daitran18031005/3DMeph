@@ -1,7 +1,7 @@
 # pipeline/plane_gate/
 
-Trạng thái (M0a): có `gate.py` (cổng, chiếu, ép phẳng cho ablation, góc) và test bảng P1–P7 của đề cương. Chưa có phần tìm mặt
-phẳng RANSAC, gán nhãn tường/sàn/trần và ghi file (M1).
+Trạng thái (M1d): có `gate.py` (cổng, chiếu, ép phẳng cho ablation, góc; test bảng P1–P7 của đề cương) và `stage.py` (stage `gate`: hướng lên từ camera,
+RANSAC tuần tự tìm mặt phẳng, nhãn sàn/trần/tường, cổng (24), chiếu (25), ghi file), có test tổng hợp. Đã chạy thật trên 42444738 (số đo ở `WORKING_LOG.md`).
 
 ## Vai trò
 
@@ -16,9 +16,10 @@ dataflow ("chỉ điểm qua gate mới vào GLB") khác đề cương; mặc đ
 | | Đường dẫn (trong thư mục scene) | Nội dung | Đơn vị |
 |---|---|---|---|
 | vào | `proposed/fusion/fused_points.ply` | `x, y, z, w_k` | m |
-| ra | `proposed/plane_refinement/refined_points.ply`: `x, y, z, g_k, s_k, r_k, theta_k` | điểm sau (25) | m, độ |
-| ra | `proposed/plane_refinement/planes.json` | mỗi mặt phẳng: `n, d`, nhãn, số điểm | m |
-| ra | `proposed/plane_refinement/gate_log.csv` | `r_k, θ_k, s_k, w_k, g_k` mỗi điểm | |
+| ra | `proposed/plane_refinement/refined_points.ply`: `x, y, z, w_k, g, plane_id` | điểm sau (25); điểm không qua cổng giữ nguyên (`g = 0`) | m |
+| ra | `proposed/plane_refinement/planes.json` | hướng lên `up` (và cách tinh chỉnh), mỗi mặt phẳng: `n, d`, nhãn, độ cao, số inlier, tham số đã dùng | m |
+| ra | `proposed/plane_refinement/gate_log.csv` | `point, plane_id, label, r_m, theta_deg, w_k, g, displacement_m` mỗi điểm | |
+| ra | `proposed/plane_refinement/gate_result.json` | tỉ lệ qua cổng và tỉ lệ qua từng điều kiện | |
 
 ## Công thức
 
@@ -42,16 +43,21 @@ dataflow ("chỉ điểm qua gate mới vào GLB") khác đề cương; mặc đ
 | `plane.alpha` | 0.5 | ĐC §17.2 (ví dụ); khác `loss.alpha_r` |
 | `plane.up_refine_deg` | 20 | quyết định của nhóm (tinh chỉnh hướng lên) |
 | `plane.force` | false | `true` = Ablation 2 |
+| `plane.max_planes` | 8 | TẠM cho M1 [Suy luận]: số mặt phẳng RANSAC tuần tự tối đa |
+| `plane.min_inlier_fraction` | 0.02 | TẠM cho M1 [Suy luận]: mặt phẳng phải có ≥ tỉ lệ này số điểm |
+| `plane.normal_knn` | 30 | TẠM cho M1 [Suy luận]: số láng giềng của PCA pháp tuyến cục bộ (`θ_k`, và Poisson ở export) |
 
 ## Cách chạy riêng
 
 ```bash
-# skip (chưa có CLI, dự kiến M1)
-python -m pipeline.plane_gate --scene arkitscenes/42444738 --variant proposed
+# skip (cần stage fuse đã chạy)
+python -m pipeline.run --scene arkitscenes/42444738 --from-stage gate --to-stage gate
 ```
 
 ## Test vector và tiêu chí đạt
 
+- `tests/test_m1d_stages.py`: phòng tổng hợp (sàn y=0, trần y=2,5, tường) nhận đúng 3 mặt phẳng floor/ceiling/wall với độ cao 0 và 2,5 m; `camera_up` = −y camera; `refine_up` kéo hướng lên nghiêng 5,7° về
+  dưới 1,5°; stage `gate` kéo điểm sàn qua cổng còn khoảng một nửa độ lệch (α = 0,5), điểm không qua cổng giữ nguyên, `w_k ≤ τ_w` thì không điểm nào qua cổng.
 - `tests/test_plane_gate.py`, bảng §17.2 với `α=0,5`, `τ_r=5 cm`, `τ_n=15°`, `τ_w=0,5` (P1…P7):
   `g = 1,1,0,0,0,1,0`; dịch 0,6 / 1,0 / 0,4 cm; P1 từ (0,012; 1,5; 1,2) thành (0,006; 1,5; 1,2).
   P3 loại vì `r > 5 cm`, P4 vì không phải cấu trúc, P5 vì `w < 0,5`, P7 (mặt bàn) vì không thuộc cấu trúc.

@@ -5,7 +5,7 @@ import pytest
 
 from pipeline.alignment import stage
 from pipeline.common import io as pio
-from pipeline.common.errors import E_MISSING_INPUT, StageError
+from pipeline.common.errors import E_ANCHOR_STALE, E_MISSING_INPUT, StageError
 from pipeline.common.geometry import apply_sim3, rodrigues
 
 S_TRUE, T_TRUE = 3.2, np.array([1.0, -2.0, 0.5])
@@ -39,8 +39,8 @@ def layout(tmp_path):
     return pio.scene_layout(tmp_path / "scenes", "arkitscenes", "777")
 
 
-def cfg(ratio=1.0):
-    return {"align": {"min_pairs": 3, "ransac": {"max_error_ratio": ratio}, "anchor_file": "ground_truth/scale_anchor.json"}}
+def cfg(ratio=1.0, method="centers"):
+    return {"align": {"method": method, "min_pairs": 3, "ransac": {"max_error_ratio": ratio}, "anchor_file": "ground_truth/scale_anchor.json"}}
 
 
 def test_run_align_khoi_phuc_sim3_va_loai_camera_sai(layout):
@@ -79,6 +79,20 @@ def test_thieu_dau_vao_va_ratio_null(layout):
     assert e.value.code == E_MISSING_INPUT
 
 
+def test_apply_scale_chan_mốc_cu_khi_model_colmap_doi(layout, monkeypatch):
+    pio.write_json(layout.ground_truth / "scale_anchor.json", {"id": "S05", "L_real": 1.92, "L_model": 6.2, "colmap_model_sha256": "abc"})
+    monkeypatch.setattr(stage, "model_fingerprint", lambda lay: "xyz")
+    with pytest.raises(StageError) as e:
+        stage.apply_scale(layout, cfg(), log=lambda m: None)
+    assert e.value.code == E_ANCHOR_STALE and "click_anchor_2d" in str(e.value)
+    monkeypatch.setattr(stage, "model_fingerprint", lambda lay: "abc")
+    assert stage.apply_scale(layout, cfg(), log=lambda m: None)["s_m"] == pytest.approx(1.92 / 6.2)
+    logs = []
+    pio.write_json(layout.ground_truth / "scale_anchor.json", {"id": "S05", "L_real": 1.92, "L_model": 6.2})        # bản cũ không có dấu vân tay
+    stage.apply_scale(layout, cfg(), log=logs.append)
+    assert any("CẢNH BÁO" in m for m in logs)
+
+
 def test_apply_scale_can_L_model_va_ghi_b0_met(layout):
     pio.write_json(layout.ground_truth / "scale_anchor.json", {"id": "S05", "L_real": 1.92, "source": "faro"})
     with pytest.raises(StageError) as e:
@@ -95,3 +109,66 @@ def test_apply_scale_can_L_model_va_ghi_b0_met(layout):
     assert sc["s_m"] == pytest.approx(1.92 / 6.2) and pio.read_json(layout.alignment / "scale.json")["L_model"] == 6.2
     out = np.asarray(o3d.io.read_point_cloud(str(layout.colmap_metric / "fused_metric.ply")).points)
     assert np.allclose(out[1], [1.92 / 6.2, 0, 0], atol=1e-6) and sc["b0_points"] == 3
+
+
+# ---------------------------------------------------------------------------
+# align.method = orientation_depth (LỆCH ĐC §15.1)
+# ---------------------------------------------------------------------------
+
+
+def make_orientation_chunk(n_views=12, spread=0.3, center_noise=0.0, seed=0, n_pts=300):
+    """Camera gần thẳng hàng (trải ngắn) nhìn các điểm phía trước; VGGT = Sim(3)⁻¹ của COLMAP. Trả (extrinsic VGGT, cams COLMAP, cặp điểm)."""
+    rng = np.random.default_rng(seed)
+    centers = np.stack([np.linspace(0, spread, n_views), rng.normal(0, 0.003, n_views), rng.normal(0, 0.003, n_views)], axis=1)
+    rc = rodrigues(np.array([0.1, -0.2, 0.05]))                                  # hướng camera COLMAP (world→camera), chung cho mọi view
+    cams = {i: {"R": rc, "center": centers[i], "t": -rc @ centers[i], "K": np.eye(3)} for i in range(n_views)}
+    x_v = (centers - T_TRUE) @ R_TRUE / S_TRUE + rng.normal(0, center_noise, centers.shape)      # tâm camera trong hệ VGGT (có thể nhiễu)
+    r_cw_v = rc @ R_TRUE                                                            # R_cw,vggt
+    ext = np.concatenate([np.tile(r_cw_v, (n_views, 1, 1)), -(r_cw_v @ x_v.T).T[:, :, None]], axis=2)
+    pts_c = np.array([2.0, 0.0, 0.0]) + rng.uniform(-1, 1, (n_pts, 3)) + np.array([0.0, 0.0, 3.0])   # điểm MVS (COLMAP) phía trước
+    views = rng.integers(0, n_views, n_pts)
+    p_v = (pts_c - T_TRUE) @ R_TRUE / S_TRUE                                        # cùng điểm trong hệ VGGT
+    return ext, cams, views, pts_c, p_v
+
+
+def angle_deg(r1, r2):
+    return float(np.degrees(np.arccos(np.clip((np.trace(r1.T @ r2) - 1) / 2, -1, 1))))
+
+
+def test_rotation_from_orientations_loai_view_lech():
+    rc = np.array([rodrigues(np.array([0.1, 0.2, 0.0]) * (1 + 0.01 * i)) for i in range(10)])
+    r_true = rodrigues(np.array([0.3, -0.4, 0.2]))
+    r_v = np.array([m @ r_true for m in rc])                                       # R_cw,vggt = R_cw,col · R
+    r_v[3] = rodrigues(np.array([0.0, 1.0, 0.0])) @ r_v[3]                          # một view xoay sai 57°
+    r, dev, keep = stage.rotation_from_orientations(rc, r_v)
+    assert angle_deg(r, r_true) < 1.0 and not keep[3] and keep.sum() == 9 and dev[3] > 40
+
+
+def test_align_chunk_orientation_khoi_phuc_sim3_ke_ca_khi_tam_camera_nhieu():
+    ext, cams, views, x, p = make_orientation_chunk(center_noise=0.02)
+    res = stage.align_chunk_orientation(ext, list(range(12)), cams, views, x, p, 3)
+    assert res["accepted"] and res["s"] == pytest.approx(S_TRUE, rel=0.02)
+    assert angle_deg(np.array(res["R"]), R_TRUE) < 0.5
+    assert res["point_dev_colmap_units"]["median"] < 0.1 and res["n_point_pairs"] == 300
+    old = stage.align_chunk(stage.vggt_centers(ext), list(range(12)), cams, 5.0, 3)         # cách ĐC §15.1 trên cùng dữ liệu
+    assert old["accepted"] and angle_deg(np.array(old["R"]), R_TRUE) > angle_deg(np.array(res["R"]), R_TRUE) + 3        # xoay theo tâm camera kém hơn nhiều
+    few = stage.align_chunk_orientation(ext, [0, 1], cams, views, x, p, 3)
+    assert not few["accepted"] and "đã đăng ký" in few["reason"]
+    none = stage.align_chunk_orientation(ext, list(range(12)), cams, views[:0], x[:0], p[:0], 3)
+    assert not none["accepted"] and "cặp điểm" in none["reason"]
+
+
+def test_run_align_orientation_depth_ghi_file_va_phuong_phap(layout):
+    ext, cams, views, x, p = make_orientation_chunk()
+    ck = pio.ensure_dir(layout.vggt / "chunk_00")
+    np.savez(ck / "vggt_raw.npz", extrinsic=ext, intrinsic=np.zeros((12, 3, 3)), depth=np.zeros((12, 2, 2)), depth_conf=np.ones((12, 2, 2)))
+    np.savez(ck / "vggt_out.npz", c_model=np.zeros((12, 2, 2)), points=np.zeros((12, 2, 2, 3)))
+    pio.write_json(ck / "chunk_meta.json", {"chunk": 0, "start": 0, "end": 12, "views": list(range(12))})
+    pairs = {"view": views, "chunk": np.zeros(len(views), int), "x": x, "p": p}
+    logs = []
+    st = stage.run_align(layout, cfg(method="orientation_depth"), log=logs.append, load_cameras=lambda lay: cams, with_scale=False, load_pairs=lambda lay, c: pairs)
+    r0 = pio.read_json(layout.alignment / "chunk_00_sim3.json")
+    assert st["method"] == "orientation_depth" and st["n_accepted"] == 1 and r0["method"] == "orientation_depth" and r0["s"] == pytest.approx(S_TRUE, rel=1e-3)
+    assert any("orientation_depth" in m for m in logs)
+    with pytest.raises(ValueError, match="align.method"):
+        stage.run_align(layout, cfg(method="khac"), log=lambda m: None, load_cameras=lambda lay: cams, with_scale=False)

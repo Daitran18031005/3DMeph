@@ -94,11 +94,12 @@ def test_script_from_json_ghi_L_model_va_chong_ghi_de(tmp_path, monkeypatch, cap
     obs_file.write_text(json.dumps([{"view": o["view"], "a": list(o["a"]), "b": list(o["b"])} for o in clicks(c, (0, 1))]), encoding="utf-8")
     monkeypatch.setattr(ca.pr, "resolve_scene", lambda root, scene, cfg: {"layout": layout})
     monkeypatch.setattr(ca, "load_colmap_cameras", lambda lay: c)
+    monkeypatch.setattr(ca, "model_fingerprint", lambda lay: "abc123")
     argv = ["--scene", "arkitscenes/777", "--from-json", str(obs_file)]
     assert ca.main(argv) == 0
     saved = pio.read_json(anchor_path)
     assert saved["L_model"] == pytest.approx(L_TRUE, rel=1e-6) and saved["L_real"] == 1.92 and saved["endpoints_scene_xyz"]["b"] == [0, 0, 1.92]
-    assert len(saved["observations_2d"]) == 4 and "L_model = " in capsys.readouterr().out
+    assert len(saved["observations_2d"]) == 4 and "L_model = " in capsys.readouterr().out and saved["colmap_model_sha256"] == "abc123"
     assert ca.main(argv) == 1                                              # có L_model rồi: cần --overwrite
     assert ca.main(argv + ["--overwrite"]) == 0
     assert ca.main(["--scene", "arkitscenes/777", "--check"]) == 0
