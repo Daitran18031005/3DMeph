@@ -49,7 +49,7 @@ vggt:
 align:
   min_pairs: 3                # §15.1: n ≥ 3 cặp tâm camera
   ransac:
-    max_error_ratio: null     # ngưỡng inlier / khoảng cách camera trung vị; chưa có căn cứ
+    max_error_ratio: 1.5      # ngưỡng inlier / khoảng cách camera trung vị; TẠM cho M1 (chọn trên dev 42444738 bằng CV và nhất quán ảnh gối, xem WORKING_LOG), khoá lại ở M2 trên Validation
   anchor_file: ground_truth/scale_anchor.json   # mốc scale 1–2 m, §8.1
 
 fusion:

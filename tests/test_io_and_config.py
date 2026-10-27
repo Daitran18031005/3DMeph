@@ -105,9 +105,10 @@ def test_v_ref_g_ref_are_measured_on_validation_not_581():
 
 def test_unmeasured_parameters_are_null_and_require_fails():
     cfg = cfgmod.load_config()
-    assert cfgmod.get(cfg, "align.ransac.max_error_ratio") is None          # chưa có căn cứ, hỏi người dùng ở M1c
+    assert cfgmod.get(cfg, "loss.alpha_r") is None                          # chưa có căn cứ (mốc train head)
     with pytest.raises(ValueError):
-        cfgmod.require(cfg, "align.ransac.max_error_ratio")                 # không có số mặc định
+        cfgmod.require(cfg, "loss.alpha_r")                                 # không có số mặc định
+    assert cfgmod.require(cfg, "align.ransac.max_error_ratio") == 1.5       # TẠM cho M1 (chọn bằng dãy ứng viên 27/10), khoá lại ở M2
     assert cfgmod.require(cfg, "keyframe.blur.q_drop") == 0.35              # TẠM cho M1 (người dùng chọn 26/10), khoá lại ở M2
     with pytest.raises(KeyError):
         cfgmod.get(cfg, "khong.ton.tai")

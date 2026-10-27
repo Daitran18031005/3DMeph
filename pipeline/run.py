@@ -24,7 +24,7 @@ from .common.errors import E_NOT_IMPLEMENTED, StageError
 from .common.io import SceneLayout, ensure_dir, read_json, scene_layout, write_json
 
 STAGES: List[str] = ["keyframe", "sfm", "mvs", "vggt", "align", "fuse", "gate", "export", "eval"]
-NOT_IMPLEMENTED = {"align": "M1c", "fuse": "M1d", "gate": "M1d", "export": "M1d", "eval": "M3"}
+NOT_IMPLEMENTED = {"fuse": "M1d", "gate": "M1d", "export": "M1d", "eval": "M3"}
 REPO = Path(__file__).resolve().parents[1]
 
 
@@ -118,8 +118,13 @@ def _stage_vggt(ctx: Dict, log) -> Dict:
     return run_vggt(ctx["info"]["layout"], ctx["cfg"], log)
 
 
+def _stage_align(ctx: Dict, log) -> Dict:
+    from .alignment.stage import run_align
+    return run_align(ctx["info"]["layout"], ctx["cfg"], log)
+
+
 IMPLEMENTED: Dict[str, Callable[[Dict, Callable[[str], None]], Dict]] = {"keyframe": _stage_keyframe, "sfm": _stage_sfm, "mvs": _stage_mvs,
-                                                                         "vggt": _stage_vggt}
+                                                                         "vggt": _stage_vggt, "align": _stage_align}
 
 
 def run_stage(name: str, ctx: Dict, log: Callable[[str], None] = print) -> Dict:
