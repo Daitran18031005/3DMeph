@@ -89,6 +89,12 @@ export:
   up_axis: y                  # glTF dùng +Y là lên
   density_quantile: 0.05      # cắt các đỉnh Poisson có mật độ dưới phân vị này; TẠM cho M1 [Suy luận]
 
+measure:                      # scripts/pick_endpoints.py: chọn đầu mút trên mô hình, GT thước dây, so sai số
+  tape_readings: 3            # ĐC §8.3: đo thước dây 3 lần, lấy trung vị
+  anchor_min_m: 1.0           # ĐC §8.1: mốc scale dài 1–2 m
+  anchor_max_m: 2.0           # ĐC §8.1
+  under_cm: 5.0               # %<ngưỡng: tỉ lệ đoạn sai số dưới ngưỡng này (mục tiêu ĐC §21: median < 5 cm)
+
 eval:
   snap_radius_m: 0.02         # bán kính snap đầu mút vào point cloud mô hình (quyết định của nhóm, 2 cm)
   mode: manual                # manual (chọn trực tiếp trên point cloud) | auto (căn cứng, scale cố định)
