@@ -19,3 +19,5 @@ data/scenes/
 *.pth
 *.safetensors
 *.ckpt
+
+data/sweeps/
