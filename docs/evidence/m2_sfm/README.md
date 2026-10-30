@@ -61,3 +61,17 @@ Phép đo thêm trên Validation:
 ## 4. Chưa có trong bằng chứng này
 
 `align`, `fuse`, `gate`, `export` trên Validation (không có mốc scale); sai số so với GT; khoá `q_drop`/`overlap`/`exposure` bằng quét lại với SfM mới; chạy lại scene dev qua `sfm` mới.
+
+## 5. Quét `q_drop` 0,2 / 0,35 / 0,5 với SfM mới (31/10) — `after_30-10/sweep_qdrop_0.2_0.35_0.5.csv`
+
+Lệnh: `python scripts/sweep_keyframe.py --split val --out-root data/sweeps/m2new --q-drop 0.2 0.35 0.5 --overlap-max 0.99 --overlap-min 0.3` (một lần chạy mỗi cấu hình; `overlap`, `exposure` giữ nguyên).
+Đăng ký SfM (ảnh dày) theo scene, thứ tự 42445022 / 42897566 / 42897599 / 42898849 / 45662981 / 47204552:
+
+| `q_drop` | Từng scene (%) | Trung vị | Min | N_kf |
+|---|---|---|---|---|
+| 0,2 | 100,0 / 94,7 / 99,3 / 94,0 / 98,1 / 82,8 | **96,4%** | 82,8% | 80 ở cả 6 |
+| 0,35 | 99,1 / 97,5 / 99,7 / 94,4 / 90,5 / 84,4 | 95,9% | 84,4% | 78–80 |
+| 0,5 | 90,7 / 100,0 / 99,7 / 95,0 / 92,4 / 88,3 | 93,7% | **88,3%** | 74–80 |
+
+Quy tắc cố định của `sweep_keyframe.py` (trung vị cao nhất, hoà thì ít keyframe hơn) chọn 0,2. Chênh 0,2 so với 0,35 là 0,5 điểm phần trăm trên một lần chạy mỗi cấu hình: trong khoảng dao động giữa các lần chạy
+(đo ở M1: 93–94/112 ảnh khi lặp 3 lần), nên **không đủ để kết luận**. `q_drop` thấp giữ thêm khung mờ; ảnh hưởng tới VGGT/MVS chưa đo. 47204552 vẫn dưới 90% ở cả ba mức.
