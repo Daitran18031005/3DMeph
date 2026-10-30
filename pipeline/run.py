@@ -35,6 +35,8 @@ REPO = Path(__file__).resolve().parents[1]
 
 def resolve_scene(root: Path, scene: str, cfg: Dict, allow_heldout: bool = False) -> Dict:
     """`arkitscenes/<video_id>` → thông tin từ `data/splits.csv` (kiểm `splits.lock`). Scene held-out bị chặn trừ khi `allow_heldout`."""
+    if scene.startswith("self_collected/"):
+        return resolve_video_scene(root, scene, cfg)
     try:
         dataset, vid = scene.split("/", 1)
     except ValueError:
@@ -50,6 +52,19 @@ def resolve_scene(root: Path, scene: str, cfg: Dict, allow_heldout: bool = False
     row = next(r for r in sp.read_rows(splits_csv) if r["video_id"] == vid)
     return {"dataset": dataset, "video_id": vid, "split": splits[vid], "visit_id": row["visit_id"], "sky_direction": row["sky_direction"],
             "raw_dir": root / row["source_dir"], "layout": scene_layout(root / cfgmod.require(cfg, "paths.data_root"), dataset, vid)}
+
+
+def resolve_video_scene(root: Path, scene: str, cfg: Dict) -> Dict:
+    """`self_collected/<id>` → video điện thoại duy nhất (mp4/mov/m4v) trong `video.source_dir/<id>/`. Không copy video, không ghi vào `data/raw`;
+    scene tự thu không nằm trong `splits.csv` (không có V_ref/G_ref hay ngưỡng nào được chỉnh trên nó)."""
+    from .common.adapters import VIDEO_EXTENSIONS
+    dataset, vid = scene.split("/", 1)
+    src = root / cfgmod.require(cfg, "video.source_dir") / vid
+    files = sorted(p for p in src.iterdir() if p.suffix.lower() in VIDEO_EXTENSIONS) if src.is_dir() else []
+    if len(files) != 1:
+        raise FileNotFoundError(f"cần đúng 1 video {'/'.join(VIDEO_EXTENSIONS)} trong {src}, thấy {len(files)}")
+    return {"dataset": dataset, "video_id": vid, "split": "self_collected", "visit_id": "", "sky_direction": "video", "raw_dir": src,
+            "video_path": files[0], "layout": scene_layout(root / cfgmod.require(cfg, "paths.data_root"), dataset, vid)}
 
 
 # ---------------------------------------------------------------------------
@@ -96,6 +111,11 @@ def update_run_meta(layout: SceneLayout, scene: str, cfg: Dict, stage: str, entr
 
 
 def _stage_keyframe(ctx: Dict, log) -> Dict:
+    if ctx["info"].get("video_path"):                     # dữ liệu tự thu: nguồn là video điện thoại
+        from .keyframe.extract import extract_video_keyframes
+        info = ctx["info"]
+        return extract_video_keyframes(info["video_path"], info["layout"], ctx["cfg"],
+                                       source_info={"dataset": info["dataset"], "video_id": info["video_id"], "split": info["split"]}, log=log)
     from .keyframe.extract import extract_keyframes
     info = ctx["info"]
     return extract_keyframes(info["raw_dir"], info["layout"], ctx["cfg"], info["sky_direction"],

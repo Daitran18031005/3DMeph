@@ -16,8 +16,13 @@ keyframe:
   exposure:
     q_drop: 0.5               # loại khung có q_exposure dưới ngưỡng (tối/cháy, ĐC §7.2 không nêu số); TẠM, khoá trên 6 Validation ở M2 (đang quét)
 
+video:                        # nguồn video điện thoại (dữ liệu tự thu); mọi khoá là [Suy luận], chưa chạy trên video thật
+  source_dir: data/self_collected   # chứa <id>/ với đúng một file mp4/mov/m4v; tương đối so với gốc repo, ngoài git
+  long_edge: 640              # px: hạ ảnh về cạnh dài này trước khi đo blur, để dùng đúng V_ref/G_ref đo trên vga_wide 640×480; không phóng to
+  focal35_mm: 26              # TẠM: tiêu cự tương đương 35 mm khi video không có metadata tiêu cự (camera chính điện thoại thường 24–28); COLMAP tinh chỉnh
+
 quality:
-  v_ref:                      # (3): trung vị qua scene của blur trung bình, đo trên vga_wide của 6 Validation
+  v_ref:                    # (3): trung vị qua scene của blur trung bình, đo trên vga_wide của 6 Validation
     vga: 205.69
     measured_on: validation   # split = val trong splits.csv, asset vga_wide
     n_scenes: 6

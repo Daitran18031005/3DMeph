@@ -13,6 +13,7 @@ Chỉ ĐỌC dữ liệu; không giải nén, không ghi vào `data/raw`. Quy ư
 
 from __future__ import annotations
 
+import math
 import os
 import zipfile
 from pathlib import Path
@@ -424,6 +425,96 @@ def voxel_downsample_attr_stream(chunks: Iterable[Tuple[np.ndarray, np.ndarray]]
     return mean[:, :3], mean[:, 3:], acc_cnt
 
 
+# ---------------------------------------------------------------------------
+# Video điện thoại (mp4/MOV) làm nguồn RGB cho dữ liệu tự thu
+# ---------------------------------------------------------------------------
+
+VIDEO_EXTENSIONS = (".mp4", ".mov", ".m4v")
+_DIAG_35MM = 43.27   # mm: đường chéo phim 36×24; tiêu cự "tương đương 35 mm" quy ước theo đường chéo
+
+
+class VideoSource:
+    """Đọc video bằng OpenCV, giữ ảnh ở hướng cảm biến (tắt tự xoay) để `keyframe.orientation` xoay và cập nhật intrinsics.
+
+    `rotation_deg` ∈ {0, 90, 180, 270}: góc xoay THEO CHIỀU KIM ĐỒNG HỒ để ảnh đứng (tag rotation của video, thay `sky_direction`).
+    Hai lượt đọc tuần tự: `timestamps()` (grab hết, rẻ hơn decode đầy đủ) rồi `read_frames(indices)` (không seek vì seek theo khung
+    không chính xác với nhiều codec). [chưa kiểm chứng trên video điện thoại thật]"""
+
+    def __init__(self, path):
+        self.path = str(path)
+        self.cap = None
+        self._open()
+        self.rotation_deg = int(round(self.cap.get(cv2.CAP_PROP_ORIENTATION_META))) % 360
+        self.fps_meta = float(self.cap.get(cv2.CAP_PROP_FPS))
+        self.ts_from_meta = False        # True khi timestamp của container không dùng được và phải suy từ fps
+
+    def _open(self) -> None:
+        self.close()
+        cap = cv2.VideoCapture(self.path)
+        if not cap.isOpened():
+            cap.release()
+            raise FileNotFoundError(f"không mở được video: {self.path}")
+        cap.set(cv2.CAP_PROP_ORIENTATION_AUTO, 0)
+        self.cap = cap
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+    def close(self):
+        if self.cap is not None:
+            self.cap.release()
+            self.cap = None
+
+    def timestamps(self) -> np.ndarray:
+        """Thời gian (s) từng khung theo thứ tự giải mã. Timestamp container không tăng nghiêm ngặt (hoặc toàn 0) thì suy từ fps
+        của metadata (`ts_from_meta = True`); fps metadata cũng không có thì `ValueError`."""
+        self._open()
+        ts = []
+        while self.cap.grab():
+            ts.append(self.cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0)
+        ts = np.asarray(ts, dtype=np.float64)
+        if len(ts) == 0:
+            raise ValueError(f"video không có khung nào: {self.path}")
+        if len(ts) > 1 and np.any(np.diff(ts) <= 0):
+            if self.fps_meta <= 0:
+                raise ValueError(f"timestamp video không tăng và không có fps trong metadata: {self.path}")
+            self.ts_from_meta = True
+            ts = np.arange(len(ts)) / self.fps_meta
+        return ts
+
+    def read_frames(self, indices: Iterable[int], transform=None) -> Dict[int, np.ndarray]:
+        """Giải mã tuần tự và trả {chỉ số khung: ảnh BGR}. `transform(img)` (nếu có) áp ngay khi đọc để không giữ ảnh cỡ gốc trong RAM."""
+        want = sorted(set(int(i) for i in indices))
+        out: Dict[int, np.ndarray] = {}
+        if not want:
+            return out
+        self._open()
+        wanted = set(want)
+        for i in range(want[-1] + 1):
+            if not self.cap.grab():
+                break
+            if i in wanted:
+                ok, img = self.cap.retrieve()
+                if ok:
+                    out[i] = transform(img) if transform is not None else img
+        missing = wanted - out.keys()
+        if missing:
+            raise ValueError(f"không đọc được {len(missing)} khung (vd. {min(missing)}) trong {self.path}")
+        return out
+
+
+def estimate_intrinsics(w: int, h: int, focal35_mm: float) -> Dict[str, float]:
+    """Intrinsics khởi tạo cho video không có `.pincam`: f = focal35·√(w²+h²)/43,27 (px), fx = fy = f, tâm ở giữa ảnh.
+    [Suy luận] chỉ là điểm xuất phát cho PINHOLE của COLMAP (COLMAP tinh chỉnh tiêu cự); ảnh đã xoay thì truyền w, h sau xoay."""
+    if focal35_mm <= 0:
+        raise ValueError("focal35_mm phải > 0")
+    f = focal35_mm * math.hypot(w, h) / _DIAG_35MM
+    return {"w": int(w), "h": int(h), "fx": f, "fy": f, "cx": w / 2.0, "cy": h / 2.0}
+
+
 __all__ = ["AssetReader", "frame_timestamp", "read_intrinsics", "intrinsics_matrix", "scale_intrinsics", "Trajectory",
            "unproject_depth", "read_ply_header", "iter_ply_xyz", "iter_ply_xyz_rgb", "read_pose_txt", "list_scans", "voxel_downsample_stream",
-           "voxel_downsample_attr_stream"]
+           "voxel_downsample_attr_stream", "VIDEO_EXTENSIONS", "VideoSource", "estimate_intrinsics"]
