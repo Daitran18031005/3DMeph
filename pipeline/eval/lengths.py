@@ -18,7 +18,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 import numpy as np
 from scipy.spatial import cKDTree
 
-from ..export.measure import distance
+from ..export.measure import CLOUD_FRAME, MODEL_FRAME, distance
 from .metrics import mae_cm, mape_percent, median_cm, percent_under_cm
 
 _ENDPOINTS = re.compile(r"A=\(([^)]*)\)\s*B=\(([^)]*)\)")
@@ -69,7 +69,8 @@ def _row(seg: Dict, a: Optional[np.ndarray], b: Optional[np.ndarray], mode: str,
     return row
 
 
-def measure_auto(segments: Sequence[Dict], r_gt_to_model: np.ndarray, t_gt_to_model: np.ndarray, cloud: np.ndarray, radius_m: float) -> List[Dict]:
+def measure_auto(segments: Sequence[Dict], r_gt_to_model: np.ndarray, t_gt_to_model: np.ndarray, cloud: np.ndarray, radius_m: float,
+                 mode: str = "auto") -> List[Dict]:
     """Đầu mút GT → hệ biến thể (`R·p + t`) → snap điểm gần nhất trong `radius_m`. Ghi cả khoảng cách điểm gần nhất khi không snap được."""
     tree = cKDTree(np.asarray(cloud, dtype=np.float64))
     rows = []
@@ -80,23 +81,58 @@ def measure_auto(segments: Sequence[Dict], r_gt_to_model: np.ndarray, t_gt_to_mo
             d, i = tree.query(q)
             nn.append(float(d))
             snapped.append(np.asarray(tree.data[i]) if d <= radius_m else None)
-        rows.append(_row(seg, snapped[0], snapped[1], "auto", {"nn_a_m": nn[0], "nn_b_m": nn[1], "snapped_a": snapped[0] is not None, "snapped_b": snapped[1] is not None}))
+        rows.append(_row(seg, snapped[0], snapped[1], mode, {"nn_a_m": nn[0], "nn_b_m": nn[1], "snapped_a": snapped[0] is not None, "snapped_b": snapped[1] is not None}))
     return rows
 
 
-def read_endpoints_json(path, scene: Optional[str] = None) -> Dict[str, Tuple[np.ndarray, np.ndarray]]:
-    """`endpoints_<variant>.json` → {id: (a, b)} trong hệ file point cloud của biến thể (`frame` = variant_cloud, mét)."""
+def model_to_colmap_metric(frame: Dict):
+    """`proposed/export/measurements.json["frame"]` (`x_model = R·x_cm + t`) → hàm đưa điểm hệ `model.glb` về hệ COLMAP × `s_m`: `x_cm = Rᵀ(x_model − t)`."""
+    r, t = np.asarray(frame["rotation_from_colmap_metric"], dtype=np.float64), np.asarray(frame["translation"], dtype=np.float64)
+    return lambda p: r.T @ (np.asarray(p, dtype=np.float64) - t)
+
+
+def read_endpoints_json(path, scene: Optional[str] = None, model_frame: Optional[Dict] = None) -> Dict[str, Tuple[np.ndarray, np.ndarray]]:
+    """`endpoints_<variant>.json` → {id: (a, b)} (mét).
+
+    Nhận hai dạng: `endpoints` (dict `{id: {a, b}}`, dạng ban đầu của `eval`) và `segments` (list `{id, a, b, ...}`, dạng do `scripts/pick_endpoints.py` ghi).
+    `frame`: `variant_cloud` = toạ độ trong đúng file point cloud của biến thể, giữ nguyên; `MODEL_FRAME` (chọn trên `model.glb` / `model_points.ply`) được đổi về hệ
+    COLMAP × `s_m` bằng `model_frame` (= `proposed/export/measurements.json["frame"]`), nên chỉ đúng cho biến thể dùng hệ đó (B0, B3, proposed, abl_quality), không cho B1."""
     d = json.loads(Path(path).read_text(encoding="utf-8"))
-    if d.get("unit", "m") != "m" or d.get("frame", "variant_cloud") != "variant_cloud":
-        raise ValueError(f"{path}: chỉ nhận unit=m, frame=variant_cloud")
+    frame = d.get("frame", CLOUD_FRAME)
+    if d.get("unit", "m") != "m":
+        raise ValueError(f"{path}: chỉ nhận unit=m")
     if scene is not None and d.get("scene") not in (None, scene):
         raise ValueError(f"{path}: scene {d.get('scene')!r} khác {scene!r}")
-    return {k: (np.asarray(v["a"], dtype=np.float64), np.asarray(v["b"], dtype=np.float64)) for k, v in d["endpoints"].items()}
+    if "endpoints" in d:
+        pairs = {k: (v["a"], v["b"]) for k, v in d["endpoints"].items()}
+    elif "segments" in d:
+        pairs = {s["id"]: (s["a"], s["b"]) for s in d["segments"]}
+    else:
+        raise ValueError(f"{path}: không có 'endpoints' hay 'segments'")
+    if frame == CLOUD_FRAME:
+        conv = np.asarray
+    elif frame == MODEL_FRAME:
+        if model_frame is None:
+            raise ValueError(f"{path}: toạ độ ở hệ model.glb; không đổi được sang hệ point cloud của biến thể này (cần proposed/export/measurements.json "
+                             f"và biến thể dùng hệ COLMAP mét; B1 thì chọn trực tiếp trên points_metric.ply với frame={CLOUD_FRAME})")
+        conv = model_to_colmap_metric(model_frame)
+    else:
+        raise ValueError(f"{path}: frame {frame!r} không nhận (chỉ {CLOUD_FRAME!r} hoặc {MODEL_FRAME!r})")
+    return {k: (np.asarray(conv(a), dtype=np.float64), np.asarray(conv(b), dtype=np.float64)) for k, (a, b) in pairs.items()}
 
 
 def measure_manual(segments: Sequence[Dict], endpoints: Dict[str, Tuple[np.ndarray, np.ndarray]]) -> List[Dict]:
     """Đoạn thiếu trong file endpoints = chưa chấm (không hợp lệ)."""
     return [_row(seg, *(endpoints.get(seg["id"]) or (None, None)), "manual") for seg in segments]
+
+
+def measure_transfer(segments: Sequence[Dict], endpoints: Dict[str, Tuple[np.ndarray, np.ndarray]], r_src_to_model: np.ndarray, t_src_to_model: np.ndarray,
+                     cloud: np.ndarray, radius_m: float) -> List[Dict]:
+    """Truyền cặp điểm đã chấm trên một biến thể (hệ nguồn) sang biến thể khác (PLAN §4.8 mục 3): `R·p + t` rồi snap trong `radius_m`, nhãn `manual_transfer`.
+    Đoạn chưa chấm ở nguồn thì không hợp lệ."""
+    present = [dict(seg, a=endpoints[seg["id"]][0], b=endpoints[seg["id"]][1]) for seg in segments if seg["id"] in endpoints]
+    done = {r["id"]: r for r in measure_auto(present, r_src_to_model, t_src_to_model, cloud, radius_m, "manual_transfer")}
+    return [done.get(seg["id"]) or _row(seg, None, None, "manual_transfer") for seg in segments]
 
 
 def length_metrics(rows: Sequence[Dict], ids: Optional[Sequence[str]] = None) -> Dict:

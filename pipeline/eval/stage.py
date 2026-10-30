@@ -1,7 +1,7 @@
 """Stage `eval` (ĐC §20, kế hoạch §4.8, M3): chấm các biến thể B0, B1, B3, proposed, abl_quality trên một scene, ghi `evaluation/metrics.csv`.
 
 Vào: `ground_truth/measurements.csv` (+ `faro/faro_scene_frame.ply`), `raw/source.json` (→ `lowres_wide.traj`), `metadata/keyframes.csv`, đầu ra các biến thể
-(`variants.cloud_path`), tuỳ chọn `evaluation/logs/endpoints_<variant>.json` (chế độ manual).
+(`variants.cloud_path`), tuỳ chọn `evaluation/logs/endpoints_<variant>.json` (chế độ manual; thiếu thì truyền từ `endpoints_proposed.json`).
 Ra: `evaluation/metrics.csv` (một dòng mỗi biến thể), `evaluation/logs/{lengths_<v>_<mode>.csv, align_<v>.json}`, `baselines/vggt/metric/` (B1).
 
 Pose GT (`.traj`) chỉ dùng ở đây để ĐỊNH VỊ (phép cứng scale = 1); không đi vào bất kỳ stage dựng mô hình nào (ĐC §8.1).
@@ -70,13 +70,25 @@ def _eval_variant(name: str, layout: SceneLayout, cfg: Dict, segs: List[Dict], g
     c_mod, c_gt = np.array([cams[v] for v in views]), np.array([gt_cams[v] for v in views])
     r, t, rms = ln.kabsch_rigid(c_gt, c_mod)            # mô hình = R·GT + t, scale cố định 1
     auto = ln.measure_auto(segs, r, t, cloud, snap)
-    ep_path = layout.logs / f"endpoints_{name}.json"
-    use_manual = mode == "manual" and ep_path.is_file()
-    rows = ln.measure_manual(segs, ln.read_endpoints_json(ep_path)) if use_manual else auto
-    label = "manual" if use_manual else "auto"
+    ep_path, src_path = layout.logs / f"endpoints_{name}.json", layout.logs / "endpoints_proposed.json"
+    export_json = layout.export / "measurements.json"
+    model_frame = read_json(export_json).get("frame") if export_json.is_file() else None
+    rows, label = auto, "auto"
+    if mode == "manual" and ep_path.is_file():              # chấm trực tiếp trên point cloud của biến thể này
+        rows, label = ln.measure_manual(segs, ln.read_endpoints_json(ep_path, None, None if name == "B1" else model_frame)), "manual"
+    elif mode == "manual" and name != "proposed" and src_path.is_file():   # truyền cặp điểm chấm trên proposed (PLAN §4.8 mục 3)
+        eps = ln.read_endpoints_json(src_path, None, model_frame)          # hệ COLMAP × s_m
+        r_t, t_t = np.eye(3), np.zeros(3)
+        if name == "B1":                                                   # B1 ở hệ chuỗi VGGT: phép cứng scale = 1 theo tâm camera chung
+            c_cm = camera_centers(layout, "proposed", load_cameras)
+            common = sorted(set(c_cm) & set(cams))
+            if len(common) < 3:
+                raise StageError(E_MISSING_INPUT, f"B1: chỉ {len(common)} view chung với COLMAP để truyền đầu mút (cần ≥ 3)")
+            r_t, t_t, _ = ln.kabsch_rigid(np.array([c_cm[v] for v in common]), np.array([cams[v] for v in common]))
+        rows, label = ln.measure_transfer(segs, eps, r_t, t_t, cloud, snap), "manual_transfer"
     ln.write_lengths_csv(layout.logs / f"lengths_{name}_auto.csv", auto)
-    if use_manual:
-        ln.write_lengths_csv(layout.logs / f"lengths_{name}_manual.csv", rows)
+    if label != "auto":
+        ln.write_lengths_csv(layout.logs / f"lengths_{name}_{label}.csv", rows)
     ate_sim3 = ate_after_sim3(c_mod, c_gt)
     res = {"variant": name, "length_mode": label, "rows": rows, "n_segments": len(segs), "ate_rigid_cm": rms * 100.0, "ate_sim3_cm": ate_sim3 * 100.0, "n_cameras": len(views)}
     snap_info = ln.snap_summary(auto)

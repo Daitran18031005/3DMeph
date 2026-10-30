@@ -94,3 +94,52 @@ def test_chi_so_chieu_dai_phong_R02():
     assert m["pct_lt5cm"] == pytest.approx(66.67, abs=0.01) and m["mape_pct"] == pytest.approx(2.45, abs=0.05)
     sub = ln.length_metrics(rows, {"S0", "S1"})
     assert sub["n_valid"] == 2 and sub["mae_cm"] == pytest.approx(4.5)
+
+
+def _frame(rot_deg=25.0, t=(0.3, 1.2, -0.4)):
+    return {"rotation_from_colmap_metric": _rot_z(rot_deg).tolist(), "translation": list(t)}
+
+
+def test_endpoints_do_measure_ghi_doc_duoc(tmp_path):
+    """Hợp đồng measure → eval: file do chính thư viện `pipeline.export.measure` ghi (list `segments`, hệ model) phải đọc được và đổi về hệ COLMAP mét."""
+    from pipeline.export import measure as ms
+    frame = _frame()
+    r, t = np.array(frame["rotation_from_colmap_metric"]), np.array(frame["translation"])
+    a_cm, b_cm = np.array([0.0, 0.5, 0.5]), np.array([0.0, 1.5, 0.5])
+    doc = ms.new_endpoints("arkitscenes/1", "proposed", "proposed/export/model_points.ply", "0" * 64)
+    assert doc["frame"] == ms.MODEL_FRAME
+    ms.add_segment(doc, "S01", (r @ a_cm + t).tolist(), (r @ b_cm + t).tolist())
+    p = tmp_path / "endpoints_proposed.json"
+    ms.save_endpoints(p, doc)
+    ep = ln.read_endpoints_json(p, "arkitscenes/1", frame)
+    assert np.allclose(ep["S01"][0], a_cm, atol=1e-9) and np.allclose(ep["S01"][1], b_cm, atol=1e-9)
+    assert ln.measure_manual(ln.test_segments([{"id": "S01", "type": "x", "gt_m": 1.0, "anchor": False}]), ep)[0]["pred_m"] == pytest.approx(1.0)
+    with pytest.raises(ValueError, match="model.glb"):                              # thiếu thông tin hệ model → không đoán
+        ln.read_endpoints_json(p)
+
+
+def test_endpoints_khung_cloud_va_frame_la(tmp_path):
+    from pipeline.export import measure as ms
+    assert ms.frame_of_points_file("x/proposed/export/model_points.ply") == ms.MODEL_FRAME and ms.frame_of_points_file("a/model.glb") == ms.MODEL_FRAME
+    assert ms.frame_of_points_file("baselines/colmap/metric/fused_metric.ply") == ms.CLOUD_FRAME
+    p = tmp_path / "e.json"
+    p.write_text(json.dumps({"frame": ms.CLOUD_FRAME, "segments": [{"id": "S01", "a": [0, 0, 0], "b": [1, 0, 0]}]}), encoding="utf-8")
+    assert np.allclose(ln.read_endpoints_json(p)["S01"][1], [1, 0, 0])               # hệ cloud: giữ nguyên, không cần hệ model
+    p.write_text(json.dumps({"frame": "lạ", "segments": []}), encoding="utf-8")
+    with pytest.raises(ValueError, match="frame"):
+        ln.read_endpoints_json(p)
+    p.write_text(json.dumps({"frame": ms.CLOUD_FRAME}), encoding="utf-8")
+    with pytest.raises(ValueError, match="endpoints"):
+        ln.read_endpoints_json(p)
+
+
+def test_measure_transfer_snap_va_doan_chua_cham():
+    r, t = _rot_z(30.0), np.array([1.0, 2.0, 3.0])
+    cloud = _wall() @ r.T + t
+    segs = [{"id": "S01", "type": "x", "gt_m": 1.0}, {"id": "S02", "type": "x", "gt_m": 1.2}]
+    ep = {"S01": (np.array([0.0, 0.5, 0.5]), np.array([0.0, 1.5, 0.5]))}              # nguồn chỉ chấm S01, ở hệ "nguồn" = hệ tường
+    rows = ln.measure_transfer(segs, ep, r, t, cloud, 0.02)
+    assert rows[0]["valid"] and rows[0]["mode"] == "manual_transfer" and rows[0]["pred_m"] == pytest.approx(1.0, abs=1e-6)
+    assert not rows[1]["valid"] and rows[1]["mode"] == "manual_transfer"
+    far = ln.measure_transfer(segs, ep, r, t + 0.5 * r[:, 0], cloud, 0.02)             # lệch 0,5 m: không snap được
+    assert not far[0]["valid"]

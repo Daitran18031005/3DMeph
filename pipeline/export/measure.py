@@ -31,7 +31,14 @@ from ..common.geometry import euclid
 from ..eval import metrics
 
 ENDPOINTS_VERSION = 1
-MODEL_FRAME = "model: mét, +Y lên, sàn y=0"
+MODEL_FRAME = "model: mét, +Y lên, sàn y=0"    # hệ của model.glb / model_points.ply (đã xoay, sàn y=0)
+CLOUD_FRAME = "variant_cloud"                  # đúng hệ file point cloud của biến thể (B0, B1, B3, proposed, abl_quality); `eval` đọc cả hai
+MODEL_FILES = ("model_points.ply", "model.glb")
+
+
+def frame_of_points_file(points_file) -> str:
+    """Hệ toạ độ của file điểm đã chọn: `model_points.ply` / `model.glb` ở hệ model, file khác (cloud của biến thể) ở hệ `CLOUD_FRAME`."""
+    return MODEL_FRAME if Path(points_file).name in MODEL_FILES else CLOUD_FRAME
 CSV_COLUMNS = ["id", "type", "ground_truth_m", "used_as_anchor", "endpoints/notes"]   # ĐC §9
 
 

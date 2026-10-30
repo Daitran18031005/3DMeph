@@ -33,7 +33,11 @@ Poisson (Open3D) + trimesh là quyết định của nhóm. Chỉ số hình h�
 ```
 
 - `id` trùng `id` trong `ground_truth/measurements.csv` (khoá ghép cặp với GT). Cờ `used_as_anchor` chỉ nằm ở `measurements.csv`; đoạn mốc scale phải bị loại khỏi chỉ số test.
-- `a`, `b`: toạ độ trong hệ của `points_file` (mét). `a_index`, `b_index`: chỉ số điểm đã chọn trong file đó (`null` nếu nhập bằng `add`). `source` hiện luôn là `manual`.
+- `frame` do công cụ tự đặt theo `points_file` (`frame_of_points_file`): `model_points.ply` / `model.glb` → `"model: mét, +Y lên, sàn y=0"`; file khác (point cloud của biến thể, ví dụ
+  `baselines/colmap/metric/fused_metric.ply`, `baselines/vggt/metric/points_metric.ply`) → `"variant_cloud"`. `eval` đọc cả hai: hệ model được đổi về hệ COLMAP × `s_m` bằng
+  `proposed/export/measurements.json["frame"]` (`x_cm = Rᵀ(x_model − t)`); chỉ đúng cho B0, B3, proposed, abl_quality. B1 ở hệ chuỗi VGGT nên phải chọn trực tiếp trên `points_metric.ply`
+  hoặc để `eval` truyền từ `endpoints_proposed.json` bằng phép cứng theo tâm camera (xem [eval](../eval/README.md)).
+- `a`, `b`: toạ độ trong hệ `frame` ở trên (mét). `a_index`, `b_index`: chỉ số điểm đã chọn trong file đó (`null` nếu nhập bằng `add`). `source` hiện luôn là `manual`.
 - `points_sha256`: nếu file điểm bị dựng lại thì toạ độ cũ không còn đúng; công cụ từ chối ghi thêm/so sánh khi hash lệch.
 - Khoảng cách `length_m` = `‖B − A‖` theo (30). Phép cứng không đổi khoảng cách nên so với GT không cần đổi hệ.
 

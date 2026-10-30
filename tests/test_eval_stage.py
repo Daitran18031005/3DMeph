@@ -12,6 +12,7 @@ from pipeline.common.io import SceneLayout, write_json
 from pipeline.common.ply import write_ply
 from pipeline.common.schema import write_keyframes_csv
 from pipeline.eval import stage as es
+from pipeline.export import measure as ms
 
 R_M = np.array([[np.cos(0.5), -np.sin(0.5), 0], [np.sin(0.5), np.cos(0.5), 0], [0, 0, 1.0]])
 T_M = np.array([1.0, 2.0, 3.0])
@@ -134,3 +135,52 @@ def test_run_main_variant(tmp_path, monkeypatch, capsys):
     assert pr.main(base + ["--variant", "B1", "--from-stage", "eval", "--to-stage", "eval"]) == 0 and seen[-1] == ("eval", "B1")
     assert pr.main(base + ["--from-stage", "eval", "--to-stage", "eval"]) == 0 and seen[-1] == ("eval", None)
     assert "[LỖI]" in capsys.readouterr().out
+
+
+def _proposed_endpoints(layout):
+    """Ghi `endpoints_proposed.json` đúng cách của `scripts/pick_endpoints.py` (hệ model) + `export/measurements.json` có `frame`; trả về mô hình: cm → model."""
+    c, sn = np.cos(0.7), np.sin(0.7)
+    r_e, t_e = np.array([[c, 0, sn], [0, 1.0, 0], [-sn, 0, c]]), np.array([0.5, -1.0, 0.25])
+    write_json(layout.export / "measurements.json", {"frame": {"rotation_from_colmap_metric": r_e.tolist(), "translation": t_e.tolist()}})
+    to_cm = lambda p: np.asarray(p) @ R_M.T + T_M                         # noqa: E731  hệ tường → hệ COLMAP mét của fixture
+    doc = ms.new_endpoints("arkitscenes/1", "proposed", "proposed/export/model_points.ply", "0" * 64)
+    for sid, a, b in (("S01", [0.0, 0.5, 0.5], [0.0, 1.5, 0.5]), ("S02", [0.0, 1.0, 0.2], [0.0, 1.0, 1.4])):
+        ms.add_segment(doc, sid, (r_e @ to_cm(a) + t_e).tolist(), (r_e @ to_cm(b) + t_e).tolist())
+    ms.save_endpoints(layout.logs / "endpoints_proposed.json", doc)
+
+
+def test_eval_truyen_dau_mut_tu_proposed_sang_b0_b3(scene, cfg):
+    layout, cams = scene
+    cfg["eval"]["mode"] = "manual"
+    _proposed_endpoints(layout)
+    es.run_eval(layout, cfg, log=lambda m: None, variants=["B0", "B3"], load_cameras=lambda lay: cams)
+    rows = _read(layout.evaluation / "metrics.csv")
+    assert rows["B0"]["length_mode"] == "manual_transfer" and int(rows["B0"]["n_valid"]) == 2 and float(rows["B0"]["mae_cm"]) < 0.1
+    assert rows["B3"]["length_mode"] == "manual_transfer" and int(rows["B3"]["n_valid"]) == 2     # S03 chưa chấm ở nguồn → không hợp lệ
+    assert (layout.logs / "lengths_B0_manual_transfer.csv").is_file()
+
+
+def test_eval_truyen_dau_mut_sang_b1_qua_phep_cung_tam_camera(scene, cfg):
+    layout, cams = scene
+    cfg["eval"]["mode"] = "manual"
+    _proposed_endpoints(layout)
+    c, sn = np.cos(0.3), np.sin(0.3)
+    r1, t1 = np.array([[c, -sn, 0], [sn, c, 0], [0, 0, 1.0]]), np.array([5.0, -2.0, 1.0])    # hệ chuỗi VGGT = cứng từ hệ COLMAP mét
+    to_cm = lambda p: np.asarray(p) @ R_M.T + T_M                         # noqa: E731
+    _ply(layout.vggt_metric / "points_metric.ply", to_cm(_wall()) @ r1.T + t1)
+    write_json(layout.vggt_metric / "cameras_metric.json", {"centers": {str(v): (cm["center"] * S_M @ r1.T + t1).tolist() for v, cm in cams.items()}})
+    es.run_eval(layout, cfg, log=lambda m: None, variants=["B1"], load_cameras=lambda lay: cams)
+    row = _read(layout.evaluation / "metrics.csv")["B1"]
+    assert row["length_mode"] == "manual_transfer" and int(row["n_valid"]) == 2 and float(row["mae_cm"]) < 0.1
+
+
+def test_eval_manual_doc_file_segments_he_model_cho_b0(scene, cfg):
+    """File do measure ghi cho chính B0 (chọn trên cloud B0 ⇒ frame variant_cloud) đọc được và nhãn là manual, không phải transfer."""
+    layout, cams = scene
+    cfg["eval"]["mode"] = "manual"
+    doc = ms.new_endpoints("arkitscenes/1", "B0", "baselines/colmap/metric/fused_metric.ply", "0" * 64, ms.frame_of_points_file("fused_metric.ply"))
+    ms.add_segment(doc, "S01", [0, 0, 0], [1.03, 0, 0])
+    ms.save_endpoints(layout.logs / "endpoints_B0.json", doc)
+    es.run_eval(layout, cfg, log=lambda m: None, variants=["B0"], load_cameras=lambda lay: cams)
+    row = _read(layout.evaluation / "metrics.csv")["B0"]
+    assert row["length_mode"] == "manual" and int(row["n_valid"]) == 1 and float(row["mae_cm"]) == pytest.approx(3.0)

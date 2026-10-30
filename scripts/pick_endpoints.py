@@ -190,7 +190,7 @@ def _open_endpoints(args, scene_root: Path, points_file: Path) -> Tuple[Dict, Pa
     path = ms.endpoints_path(scene_root, args.variant)
     doc = ms.load_endpoints(path)
     if doc is None:
-        doc = ms.new_endpoints(args.scene, args.variant, _rel(points_file, scene_root), sha)
+        doc = ms.new_endpoints(args.scene, args.variant, _rel(points_file, scene_root), sha, ms.frame_of_points_file(points_file))
     else:
         ms.check_points_hash(doc, sha)
     return doc, path

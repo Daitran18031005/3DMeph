@@ -54,12 +54,18 @@ Ablation 2 (ép plane không cổng, `abl_gate`) không có ở đây: theo PDF 
 - **Giới hạn của chế độ `auto` (đọc trước khi dùng số):** phép căn cứng scale = 1 giữ nguyên khoảng cách giữa hai đầu mút GT, và snap chỉ dời mỗi đầu mút ≤ `eval.snap_radius_m`;
   nên lỗi chiều dài `auto` ≤ 2 × bán kính snap (4 cm) **bất kể mô hình đúng hay sai scale**. Số `auto` chủ yếu cho biết đầu mút có rơi vào vùng được dựng hay không
   (`n_unsnapped_endpoints`, `nn_median_cm`) và độ lệch căn (`ate_rigid_cm`); sai scale lộ ra ở `ate_rigid_cm` và Chamfer/F-score. Phép đo chiều dài thực của mô hình là chế độ `manual`.
-- **Chế độ `manual`:** `eval.mode=manual` dùng `evaluation/logs/endpoints_<variant>.json` nếu có, thiếu thì rơi về `auto` và ghi nhãn từng dòng (`length_mode`). Định dạng:
+- **Chế độ `manual`** (`eval.mode=manual`), theo thứ tự ưu tiên, nhãn ghi ở cột `length_mode`:
+  1. `evaluation/logs/endpoints_<variant>.json` có sẵn → `manual` (chấm trực tiếp trên cloud của biến thể);
+  2. không có, và có `endpoints_proposed.json` → `manual_transfer`: đưa cặp điểm về hệ COLMAP × `s_m` rồi sang hệ biến thể (B0, B3, abl_quality: giữ nguyên; **B1**: phép cứng scale = 1 theo tâm camera chung với COLMAP),
+     snap trong `eval.snap_radius_m` (PLAN §4.8 mục 3); đoạn chưa chấm ở nguồn hoặc không snap được thì không hợp lệ;
+  3. không có gì → `auto`.
+  Hai định dạng file đều đọc được (`lengths.read_endpoints_json`): dạng của `scripts/pick_endpoints.py` (list `segments`) và dạng dict:
   ```json
   {"scene": "arkitscenes/42444738", "variant": "B0", "unit": "m", "frame": "variant_cloud",
    "endpoints": {"S01": {"a": [x, y, z], "b": [x, y, z]}}}
   ```
-  `frame: variant_cloud` = toạ độ trong **đúng file point cloud của biến thể** (bảng Biến thể), không phải hệ đã xoay của `model.glb`; khoá = `id` ở `measurements.csv`; đoạn thiếu = chưa chấm.
+  `frame: variant_cloud` = toạ độ trong **đúng file point cloud của biến thể** (bảng Biến thể). `frame` của `model.glb` / `model_points.ply` (`"model: mét, +Y lên, sàn y=0"`) được đổi về hệ COLMAP × `s_m`
+  bằng `proposed/export/measurements.json["frame"]`; hệ này không dùng được cho B1. Khoá/`id` = `id` ở `measurements.csv`; đoạn thiếu = chưa chấm.
 - **Chamfer/F-score** (34)(35): mô hình đưa vào hệ scene bằng phép cứng scale = 1 từ tâm camera (cột `*_kabsch`), rồi ICP cứng scale = 1 (cột không hậu tố); Faro và mô hình cắt theo hộp quỹ đạo GT ± lề và voxel hoá.
 - `ate_rigid_cm` = rms tâm camera sau phép cứng scale = 1 (cũng là sai số căn của `auto`); `ate_sim3_cm` = ATE sau Sim(3) (37).
 
