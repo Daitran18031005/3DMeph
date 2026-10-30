@@ -50,8 +50,8 @@ Chỉ dùng RGB làm input; LiDAR và pose ARKit chỉ để tham chiếu (ĐC �
 | `keyframe.rotate_from_sky` | true | quyết định của nhóm |
 | `keyframe.overlap.max` | 0.99 | Suy luận: tập ứng viên cho SfM chỉ bỏ khung gần như giống hệt (0,8 làm SfM đứt chuỗi); trước 30/10 là 0,8 (ĐC §6.1, mục tiêu 60–80%) |
 | `keyframe.overlap.min` | 0.3 | Suy luận (dưới mức này coi là mất kết nối); nới từ 0,6 ở M2 để giữ đủ ảnh nối các đoạn |
-| `keyframe.exposure.q_drop` | 0.5 | TẠM: ĐC §7.2 liệt kê lọc tối/cháy nhưng không có số; khoá theo phân phối `q_exposure` trên 6 Validation |
-| `keyframe.blur.q_drop` | 0.35 | **tạm cho M1** (người dùng chọn 26/10; đo trên scene dev 42444738: loại 9/121 khung, q_blur trung vị 0,757); khoá lại trên 6 scene Validation ở M2. Ví dụ ĐC §7.3: q=0,35 giữ, q=0,005 loại |
+| `keyframe.exposure.q_drop` | 0.5 | TẠM: ĐC §7.2 liệt kê lọc tối/cháy nhưng không có số; chưa quét với SfM mới |
+| `keyframe.blur.q_drop` | 0.35 | **khoá 31/10 (người dùng chọn giữ 0,35)**: quét {0,2; 0,35; 0,5} trên 6 Validation với SfM mới cho đăng ký trung vị 96,4% / 95,9% / 93,7% (min 82,8 / 84,4 / 88,3%), mỗi mức một lần chạy; chênh 0,5 điểm giữa 0,2 và 0,35 nằm trong dao động. Trên scene dev loại 9/121 khung (q_blur trung vị 0,757). Ví dụ ĐC §7.3: q=0,35 giữ, q=0,005 loại; bằng chứng ở `docs/evidence/m2_sfm/` |
 
 `quality.*` (`V_ref`, `G_ref`, `dark_px`, `bright_px`, cửa sổ) nằm ở [common](../common/README.md).
 

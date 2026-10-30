@@ -12,9 +12,9 @@ keyframe:
     max: 0.99                 # tập ứng viên cho SfM: chỉ bỏ khung gần như giống hệt [Suy luận; 0,8 làm SfM đứt chuỗi, M2]
     min: 0.3                  # dưới mức này coi là mất kết nối [Suy luận từ ĐC §6.1; M2 nới từ 0,6]
   blur:
-    q_drop: 0.35              # loại khung có q_blur dưới ngưỡng; TẠM, khoá trên 6 Validation ở M2 (đang quét)
+    q_drop: 0.35              # loại khung có q_blur dưới ngưỡng; KHOÁ 31/10 (người dùng): quét 0,2/0,35/0,5 trên 6 Validation cho đăng ký trung vị 96,4/95,9/93,7%, chênh không đủ kết luận nên giữ 0,35
   exposure:
-    q_drop: 0.5               # loại khung có q_exposure dưới ngưỡng (tối/cháy, ĐC §7.2 không nêu số); TẠM, khoá trên 6 Validation ở M2 (đang quét)
+    q_drop: 0.5               # loại khung có q_exposure dưới ngưỡng (tối/cháy, ĐC §7.2 không nêu số); TẠM, chưa quét với SfM mới
 
 quality:
   v_ref:                      # (3): trung vị qua scene của blur trung bình, đo trên vga_wide của 6 Validation
