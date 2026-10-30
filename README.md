@@ -124,7 +124,7 @@ python environment/check_env.py
 
 ## 6. Quick start
 
-Những gì chạy được ở M0a (chưa có stage chạy trên dữ liệu thật):
+Chạy thật từ M1 (8 stage `keyframe`…`export` trên 42444738; xem `WORKING_LOG.md`). Ví dụ đo hai điểm, test và kiểm tài liệu:
 
 ```bash
 # check
@@ -139,8 +139,8 @@ python -m pytest tests -q
 python scripts/check_docs.py --help
 ```
 
-Lệnh chạy một scene từ keyframe tới GLB (`python -m pipeline.run --scene arkitscenes/<video_id>`) **chưa có**;
-dự kiến ở M1. Tên stage: `keyframe, sfm, mvs, vggt, align, fuse, gate, export, eval`.
+Chạy một scene: `python -m pipeline.run --scene arkitscenes/<video_id> --from-stage X --to-stage Y` (mặc định tới `export`; stage `eval` chưa cài, M3).
+Chạy lại `sfm` đổi đơn vị COLMAP nên mốc scale phải click lại (`E_ANCHOR_STALE`). Tên stage: `keyframe, sfm, mvs, vggt, align, fuse, gate, export, eval`.
 
 ## 7. Trạng thái và lộ trình
 
@@ -150,9 +150,9 @@ tuần đầu: một scene chạy xuyên suốt, chưa train confidence head, Đ
 | Mốc | Nội dung | Trạng thái |
 |---|---|---|
 | M0a | môi trường, `default.yaml`, `common/`, lõi toán các module và test, README, sửa lỗi repo | có |
-| M0b | chọn và chia scene, tải `vga_wide` và Faro, căn Faro, chấm mốc scale và đoạn test, đo `V_ref`, `G_ref` | đang làm: xong chia scene, tải, `V_ref`/`G_ref`, căn Faro scene dev; còn chấm mốc và đoạn test |
-| M1 | cả chín stage chạy một lệnh trên scene 42444738 (CLI, chưa FastAPI/Unity) | chưa |
-| M2 | khoá ngưỡng keyframe trên Validation, đo VRAM và tỷ lệ đăng ký SfM | chưa |
+| M0b | chọn và chia scene, tải `vga_wide` và Faro, căn Faro, chấm mốc scale và đoạn test, đo `V_ref`, `G_ref` | xong cho scene dev (chia scene, tải, `V_ref`/`G_ref`, căn Faro, 1 mốc + 12 đoạn test) |
+| M1 | cả chín stage chạy một lệnh trên scene 42444738 (CLI, chưa FastAPI/Unity) | xong có điều kiện: 8/9 stage, chạy từ `align`, chất lượng hình học còn thấp, `eval` hoãn M3 |
+| M2 | khoá ngưỡng keyframe trên Validation, đo VRAM và tỷ lệ đăng ký SfM | gần xong: đăng ký SfM trung vị 95,9% trên 6 Validation (SfM trên tập dày), VGGT peak 6.021 MiB; còn khoá ngưỡng |
 | M3 | `eval/` đủ chỉ số; B0, B1, B3, Proposed, Ablation 1–2 trên một scene | chưa |
 | M4 | nhiều scene ARKit: val khoá ngưỡng, held-out chạy một lần | chưa |
 | M5 | Replica (render, nhãn), tự thu pilot | chưa |
