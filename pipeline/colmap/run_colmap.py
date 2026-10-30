@@ -18,9 +18,10 @@ from typing import Callable, Dict, List, Optional, Sequence
 import numpy as np
 
 from ..common import config as cfgmod
-from ..common.errors import E_COLMAP_FAILED, E_MISSING_INPUT, E_SFM_FAILED, StageError
+from ..common.errors import E_COLMAP_FAILED, E_MISSING_INPUT, E_SFM_FAILED, E_TOO_FEW_KEYFRAMES, StageError
 from ..common.io import SceneLayout, ensure_dir, read_json, write_json
-from ..common.schema import read_keyframes_csv
+from ..common.schema import read_keyframes_csv, write_keyframes_csv
+from ..keyframe.extract import thin_even
 from . import depth_io, signals
 
 # ---------------------------------------------------------------------------
@@ -97,13 +98,15 @@ def _merge_runs(runs: List[Dict]) -> Dict:
 # ---------------------------------------------------------------------------
 
 
-def feature_extractor_args(images: Path, db: Path, cam: Dict, max_image_size=None, use_gpu: bool = True) -> List:
+def feature_extractor_args(images: Path, db: Path, cam: Dict, max_image_size=None, use_gpu: bool = True, sift: Optional[Dict] = None) -> List:
     args = ["feature_extractor", "--database_path", db, "--image_path", images,
             "--ImageReader.camera_model", cam.get("camera_model", "PINHOLE"), "--ImageReader.single_camera", 1,
             "--ImageReader.camera_params", f"{cam['fx']},{cam['fy']},{cam['cx']},{cam['cy']}",
             "--FeatureExtraction.use_gpu", 1 if use_gpu else 0]
     if max_image_size is not None:
         args += ["--FeatureExtraction.max_image_size", int(max_image_size)]
+    for k, v in (sift or {}).items():                              # SiftExtraction.<khoá> từ colmap.sift
+        args += [f"--SiftExtraction.{k}", int(v) if isinstance(v, bool) else v]
     return args
 
 
@@ -111,6 +114,17 @@ def sequential_matcher_args(db: Path, overlap=None, use_gpu: bool = True) -> Lis
     args = ["sequential_matcher", "--database_path", db, "--FeatureMatching.use_gpu", 1 if use_gpu else 0]
     if overlap is not None:
         args += ["--SequentialMatching.overlap", int(overlap)]
+    return args
+
+
+def exhaustive_matcher_args(db: Path, use_gpu: bool = True) -> List:
+    return ["exhaustive_matcher", "--database_path", db, "--FeatureMatching.use_gpu", 1 if use_gpu else 0]
+
+
+def mapper_args(db: Path, images: Path, out: Path, opts: Optional[Dict] = None) -> List:
+    args = ["mapper", "--database_path", db, "--image_path", images, "--output_path", out]
+    for k, v in (opts or {}).items():                              # Mapper.<khoá> từ colmap.mapper
+        args += [f"--Mapper.{k}", v]
     return args
 
 
@@ -132,31 +146,77 @@ def choose_best_model(sparse_dir: Path):
     return best, len(dirs)
 
 
+def select_keyframes(layout: SceneLayout, cfg: Dict, sparse: Path, rec, log: Callable[[str], None] = print):
+    """Chọn ≤ `keyframe.target_max` keyframe (ĐC §7) đều theo thời gian trong số ảnh ĐÃ đăng ký của `rec` (= `sparse/0`).
+
+    Ghi `frames/keyframes/NNNN.jpg` và `metadata/keyframes.csv` (đánh số lại view_id 0..n−1, cùng chỉ số i mọi stage sau), giữ model đầy đủ ở
+    `sfm/sparse_full/0` và ghi model rút gọn (chỉ ảnh được chọn, tên đổi thành NNNN.jpg, tư thế giữ nguyên từ BA trên tập dày) vào `sparse/0`.
+    Dưới `keyframe.target_min` ảnh đã đăng ký thì `E_TOO_FEW_KEYFRAMES`. Trả về model rút gọn.
+    """
+    t_min, t_max = int(cfgmod.require(cfg, "keyframe.target_min")), int(cfgmod.require(cfg, "keyframe.target_max"))
+    rows = {f"{int(r['view_id']):04d}.jpg": r for r in read_keyframes_csv(layout.metadata / "candidates.csv")}
+    reg = sorted(im.name for im in rec.images.values() if rec.is_image_registered(im.image_id))
+    if len(reg) < t_min:
+        raise StageError(E_TOO_FEW_KEYFRAMES, f"SfM chỉ đăng ký {len(reg)} ảnh, cần ≥ {t_min} keyframe")
+    chosen = thin_even(reg, t_max)
+    new_name = {old: f"{i:04d}.jpg" for i, old in enumerate(chosen)}
+    for im in rec.images.values():
+        if rec.is_image_registered(im.image_id) and im.name not in new_name:
+            rec.deregister_image(im.image_id)                     # điểm 3D mất quan sát tự bị xoá
+    for im in rec.images.values():
+        if rec.is_image_registered(im.image_id):
+            im.name = new_name[im.name]
+    if layout.keyframes.exists():
+        shutil.rmtree(layout.keyframes)
+    ensure_dir(layout.keyframes)
+    out_rows = []
+    for old, new in new_name.items():
+        shutil.copy2(layout.candidates / old, layout.keyframes / new)
+        out_rows.append({**rows[old], "view_id": int(new[:4])})
+    write_keyframes_csv(out_rows, layout.metadata / "keyframes.csv")
+    full = sparse.parent / "sparse_full"
+    if full.exists():
+        shutil.rmtree(full)
+    full.mkdir()
+    shutil.move(str(sparse / "0"), str(full / "0"))
+    (sparse / "0").mkdir()
+    rec.write(str(sparse / "0"))
+    log(f"[sfm] chọn {len(chosen)}/{len(reg)} ảnh đã đăng ký làm keyframe (target {t_min}–{t_max}); model đầy đủ ở {full.name}/0")
+    return rec
+
+
 def run_sfm(layout: SceneLayout, cfg: Dict, exe, log: Callable[[str], None] = print) -> Dict:
-    """Stage `sfm`. Đầu vào: `frames/keyframes/*.jpg`, `metadata/camera.json`, `metadata/keyframes.csv`."""
+    """Stage `sfm`. Đầu vào: `frames/candidates/*.jpg` (tập dày), `metadata/camera.json`, `metadata/candidates.csv`.
+    Ra: model đầy đủ `sparse_full/0`, keyframe đã chọn `frames/keyframes/`, `metadata/keyframes.csv`, model rút gọn `sparse/0`, tín hiệu."""
     t0 = time.time()
     cam_path = layout.metadata / "camera.json"
-    if not layout.keyframes.is_dir() or not cam_path.is_file():
-        raise StageError(E_MISSING_INPUT, "thiếu frames/keyframes hoặc metadata/camera.json: chạy stage keyframe trước")
+    if not layout.candidates.is_dir() or not cam_path.is_file() or not (layout.metadata / "candidates.csv").is_file():
+        raise StageError(E_MISSING_INPUT, "thiếu frames/candidates, metadata/candidates.csv hoặc metadata/camera.json: chạy stage keyframe trước")
     cam = read_json(cam_path)
-    n_images = len(list(layout.keyframes.glob("*.jpg")))
+    n_images = len(list(layout.candidates.glob("*.jpg")))
     sfm = ensure_dir(layout.colmap_sfm)
     db, sparse = sfm / "database.db", sfm / "sparse"
-    for stale in (db, sparse):                                    # làm lại sạch: không trộn với lần chạy trước
+    for stale in (db, sparse, sfm / "sparse_full"):               # làm lại sạch: không trộn với lần chạy trước
         if stale.is_file():
             stale.unlink()
         elif stale.is_dir():
             shutil.rmtree(stale)
     sparse.mkdir()
     use_gpu = bool(cfgmod.require(cfg, "colmap.use_gpu"))
-    runs = [run_cmd(exe, feature_extractor_args(layout.keyframes, db, cam, cfgmod.get(cfg, "colmap.max_image_size"), use_gpu), log),
-            run_cmd(exe, sequential_matcher_args(db, cfgmod.get(cfg, "colmap.matcher_overlap"), use_gpu), log),
-            run_cmd(exe, ["mapper", "--database_path", db, "--image_path", layout.keyframes, "--output_path", sparse], log)]
+    matcher = str(cfgmod.require(cfg, "colmap.matcher"))
+    if matcher not in ("exhaustive", "sequential"):
+        raise StageError(E_MISSING_INPUT, f"colmap.matcher phải là exhaustive hoặc sequential, nhận {matcher!r}")
+    match_args = exhaustive_matcher_args(db, use_gpu) if matcher == "exhaustive" else sequential_matcher_args(db, cfgmod.get(cfg, "colmap.matcher_overlap"), use_gpu)
+    runs = [run_cmd(exe, feature_extractor_args(layout.candidates, db, cam, cfgmod.get(cfg, "colmap.max_image_size"), use_gpu,
+                                                cfgmod.get(cfg, "colmap.sift")), log),
+            run_cmd(exe, match_args, log),
+            run_cmd(exe, mapper_args(db, layout.candidates, sparse, cfgmod.get(cfg, "colmap.mapper")), log)]
     rec, n_models = choose_best_model(sparse)
-    n_reg = rec.num_reg_images()
+    n_reg = rec.num_reg_images()                                  # trên tập dày: đây là tỉ lệ đăng ký của tiêu chí M2
+    rec = select_keyframes(layout, cfg, sparse, rec, log)
     obs = signals.observations_from_model(rec)
     np.savez_compressed(sfm / "observations.npz", **obs)
-    name_to_view = {img.name: iid for iid, img in rec.images.items()}
+    name_to_view = {img.name: iid for iid, img in rec.images.items() if rec.is_image_registered(iid)}
     e_cap = float(cfgmod.require(cfg, "fusion.e_cap_px"))
     map_dir = ensure_dir(sfm / "e_reproj_map")
     h, w = int(cam["h"]), int(cam["w"])
@@ -166,7 +226,7 @@ def run_sfm(layout: SceneLayout, cfg: Dict, exe, log: Callable[[str], None] = pr
     run = _merge_runs(runs)
     c0 = next(iter(rec.cameras.values()))
     stats = {"n_images": n_images, "n_registered": int(n_reg), "registered_ratio": round(n_reg / max(n_images, 1), 4),
-             "n_models": n_models, "n_points3D": len(rec.points3D), "n_observations": int(len(obs["e_reproj"])),
+             "n_keyframes": int(rec.num_reg_images()), "n_models": n_models, "n_points3D": len(rec.points3D), "n_observations": int(len(obs["e_reproj"])),
              "mean_reproj_error_px": round(float(rec.compute_mean_reprojection_error()), 4),
              "e_reproj_obs_median_px": round(float(np.median(obs["e_reproj"])), 4) if len(obs["e_reproj"]) else None,
              "camera_model": str(c0.model), "camera_params_refined": [round(float(x), 3) for x in c0.params],
@@ -174,7 +234,7 @@ def run_sfm(layout: SceneLayout, cfg: Dict, exe, log: Callable[[str], None] = pr
              "peak_vram_mib": run["peak_vram_mib"], "baseline_vram_mib": run["baseline_vram_mib"],
              "seconds": round(time.time() - t0, 1)}
     write_json(sfm / "sfm_result.json", stats)
-    log(f"[sfm] đăng ký {n_reg}/{n_images} ảnh ({stats['registered_ratio'] * 100:.1f}%), {stats['n_points3D']:,} điểm 3D, "
+    log(f"[sfm] đăng ký {n_reg}/{n_images} ảnh dày ({stats['registered_ratio'] * 100:.1f}%), giữ {stats['n_keyframes']} keyframe, {stats['n_points3D']:,} điểm 3D, "
         f"{stats['n_observations']:,} quan sát, reproj {stats['mean_reproj_error_px']} px, {n_models} model; "
         f"camera {stats['camera_model']} {stats['camera_params_initial']} → {stats['camera_params_refined']}; {stats['seconds']} s")
     return stats

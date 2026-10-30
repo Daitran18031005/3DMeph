@@ -1,0 +1,13 @@
+{
+  "camera_model": "PINHOLE",
+  "w": 480,
+  "h": 640,
+  "fx": 532.027,
+  "fy": 532.027,
+  "cx": 241.867,
+  "cy": 321.14750000000004,
+  "intrinsics_per_frame": "candidates.csv",
+  "fx_min": 521.482,
+  "fx_max": 538.956,
+  "note": "trung vị intrinsics các keyframe (đã xoay đứng); intrinsics vga_wide đổi theo khung, COLMAP tinh chỉnh tiêu cự"
+}

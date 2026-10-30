@@ -1,0 +1,25 @@
+{
+  "stages": {
+    "mvs": {
+      "status": "ok",
+      "started": "2026-10-30T23:56:21",
+      "error_code": null,
+      "stats": {
+        "n_depth_maps": 78,
+        "n_fused_points": 227272,
+        "sigma_depth_valid_fraction_mean": 0.5158,
+        "sigma_depth_median_colmap_units": 0.01324,
+        "fused_ply_mb": 6.1,
+        "peak_vram_mib": 263.0,
+        "baseline_vram_mib": 0.0,
+        "seconds": 760.1
+      },
+      "seconds": 761.5,
+      "peak_vram_mib": 263.0
+    }
+  },
+  "scene": "arkitscenes/42897566",
+  "config_hash": "dc857b7381f220a1d5937676fd229a0d8e6a24a28973cdbffe09320708e562cb",
+  "git_head": "f153e33834fc807e2277d992722b2e9261907ec6",
+  "updated": "2026-10-31T00:09:02"
+}

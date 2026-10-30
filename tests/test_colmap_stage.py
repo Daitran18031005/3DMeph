@@ -11,7 +11,10 @@ import numpy as np
 import pytest
 
 from pipeline.colmap import depth_io, run_colmap, signals
-from pipeline.common.errors import E_COLMAP_FAILED, E_SFM_FAILED, StageError
+from pipeline.common import config as cfgmod
+from pipeline.common import io as pio
+from pipeline.common.errors import E_COLMAP_FAILED, E_SFM_FAILED, E_TOO_FEW_KEYFRAMES, StageError
+from pipeline.common.schema import KEYFRAME_COLUMNS, read_keyframes_csv, write_keyframes_csv
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SPARSE = REPO_ROOT / "data" / "processed" / "images" / "sparse"
@@ -127,6 +130,13 @@ def test_tham_so_lenh(tmp_path):
     assert s[s.index("--SequentialMatching.overlap") + 1] == 5
     assert s[s.index("--FeatureMatching.use_gpu") + 1] == 1
     assert run_colmap.sequential_matcher_args(tmp_path / "db", None, False)[-1] == 0
+    sift = run_colmap.feature_extractor_args(tmp_path, tmp_path, cam, None, True, {"peak_threshold": 0.004, "domain_size_pooling": True, "estimate_affine_shape": False})
+    assert sift[sift.index("--SiftExtraction.peak_threshold") + 1] == 0.004
+    assert sift[sift.index("--SiftExtraction.domain_size_pooling") + 1] == 1 and sift[sift.index("--SiftExtraction.estimate_affine_shape") + 1] == 0
+    assert run_colmap.exhaustive_matcher_args(tmp_path / "db")[0] == "exhaustive_matcher"
+    m = run_colmap.mapper_args(tmp_path / "db", tmp_path / "img", tmp_path / "out", {"init_min_tri_angle": 2, "min_num_matches": 10})
+    assert m[0] == "mapper" and m[m.index("--Mapper.init_min_tri_angle") + 1] == 2 and m[m.index("--Mapper.min_num_matches") + 1] == 10
+    assert "--Mapper.init_min_tri_angle" not in run_colmap.mapper_args(tmp_path / "db", tmp_path / "img", tmp_path / "out")
 
 
 @pytest.mark.skipif(not (SPARSE / "points3D.bin").is_file(), reason="chưa có model COLMAP mẫu ở data/processed")
@@ -150,3 +160,38 @@ def test_choose_best_model_khong_co_model(tmp_path):
     with pytest.raises(StageError) as e:
         run_colmap.choose_best_model(tmp_path / "sparse")
     assert e.value.code == E_SFM_FAILED
+
+
+@pytest.mark.skipif(not (SPARSE / "points3D.bin").is_file(), reason="chưa có model COLMAP mẫu ở data/processed")
+def test_select_keyframes_chon_deu_tu_anh_da_dang_ky(tmp_path):
+    layout = pio.scene_layout(tmp_path / "scenes", "arkitscenes", "777")
+    rec = pycolmap.Reconstruction(str(SPARSE))
+    reg = sorted(rec.images)
+    for i, iid in enumerate(reg):
+        rec.images[iid].name = f"{i:04d}.jpg"                     # tên ứng viên NNNN.jpg
+    pio.ensure_dir(layout.candidates)
+    pio.ensure_dir(layout.metadata)
+    rows = []
+    for i in range(len(reg)):
+        (layout.candidates / f"{i:04d}.jpg").write_bytes(bytes([i % 256]))
+        rows.append({k: str(i) for k in KEYFRAME_COLUMNS})
+        rows[-1]["view_id"] = i
+    write_keyframes_csv(rows, layout.metadata / "candidates.csv")
+    sparse = pio.ensure_dir(layout.colmap_sfm / "sparse")
+    pio.ensure_dir(sparse / "0")
+    rec.write(str(sparse / "0"))
+    cfg = cfgmod.load_config()
+    cfg["keyframe"]["target_min"], cfg["keyframe"]["target_max"] = 10, 30
+    out = run_colmap.select_keyframes(layout, cfg, sparse, pycolmap.Reconstruction(str(sparse / "0")))
+    assert out.num_reg_images() == 30 and len(list(layout.keyframes.glob("*.jpg"))) == 30
+    kf = read_keyframes_csv(layout.metadata / "keyframes.csv")
+    assert [int(r["view_id"]) for r in kf] == list(range(30))
+    assert [r["frame_ts"] for r in kf] == sorted((r["frame_ts"] for r in kf), key=int)   # giữ thứ tự thời gian của ứng viên
+    assert sorted(im.name for im in pycolmap.Reconstruction(str(sparse / "0")).images.values()) == [f"{i:04d}.jpg" for i in range(30)]
+    assert pycolmap.Reconstruction(str(sparse.parent / "sparse_full" / "0")).num_reg_images() == len(reg)
+    # đúng ảnh gốc: keyframe 0 là ứng viên 0, keyframe 29 là ứng viên cuối
+    assert (layout.keyframes / "0029.jpg").read_bytes() == bytes([(len(reg) - 1) % 256])
+    cfg["keyframe"]["target_min"] = 500
+    with pytest.raises(StageError) as e:
+        run_colmap.select_keyframes(layout, cfg, sparse, pycolmap.Reconstruction(str(sparse.parent / "sparse_full" / "0")))
+    assert e.value.code == E_TOO_FEW_KEYFRAMES

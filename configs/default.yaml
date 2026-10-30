@@ -5,14 +5,16 @@
 
 keyframe:
   fps: 2                      # ĐC §7: trích 1–2 khung/giây
-  target_min: 40              # ĐC §7: 40–80 keyframe mỗi lượt
-  target_max: 120             # ĐC §7 nêu 40–80; M1 nâng lên 120 (LỆCH CÓ CHỦ Ý, người dùng đồng ý 27/10): thưa xuống 80 làm đứt chuỗi SfM (46–65/80 ảnh đăng ký so với 94/112); M2 xử lý lại bằng overlap
+  target_min: 40              # ĐC §7: 40–80 keyframe mỗi lượt (đếm trên ảnh đã đăng ký SfM)
+  target_max: 80              # ĐC §7: 40–80 keyframe mỗi lượt; stage sfm chọn từ tập ứng viên dày (M2: SfM trên 80 khung thưa chỉ đăng ký 8–40%)
   rotate_from_sky: true       # xoay ảnh upright theo sky_direction (quyết định của nhóm)
   overlap:
-    max: 0.8                  # trên mức này coi là trùng [Suy luận từ ĐC §6.1, mục tiêu 60–80%]
-    min: 0.6                  # dưới mức này coi là mất kết nối [Suy luận từ ĐC §6.1]
+    max: 0.99                 # tập ứng viên cho SfM: chỉ bỏ khung gần như giống hệt [Suy luận; 0,8 làm SfM đứt chuỗi, M2]
+    min: 0.3                  # dưới mức này coi là mất kết nối [Suy luận từ ĐC §6.1; M2 nới từ 0,6]
   blur:
-    q_drop: 0.35              # loại khung có q_blur dưới ngưỡng; TẠM cho M1 (người dùng chọn 26/10, đo trên scene dev), khoá lại trên 6 Validation ở M2
+    q_drop: 0.35              # loại khung có q_blur dưới ngưỡng; TẠM, khoá trên 6 Validation ở M2 (đang quét)
+  exposure:
+    q_drop: 0.5               # loại khung có q_exposure dưới ngưỡng (tối/cháy, ĐC §7.2 không nêu số); TẠM, khoá trên 6 Validation ở M2 (đang quét)
 
 quality:
   v_ref:                      # (3): trung vị qua scene của blur trung bình, đo trên vga_wide của 6 Validation
@@ -33,7 +35,19 @@ quality:
 
 colmap:
   camera_model: PINHOLE       # intrinsics lấy từ camera.json
-  matcher_overlap: null       # số cặp láng giềng của sequential_matcher; chưa có căn cứ (mặc định COLMAP)
+  matcher: exhaustive         # exhaustive | sequential; M2: sequential đứt chuỗi ở đoạn xoay máy, exhaustive nối được các đoạn
+  matcher_overlap: null       # số cặp láng giềng của sequential_matcher (chỉ khi matcher: sequential); chưa có căn cứ (mặc định COLMAP)
+  sift:                       # tham số trích đặc trưng; TẠM, đo trên 3 scene ở M2 (47204552, 42898849, 42444738)
+    peak_threshold: 0.004     # SiftExtraction.peak_threshold (mặc định COLMAP 0,00667): thêm đặc trưng ở vùng ít hoạ tiết
+    estimate_affine_shape: true   # SiftExtraction.estimate_affine_shape
+    domain_size_pooling: true     # SiftExtraction.domain_size_pooling
+  mapper:                     # nới ngưỡng mapper cho video quay tay ít thị sai; TẠM, đo trên 3 scene ở M2
+    init_min_tri_angle: 2     # Mapper.init_min_tri_angle (mặc định 16)
+    init_min_num_inliers: 30  # Mapper.init_min_num_inliers (mặc định 100)
+    abs_pose_min_num_inliers: 10   # Mapper.abs_pose_min_num_inliers (mặc định 30)
+    abs_pose_min_inlier_ratio: 0.05   # Mapper.abs_pose_min_inlier_ratio (mặc định 0,25)
+    min_num_matches: 10       # Mapper.min_num_matches (mặc định 15)
+    abs_pose_max_error: 16    # Mapper.abs_pose_max_error, px (mặc định 12)
   geom_consistency: true      # PatchMatchStereo.geom_consistency, tạo cả depth photometric và geometric
   max_image_size: null        # null = giữ nguyên kích thước ảnh
   use_gpu: true               # false = SIFT và ghép cặp trên CPU (patch_match_stereo vẫn cần CUDA); dùng khi driver quá cũ cho bản COLMAP CUDA 13

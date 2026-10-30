@@ -1,0 +1,27 @@
+{
+  "n_images": 266,
+  "n_registered": 251,
+  "registered_ratio": 0.9436,
+  "n_keyframes": 80,
+  "n_models": 2,
+  "n_points3D": 10704,
+  "n_observations": 28921,
+  "mean_reproj_error_px": 0.8218,
+  "e_reproj_obs_median_px": 0.6366,
+  "camera_model": "CameraModelId.PINHOLE",
+  "camera_params_refined": [
+    528.353,
+    528.413,
+    241.867,
+    321.148
+  ],
+  "camera_params_initial": [
+    532.027,
+    532.027,
+    241.867,
+    321.14750000000004
+  ],
+  "peak_vram_mib": 244.0,
+  "baseline_vram_mib": 89.0,
+  "seconds": 240.2
+}

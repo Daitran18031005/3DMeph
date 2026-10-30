@@ -1,0 +1,91 @@
+{
+  "stages": {
+    "vggt": {
+      "status": "ok",
+      "started": "2026-10-30T23:53:33",
+      "error_code": null,
+      "stats": {
+        "n_keyframes": 80,
+        "n_chunks": 8,
+        "chunk": 12,
+        "overlap": 2,
+        "dtype": "bf16",
+        "device": "cuda",
+        "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+        "model_load_seconds": 34.4,
+        "peak_vram_mib": 6021.0,
+        "peak_vram_reserved_mib": 7238.0,
+        "camera0_identity_err_max": 0.000617725367192179,
+        "pad_geometry": {
+          "orig_w": 480,
+          "orig_h": 640,
+          "new_w": 392,
+          "new_h": 518,
+          "pad_left": 63,
+          "pad_top": 0,
+          "scale_x": 0.8166666666666667,
+          "scale_y": 0.809375,
+          "size": 518
+        },
+        "chunks": [
+          {
+            "chunk": 0,
+            "start": 0,
+            "end": 12,
+            "seconds": 22.78
+          },
+          {
+            "chunk": 1,
+            "start": 10,
+            "end": 22,
+            "seconds": 13.58
+          },
+          {
+            "chunk": 2,
+            "start": 20,
+            "end": 32,
+            "seconds": 12.96
+          },
+          {
+            "chunk": 3,
+            "start": 30,
+            "end": 42,
+            "seconds": 13.45
+          },
+          {
+            "chunk": 4,
+            "start": 40,
+            "end": 52,
+            "seconds": 12.78
+          },
+          {
+            "chunk": 5,
+            "start": 50,
+            "end": 62,
+            "seconds": 12.75
+          },
+          {
+            "chunk": 6,
+            "start": 60,
+            "end": 72,
+            "seconds": 12.51
+          },
+          {
+            "chunk": 7,
+            "start": 70,
+            "end": 80,
+            "seconds": 10.95
+          }
+        ],
+        "weights_dir": "D:\\Nghien_Cuu\\3D_Metric\\3DMeph\\..\\vggt_weights\\VGGT-1B",
+        "seconds": 147.2
+      },
+      "seconds": 148.9,
+      "peak_vram_mib": 6021.0
+    }
+  },
+  "scene": "arkitscenes/42897599",
+  "config_hash": "dc857b7381f220a1d5937676fd229a0d8e6a24a28973cdbffe09320708e562cb",
+  "git_head": "f153e33834fc807e2277d992722b2e9261907ec6",
+  "updated": "2026-10-30T23:56:01"
+}

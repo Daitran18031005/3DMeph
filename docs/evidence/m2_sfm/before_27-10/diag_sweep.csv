@@ -1,0 +1,3 @@
+scene,cfg_id,q_drop,overlap_max,overlap_min,exposure_q_drop,rep,n_frames,n_candidates,n_after_blur,n_after_exposure,n_after_overlap,n_overlap_breaks,thinned,n_kf,n_registered,ratio,n_models,n_points3D,reproj_px,keyframe_s,sfm_s,sfm_peak_vram_mib,error
+arkitscenes/42898849,q0.35_omax0.99_omin0.3_e0.5_t1000,0.35,0.99,0.3,0.5,0,4353,291,266,266,266,21,0,266,86,0.3233,6,5702,0.5972,12.1,56.9,474.0,
+arkitscenes/47204552,q0.35_omax0.99_omin0.3_e0.5_t1000,0.35,0.99,0.3,0.5,0,4282,286,251,251,250,26,0,250,36,0.144,5,2557,0.4613,11.4,26.6,474.0,
