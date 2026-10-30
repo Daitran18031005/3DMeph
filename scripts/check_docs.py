@@ -45,6 +45,7 @@ OWNERS = {
     "plane": "pipeline/plane_gate/README.md",
     "export": "pipeline/export/README.md",
     "eval": "pipeline/eval/README.md",
+    "measure": "pipeline/export/README.md",
     "loss": "configs/README.md",
     "paths": "configs/README.md",
 }
