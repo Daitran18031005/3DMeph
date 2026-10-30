@@ -74,6 +74,7 @@ def test_run_stage_ghi_run_meta_thanh_cong_va_that_bai(root, cfg, monkeypatch):
     assert meta["stages"]["sfm"]["status"] == "failed" and meta["stages"]["sfm"]["error_code"] == E_TOO_FEW_KEYFRAMES
     assert meta["stages"]["keyframe"]["status"] == "ok"                     # mục stage trước giữ nguyên
 
+    monkeypatch.delitem(pr.IMPLEMENTED, "eval")                              # eval đã cài ở M3: gỡ để kiểm đường E_NOT_IMPLEMENTED
     with pytest.raises(StageError) as e:
         pr.run_stage("eval", ctx, log=lambda m: None)
     assert e.value.code == E_NOT_IMPLEMENTED and "M3" in str(e.value)
@@ -98,7 +99,8 @@ def test_main_ma_thoat(root, monkeypatch, capsys):
     calls.clear()
     assert pr.main(base + ["arkitscenes/111", "--from-stage", "sfm"]) == 0                              # mặc định dừng ở export
     assert calls == ["sfm", "mvs", "vggt", "align", "fuse", "gate", "export"]
-    assert pr.main(base + ["arkitscenes/111", "--from-stage", "export", "--to-stage", "eval"]) == 2     # eval chưa cài (M3)
+    monkeypatch.delitem(pr.IMPLEMENTED, "eval")
+    assert pr.main(base + ["arkitscenes/111", "--from-stage", "export", "--to-stage", "eval"]) == 2     # gỡ eval để kiểm E_NOT_IMPLEMENTED
     assert "E_NOT_IMPLEMENTED" in capsys.readouterr().out
 
 
