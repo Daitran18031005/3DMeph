@@ -37,6 +37,7 @@ from pipeline.common.config import flatten_keys  # noqa: E402
 # Tiền tố khoá cấu hình → README sở hữu (đường dẫn tương đối repo)
 OWNERS = {
     "keyframe": "pipeline/keyframe/README.md",
+    "video": "pipeline/keyframe/README.md",
     "quality": "pipeline/common/README.md",
     "colmap": "pipeline/colmap/README.md",
     "vggt": "pipeline/vggt/README.md",
