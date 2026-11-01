@@ -226,3 +226,20 @@ def test_gt_hints_bo_toa_do_faro_khoi_nhan(tmp_path):
                                            "endpoints/notes": "A=(0.455, 3.244, 0.140) B=(1.194, 3.249, 0.135); Rộng tủ"}])
     assert pe.gt_hints(tmp_path) == {"S01": {"gt_m": 0.7389, "anchor": False, "label": "Rộng tủ"}}
     assert pe.next_free_id(new_doc(), pe.gt_hints(tmp_path)) == "S01"
+
+
+def test_rgb_colors_lay_mau_diem_mvs_gan_nhat_va_none_khi_thieu_hoac_lech_he(tmp_path):
+    import annotate_segments as an
+
+    xyz = np.array([[0.0, 0, 0], [1, 0, 0], [0, 1, 0]])
+    rgb = np.array([[255, 0, 0], [0, 255, 0], [0, 0, 255]], dtype=np.uint8)
+    pf = tmp_path / "proposed" / "export" / "model_points.ply"
+    assert pe.rgb_colors(tmp_path, xyz, pf) is None  # chưa có fused_metric.ply
+    an.write_ply_xyz_rgb(tmp_path / "baselines" / "colmap" / "metric" / "fused_metric.ply", xyz, rgb)
+    (tmp_path / "proposed" / "export").mkdir(parents=True)
+    (tmp_path / "proposed" / "export" / "measurements.json").write_text(json.dumps(
+        {"frame": {"rotation_from_colmap_metric": np.eye(3).tolist(), "translation": [5.0, 0, 0]}}), encoding="utf-8")
+    # điểm mô hình = điểm COLMAP + t (x_model = R·x_cm + t) ⇒ khi lùi t phải khớp đúng màu từng điểm
+    col = pe.rgb_colors(tmp_path, xyz + [5.0, 0, 0], pf)
+    assert np.allclose(col, rgb / 255.0)
+    assert pe.rgb_colors(tmp_path, xyz + [9.0, 0, 0], pf) is None  # lệch hệ: khoảng cách trung vị > 10 cm

@@ -7,7 +7,7 @@ Lưu đầu mút vào `<scene>/evaluation/logs/endpoints_<variant>.json` (địn
 khỏi chỉ số test. Dữ liệu và scene: đọc `paths.data_root` của `--config`; scene held-out bị chặn.
 
 Cách dùng (từ thư mục gốc repo, env 3d_metric):
-    python scripts/pick_endpoints.py pick    --scene arkitscenes/42444738 [--variant proposed] [--points FILE | --glb FILE]   # GUI Open3D
+    python scripts/pick_endpoints.py pick    --scene arkitscenes/42444738 [--variant proposed] [--points FILE | --glb FILE] [--height]   # GUI Open3D, màu RGB video (--height: theo độ cao)
     python scripts/pick_endpoints.py add     --scene arkitscenes/42444738 --id S01 --a X Y Z --b X Y Z [--replace]            # không GUI
     python scripts/pick_endpoints.py tape    --scene arkitscenes/42444738 --id S01 --readings 1.234 1.236 1.235 [--anchor]    # GT thước dây
     python scripts/pick_endpoints.py tape    --scene arkitscenes/42444738 --write-csv [--overwrite]                           # → measurements.csv
@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import functools
 import re
 import sys
 from pathlib import Path
@@ -97,12 +98,36 @@ HELP_TEXT = """\
                   Đừng bấm K, C, S. Chọn đúng vị trí vật lý đã đo thước dây / chấm trên Faro (góc, cạnh rõ nét)."""
 
 
-def gui_pick(points: np.ndarray, title: str) -> Optional[Tuple[int, int]]:
-    """Cửa sổ Open3D của annotate_segments (tái dùng), tô màu theo độ cao y (mô hình có +Y lên)."""
+def rgb_colors(scene_root: Path, points: np.ndarray, points_file: Path) -> Optional[np.ndarray]:
+    """Màu RGB (N, 3 trong [0, 1]) của điểm mô hình, lấy từ điểm MVS gần nhất (`baselines/colmap/metric/fused_metric.ply`, hệ COLMAP × `s_m`).
+    Chỉ để nhìn cho dễ chọn, không đổi toạ độ. `None` nếu thiếu file hoặc hai đám mây không cùng hệ (ví dụ B1 ở hệ VGGT)."""
+    from scipy.spatial import cKDTree
+
     sys.path.insert(0, str(REPO / "scripts"))
     import annotate_segments as an
 
-    return an.pick_two_points(points, title, colors=an.height_colors(points[:, 1]))
+    from pipeline.eval.lengths import model_to_colmap_metric
+
+    ply = scene_root / "baselines" / "colmap" / "metric" / "fused_metric.ply"
+    if not ply.is_file():
+        return None
+    p = points
+    if ms.frame_of_points_file(points_file) == ms.MODEL_FRAME:
+        frame = ms.read_json_if_exists(scene_root / "proposed" / "export" / "measurements.json")
+        if frame is None:
+            return None
+        p = np.apply_along_axis(model_to_colmap_metric(frame["frame"]), 1, points)
+    xyz, rgb = an.read_ply_xyz_rgb(ply)
+    dist, idx = cKDTree(xyz).query(p)
+    return rgb[idx] if np.median(dist) < 0.10 else None
+
+
+def gui_pick(points: np.ndarray, title: str, colors: Optional[np.ndarray] = None) -> Optional[Tuple[int, int]]:
+    """Cửa sổ Open3D của annotate_segments (tái dùng); màu RGB nếu có `colors`, không thì theo độ cao y (mô hình có +Y lên)."""
+    sys.path.insert(0, str(REPO / "scripts"))
+    import annotate_segments as an
+
+    return an.pick_two_points(points, title, colors=an.height_colors(points[:, 1]) if colors is None else colors)
 
 
 def pick_loop(doc: Dict, save: Callable[[], None], points: np.ndarray, hints: Dict[str, Dict],
@@ -225,6 +250,7 @@ def main(argv=None) -> int:
     pk = sub.add_parser("pick", parents=[common], help="chọn 2 điểm bằng cửa sổ Open3D")
     pk.add_argument("--points", help=f"PLY điểm (mặc định {DEFAULT_POINTS}); tương đối so với thư mục scene")
     pk.add_argument("--glb", help="dùng đỉnh mesh của GLB thay cho PLY (mesh Poisson có thể bịa mặt ở vùng thiếu điểm)")
+    pk.add_argument("--height", action="store_true", help="tô màu theo độ cao y thay cho RGB của video")
     ad = sub.add_parser("add", parents=[common], help="nhập toạ độ đầu mút không GUI")
     ad.add_argument("--id", required=True)
     ad.add_argument("--a", nargs=3, type=float, required=True, metavar=("X", "Y", "Z"))
@@ -257,7 +283,10 @@ def main(argv=None) -> int:
             doc, path = _open_endpoints(args, scene_root, points_file)
             points = load_points(points_file)
             print(f"[hiển thị] {len(points):,} điểm từ {points_file}; lưu vào {path}")
-            pick_loop(doc, lambda: ms.save_endpoints(path, doc), points, gt_hints(scene_root))
+            colors = None if args.height else rgb_colors(scene_root, points, points_file)
+            print("[màu] RGB lấy từ điểm MVS gần nhất" if colors is not None else "[màu] theo độ cao y")
+            pick_loop(doc, lambda: ms.save_endpoints(path, doc), points, gt_hints(scene_root),
+                      pick=functools.partial(gui_pick, colors=colors))
             print(f"[xong] {len(doc['segments'])} đoạn trong {path}")
             return 0
 
