@@ -41,7 +41,7 @@ Các stage chỉ giao tiếp **qua file** (GPU 8 GB không giữ VGGT và COLMAP
 
 **9 stage CLI:** `keyframe, sfm, mvs, vggt, align, fuse, gate, export, eval`. Lệnh dự kiến:
 `python -m pipeline.run --scene arkitscenes/<video_id> --config configs/default.yaml --from-stage X --to-stage Y [--variant B0|B1|B3|proposed|abl_quality|abl_gate]`
-— đã có từ M1 (8/9 stage; `eval` chưa cài, `--variant` chỉ có `proposed`). README module nào cũng ghi trạng thái (cái gì có, cái gì chưa).
+— đã có từ M1 (9/9 stage; `--variant` có `B0|B1|B3|proposed|abl_quality`). README module nào cũng ghi trạng thái (cái gì có, cái gì chưa).
 
 ## 4. Cấu trúc thư mục
 
@@ -64,7 +64,7 @@ Env conda `3d_metric` (Python 3.12). Python của env: `C:\Users\GIGA\anaconda3\
 |---|---|---|
 | Kiểm tra môi trường (chỉ đọc) | `python environment/check_env.py` | đã chạy: 0 lỗi, 3 cảnh báo |
 | Xem lệnh dựng env (không chạy) | `environment\create_env.bat --dry-run` | **chỉ dry-run đã chạy**; chạy thật cần xác nhận (mục 7) |
-| Test | `python -m pytest tests -q` | đã chạy: 287 passed (30/10) |
+| Test | `python -m pytest tests -q` | đã chạy: 328 passed (01/11) |
 | Lint | `python -m ruff check .` (cấu hình cố định ở `ruff.toml`: E, F, W, I) | UP, PLW1510, RUF, C4 hoãn có chủ ý (WORKING_LOG.md) |
 | Kiểm README ↔ config | `python scripts/check_docs.py` (`--no-run` bỏ qua lệnh trong README) | đã chạy: OK (20 README, 68 khoá, 30/10) |
 | Đo hai điểm | `python -m pipeline.export.measure --a x y z --b x y z` | đã chạy |
@@ -116,7 +116,7 @@ COLMAP chạy bằng CLI 4.2 (`../colmap/bin/colmap.exe`, hoặc biến `COLMAP_
 ## 9. Quy trình git và mốc
 
 Mỗi mốc một nhánh `feature/<tên>` và một PR vào `main` (≥ 1 approve), theo `CONTRIBUTING.md`. Commit nhỏ, thông điệp rõ.
-`QuangDai_Work` (origin) chỉ để **sao lưu** cá nhân. **Nhánh hiện tại:** `feature/m2-quality` (từ `feature/m1-skeleton`, gồm M0a, M0b qua `main`, M1; chưa push, chưa PR). Trạng thái từng mốc: xem `WORKING_LOG.md`.
+`QuangDai_Work` (origin) chỉ để **sao lưu** cá nhân. **Nhánh hiện tại:** `feature/integration-m3` (gộp `feature/m2-quality` và ba luồng M3: eval, measure-tool, video-adapter; chưa push, chưa PR). Trạng thái từng mốc: xem `WORKING_LOG.md`.
 
 | Mốc | Việc | Tiêu chí đạt [PLAN §10] |
 |---|---|---|

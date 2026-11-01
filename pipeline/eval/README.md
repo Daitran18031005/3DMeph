@@ -2,7 +2,7 @@
 
 Trạng thái (M3, nhánh `feature/m3-eval`): có `metrics.py` (hàm chỉ số, test theo số đề cương) **và stage `eval`** (`stage.py`, `lengths.py`, `b1.py`, `geometry.py`,
 `variants.py`): chấm B0, B1, B3, proposed, abl_quality (Ablation 1) trên một scene, ghi `evaluation/metrics.csv`. **Chưa có:** Ablation 2, P2Plane, PlaneRecall
-(theo PDF chuyển sang Replica, M5), bảng chéo scene (`outputs/eval_results/`), tên `endpoints_<variant>.json` do người dùng/luồng chấm tay tạo. Số liệu thật trên scene dev: `docs/notes_eval.md`.
+(theo PDF chuyển sang Replica, M5), bảng chéo scene (`outputs/eval_results/`), tên `endpoints_<variant>.json` do người dùng/luồng chấm tay tạo. Số liệu thật trên scene dev: `WORKING_LOG.md` mục 2 (M3).
 
 ## Vai trò
 

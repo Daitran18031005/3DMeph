@@ -139,7 +139,7 @@ python -m pytest tests -q
 python scripts/check_docs.py --help
 ```
 
-Chạy một scene: `python -m pipeline.run --scene arkitscenes/<video_id> --from-stage X --to-stage Y` (mặc định tới `export`; stage `eval` chưa cài, M3).
+Chạy một scene: `python -m pipeline.run --scene arkitscenes/<video_id> --from-stage X --to-stage Y` (mặc định tới `export`; stage `eval` đã cài, chạy bằng `--to-stage eval`).
 Chạy lại `sfm` đổi đơn vị COLMAP nên mốc scale phải click lại (`E_ANCHOR_STALE`). Tên stage: `keyframe, sfm, mvs, vggt, align, fuse, gate, export, eval`.
 
 ## 7. Trạng thái và lộ trình
