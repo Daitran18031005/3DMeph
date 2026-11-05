@@ -155,6 +155,18 @@ def test_pick_loop_luu_moi_doan_goi_y_id_tu_gt_va_ho_tro_xoa():
     assert saves == [1, 2, 1]
 
 
+def test_pick_loop_blind_khong_in_gt_va_do_lech_con_mac_dinh_thi_in():
+    pts = np.array([[0, 0, 0], [1, 0, 0]])
+    hints = {"S01": {"gt_m": 1.2345, "anchor": False, "label": "rộng tủ"}}
+    for blind in (False, True):
+        logs = []
+        pe.pick_loop(new_doc(), lambda: None, pts, hints, pick=lambda p, t: (0, 1),
+                     ask=scripted(["", "", "", "y", "l", "q"]), out=logs.append, blind=blind)
+        text = "\n".join(logs)
+        assert ("1.2345" in text and "lệch" in text) == (not blind)
+        assert "rộng tủ" in text and "‖B − A‖ = 1.0000" in text
+
+
 # ---------------------------------------------------------------------------
 # CLI trên scene giả
 # ---------------------------------------------------------------------------

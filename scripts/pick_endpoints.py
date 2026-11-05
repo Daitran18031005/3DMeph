@@ -7,7 +7,7 @@ Lưu đầu mút vào `<scene>/evaluation/logs/endpoints_<variant>.json` (địn
 khỏi chỉ số test. Dữ liệu và scene: đọc `paths.data_root` của `--config`; scene held-out bị chặn.
 
 Cách dùng (từ thư mục gốc repo, env 3d_metric):
-    python scripts/pick_endpoints.py pick    --scene arkitscenes/42444738 [--variant proposed] [--points FILE | --glb FILE] [--height]   # GUI Open3D, màu RGB video (--height: theo độ cao)
+    python scripts/pick_endpoints.py pick    --scene arkitscenes/42444738 [--variant proposed] [--points FILE | --glb FILE] [--height] [--blind]   # GUI Open3D, màu RGB video (--height: theo độ cao; --blind: ẩn GT và độ lệch)
     python scripts/pick_endpoints.py add     --scene arkitscenes/42444738 --id S01 --a X Y Z --b X Y Z [--replace]            # không GUI
     python scripts/pick_endpoints.py tape    --scene arkitscenes/42444738 --id S01 --readings 1.234 1.236 1.235 [--anchor]    # GT thước dây
     python scripts/pick_endpoints.py tape    --scene arkitscenes/42444738 --write-csv [--overwrite]                           # → measurements.csv
@@ -132,8 +132,9 @@ def gui_pick(points: np.ndarray, title: str, colors: Optional[np.ndarray] = None
 
 def pick_loop(doc: Dict, save: Callable[[], None], points: np.ndarray, hints: Dict[str, Dict],
               pick: Callable[[np.ndarray, str], Optional[Tuple[int, int]]] = gui_pick,
-              ask: Callable[[str], str] = input, out: Callable[[str], None] = print) -> None:
-    """Vòng chọn tương tác; `pick`, `ask` thay được bằng bản giả để test. Lưu (`save`) sau mỗi đoạn."""
+              ask: Callable[[str], str] = input, out: Callable[[str], None] = print, blind: bool = False) -> None:
+    """Vòng chọn tương tác; `pick`, `ask` thay được bằng bản giả để test. Lưu (`save`) sau mỗi đoạn.
+    `blind=True`: không in số GT và độ lệch (chỉ id, nhãn, mốc), để chọn đầu mút không biết sai số; thấy sai số rồi chọn lại làm lệch kết quả."""
     segs = doc["segments"]
     while True:
         out(f"\n[phiên] {len(segs)} đoạn đã chọn" + (f" / {len(hints)} đoạn GT" if hints else " (chưa có GT để gợi ý id)"))
@@ -143,7 +144,7 @@ def pick_loop(doc: Dict, save: Callable[[], None], points: np.ndarray, hints: Di
         if cmd == "l":
             for i, h in hints.items():
                 mine = next((s for s in segs if s["id"] == i), None)
-                out(f"  {i:<5} GT {h['gt_m']:.4f} m{' (mốc)' if h['anchor'] else ''}  {h['label'][:50]:<50}  "
+                out(f"  {i:<5} {'' if blind else f'GT {h['gt_m']:.4f} m'}{' (mốc)' if h['anchor'] else ''}  {h['label'][:50]:<50}  "
                     + (f"đã chọn: {mine['length_m']:.4f} m" if mine else "chưa chọn"))
             continue
         if cmd == "u":
@@ -165,7 +166,7 @@ def pick_loop(doc: Dict, save: Callable[[], None], points: np.ndarray, hints: Di
             out(f"  [cảnh báo] {seg_id} không có trong GT: sẽ không ghép được khi so sánh")
         if hints.get(seg_id):
             h = hints[seg_id]
-            out(f"  GT {h['gt_m']:.4f} m{' (MỐC SCALE)' if h['anchor'] else ''}: {h['label']}")
+            out(f"  {'' if blind else f'GT {h['gt_m']:.4f} m'}{' (MỐC SCALE)' if h['anchor'] else ''}: {h['label']}")
         out(HELP_TEXT)
         picked = pick(points, f"Chọn 2 đầu mút của {seg_id} bằng SHIFT+chuột trái, rồi bấm Q")
         if picked is None:
@@ -175,7 +176,7 @@ def pick_loop(doc: Dict, save: Callable[[], None], points: np.ndarray, hints: Di
         a, b = points[ia], points[ib]
         length = ms.distance(a, b)
         out(f"  A = {np.round(a, 3).tolist()}\n  B = {np.round(b, 3).tolist()}\n  ‖B − A‖ = {length:.4f} m" +
-            (f"  (GT {hints[seg_id]['gt_m']:.4f} m, lệch {(length - hints[seg_id]['gt_m']) * 100:+.1f} cm)" if seg_id in hints else ""))
+            (f"  (GT {hints[seg_id]['gt_m']:.4f} m, lệch {(length - hints[seg_id]['gt_m']) * 100:+.1f} cm)" if seg_id in hints and not blind else ""))
         note = ask("  Ghi chú (Enter bỏ qua): ").strip()
         if ask("  Lưu đoạn này? (y/n): ").strip().lower() != "y":
             out("  bỏ qua.")
@@ -251,6 +252,7 @@ def main(argv=None) -> int:
     pk.add_argument("--points", help=f"PLY điểm (mặc định {DEFAULT_POINTS}); tương đối so với thư mục scene")
     pk.add_argument("--glb", help="dùng đỉnh mesh của GLB thay cho PLY (mesh Poisson có thể bịa mặt ở vùng thiếu điểm)")
     pk.add_argument("--height", action="store_true", help="tô màu theo độ cao y thay cho RGB của video")
+    pk.add_argument("--blind", action="store_true", help="ẩn số GT và độ lệch khi chọn (đo mù); mặc định in GT và lệch sau mỗi lần chọn")
     ad = sub.add_parser("add", parents=[common], help="nhập toạ độ đầu mút không GUI")
     ad.add_argument("--id", required=True)
     ad.add_argument("--a", nargs=3, type=float, required=True, metavar=("X", "Y", "Z"))
@@ -286,7 +288,7 @@ def main(argv=None) -> int:
             colors = None if args.height else rgb_colors(scene_root, points, points_file)
             print("[màu] RGB lấy từ điểm MVS gần nhất" if colors is not None else "[màu] theo độ cao y")
             pick_loop(doc, lambda: ms.save_endpoints(path, doc), points, gt_hints(scene_root),
-                      pick=functools.partial(gui_pick, colors=colors))
+                      pick=functools.partial(gui_pick, colors=colors), blind=args.blind)
             print(f"[xong] {len(doc['segments'])} đoạn trong {path}")
             return 0
 

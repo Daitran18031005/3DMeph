@@ -40,7 +40,7 @@ def layout(tmp_path):
 
 
 def cfg(ratio=1.0, method="centers"):
-    return {"align": {"method": method, "min_pairs": 3, "ransac": {"max_error_ratio": ratio}, "anchor_file": "ground_truth/scale_anchor.json"}}
+    return {"align": {"method": method, "scale_from": "distances", "min_pairs": 3, "ransac": {"max_error_ratio": ratio}, "anchor_file": "ground_truth/scale_anchor.json"}}
 
 
 def test_run_align_khoi_phuc_sim3_va_loai_camera_sai(layout):
@@ -156,6 +156,18 @@ def test_align_chunk_orientation_khoi_phuc_sim3_ke_ca_khi_tam_camera_nhieu():
     assert not few["accepted"] and "đã đăng ký" in few["reason"]
     none = stage.align_chunk_orientation(ext, list(range(12)), cams, views[:0], x[:0], p[:0], 3)
     assert not none["accepted"] and "cặp điểm" in none["reason"]
+
+
+def test_scale_from_points_giu_khoang_cach_giua_hai_diem_khi_depth_vggt_khac_tinh_tien_camera():
+    ext, cams, views, x, p = make_orientation_chunk()
+    p_bad = p.mean(axis=0) + (p - p.mean(axis=0)) / 1.15          # độ sâu VGGT co 15% so với tịnh tiến camera: tỉ lệ camera→điểm lệch, khoảng cách điểm–điểm thì không
+    d = stage.align_chunk_orientation(ext, list(range(12)), cams, views, x, p_bad, 3, "distances")
+    pt = stage.align_chunk_orientation(ext, list(range(12)), cams, views, x, p_bad, 3, "points")
+    assert pt["s"] == pytest.approx(S_TRUE * 1.15, rel=0.01) and abs(d["s"] - S_TRUE * 1.15) > 0.05 * S_TRUE
+    assert pt["s_distances"] == pytest.approx(d["s"]) and pt["accepted"]
+    assert pt["point_dev_colmap_units"]["median"] < 0.1 < d["point_dev_colmap_units"]["median"]          # t từ điểm: điểm khớp MVS; t từ tâm camera: không
+    with pytest.raises(ValueError, match="scale_from"):
+        stage.align_chunk_orientation(ext, list(range(12)), cams, views, x, p, 3, "khac")
 
 
 def test_run_align_orientation_depth_ghi_file_va_phuong_phap(layout):

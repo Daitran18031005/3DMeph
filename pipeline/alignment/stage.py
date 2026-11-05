@@ -19,7 +19,7 @@ import numpy as np
 
 from ..common import config as cfgmod
 from ..common.errors import E_ANCHOR_STALE, E_MISSING_INPUT, StageError
-from ..common.geometry import camera_center
+from ..common.geometry import camera_center, umeyama_sim3
 from ..common.io import SceneLayout, ensure_dir, read_json, write_json
 from ..vggt.infer import read_chunk
 from .ransac import metric_scale, ransac_sim3, reference_distance, threshold_from_ratio
@@ -104,11 +104,29 @@ def rotation_from_orientations(r_col_cw: np.ndarray, r_vggt_cw: np.ndarray) -> T
     return r, dev(r), keep
 
 
-def align_chunk_orientation(extrinsic: np.ndarray, views: List[int], cams: Dict[int, Dict], pair_view: np.ndarray, pair_x: np.ndarray,
-                            pair_p: np.ndarray, min_pairs: int) -> Dict:
-    """Căn một chunk theo hướng camera + tỉ lệ khoảng cách điểm + tâm camera (LỆCH ĐC §15.1).
+def points_scale(pair_p: np.ndarray, pair_x: np.ndarray, rounds: int = 4, keep_frac: float = 0.8) -> float:
+    """Scale khớp điểm VGGT → điểm MVS của chunk: Umeyama (14)–(17) lặp `rounds` vòng, mỗi vòng giữ `keep_frac` cặp ít lệch nhất [Suy luận cho 4 vòng, 80%].
+    Giữ đúng khoảng cách giữa hai điểm, khác tỉ lệ khoảng cách camera→điểm (WORKING_LOG 05/11: thấp hơn 4–19% trên 42444738)."""
+    p, x = np.asarray(pair_p, dtype=np.float64), np.asarray(pair_x, dtype=np.float64)
+    keep = np.ones(len(p), dtype=bool)
+    s = float("nan")
+    for _ in range(rounds):
+        if keep.sum() < 3:
+            break
+        s, r, t = umeyama_sim3(p[keep], x[keep])
+        res = np.linalg.norm(s * (p @ np.asarray(r).T) + np.asarray(t) - x, axis=1)
+        keep = res <= np.percentile(res[keep], keep_frac * 100)
+    return float(s)
 
-    pair_view/pair_x/pair_p: các cặp (view của chunk, điểm MVS trong hệ COLMAP, điểm VGGT cùng pixel trong hệ chunk VGGT)."""
+
+def align_chunk_orientation(extrinsic: np.ndarray, views: List[int], cams: Dict[int, Dict], pair_view: np.ndarray, pair_x: np.ndarray,
+                            pair_p: np.ndarray, min_pairs: int, scale_from: str = "distances") -> Dict:
+    """Căn một chunk theo hướng camera + scale + tâm camera (LỆCH ĐC §15.1).
+
+    pair_view/pair_x/pair_p: các cặp (view của chunk, điểm MVS trong hệ COLMAP, điểm VGGT cùng pixel trong hệ chunk VGGT).
+    scale_from: `distances` = trung vị tỉ lệ khoảng cách camera→điểm; `points` = khớp điểm–điểm (`points_scale`)."""
+    if scale_from not in ("distances", "points"):
+        raise ValueError(f"align.scale_from không hợp lệ: {scale_from!r} (distances | points)")
     ext = np.asarray(extrinsic, dtype=np.float64)
     idx = [i for i, v in enumerate(views) if v in cams]
     res: Dict = {"views": views, "n_views": len(views), "n_pairs": len(idx), "accepted": False, "reason": None, "method": "orientation_depth"}
@@ -131,8 +149,14 @@ def align_chunk_orientation(extrinsic: np.ndarray, views: List[int], cams: Dict[
         res["reason"] = "khoảng cách camera→điểm VGGT bằng 0"
         return res
     s = float(np.median(d_col[ok] / d_vggt[ok]))
+    res["s_distances"] = s
+    if scale_from == "points":
+        s = points_scale(np.asarray(pair_p)[ok], np.asarray(pair_x)[ok])
     y = np.array([cams[views[i]]["center"] for i in idx])
-    t = np.median(y[keep] - s * (x_cent[idx][keep] @ r.T), axis=0)
+    if scale_from == "points":      # camera VGGT có thể không cùng tỉ lệ với điểm VGGT: đặt t để điểm khớp MVS, không theo tâm camera
+        t = np.median(np.asarray(pair_x)[ok] - s * (np.asarray(pair_p)[ok] @ r.T), axis=0)
+    else:
+        t = np.median(y[keep] - s * (x_cent[idx][keep] @ r.T), axis=0)
     resid = np.linalg.norm(y - (s * (x_cent[idx] @ r.T) + t), axis=1)
     pdev = np.linalg.norm(s * (np.asarray(pair_p) @ r.T) + t - np.asarray(pair_x), axis=1)[ok]
     res.update(s=s, R=r.tolist(), t=t.tolist(), n_inliers=int(keep.sum()), rmse=float(np.sqrt(np.mean(resid[keep] ** 2))),
@@ -212,6 +236,7 @@ def run_align(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print
         raise ValueError(f"align.method không hợp lệ: {method!r} (centers | orientation_depth)")
     ratio = float(cfgmod.require(cfg, "align.ransac.max_error_ratio")) if method == "centers" else None
     min_pairs = int(cfgmod.require(cfg, "align.min_pairs"))
+    scale_from = str(cfgmod.require(cfg, "align.scale_from"))
     cks = sorted(p for p in layout.vggt.glob("chunk_*") if (p / "vggt_raw.npz").is_file())
     if not cks:
         raise StageError(E_MISSING_INPUT, f"thiếu {layout.vggt}/chunk_XX: chạy stage vggt trước")
@@ -226,7 +251,7 @@ def run_align(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print
             r = align_chunk(vggt_centers(raw["extrinsic"]), views, cams, ratio, min_pairs)
         else:
             sel = pairs["chunk"] == k
-            r = align_chunk_orientation(raw["extrinsic"], views, cams, pairs["view"][sel], pairs["x"][sel], pairs["p"][sel], min_pairs)
+            r = align_chunk_orientation(raw["extrinsic"], views, cams, pairs["view"][sel], pairs["x"][sel], pairs["p"][sel], min_pairs, scale_from)
         r.update(chunk=k, start=meta["start"], end=meta["end"])
         write_json(out_dir / f"chunk_{k:02d}_sim3.json", r)
         results.append(r)

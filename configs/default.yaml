@@ -67,6 +67,7 @@ vggt:
 
 align:
   method: orientation_depth   # centers = ĐC §15.1 (tâm camera, RANSAC + Umeyama); orientation_depth = LỆCH ĐC: xoay từ hướng camera, scale từ khoảng cách điểm MVS, tịnh tiến từ tâm camera
+  scale_from: points          # chỉ cho orientation_depth. points = scale khớp điểm VGGT–MVS (giữ khoảng cách giữa hai điểm); distances = trung vị tỉ lệ khoảng cách camera→điểm (cách cũ, thấp hơn 4–19% trên dev). LỆCH ĐC, WORKING_LOG 05/11
   min_pairs: 3                # §15.1: n ≥ 3 cặp tâm camera
   ransac:
     max_error_ratio: 1.5      # ngưỡng inlier / khoảng cách camera trung vị; TẠM cho M1 (chọn trên dev 42444738 bằng CV và nhất quán ảnh gối, xem WORKING_LOG), khoá lại ở M2 trên Validation

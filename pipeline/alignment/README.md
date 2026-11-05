@@ -24,7 +24,7 @@ một mốc dài 1–2 m (ĐC §15, Hình 16). Không có bước này app sẽ 
 
 ## Công thức
 
-- **`orientation_depth` (LỆCH ĐC §15.1):** `R = SVD-trung bình của R_wc,COLMAP,i · R_cw,VGGT,i` (loại view lệch hơn `median + 3·max(1,4826·MAD, 1°)`), `s = median_{(i,k)} ‖X_k − C_i‖ / ‖P_{i,k} − c_i‖` (cùng tia nên tỉ lệ khoảng cách = tỉ lệ depth), `t = median_i (y_i − s R x_i)`. Các hằng số 3·MAD và 1° là [Suy luận]. Scale lấy từ chính điểm MVS nên khi đo lệch VGGT so với COLMAP có một phần tự khớp.
+- **`orientation_depth` (LỆCH ĐC §15.1):** `R = SVD-trung bình của R_wc,COLMAP,i · R_cw,VGGT,i` (loại view lệch hơn `median + 3·max(1,4826·MAD, 1°)`), `s = median_{(i,k)} ‖X_k − C_i‖ / ‖P_{i,k} − c_i‖` (cùng tia nên tỉ lệ khoảng cách = tỉ lệ depth), `t = median_i (y_i − s R x_i)`. Các hằng số 3·MAD và 1° là [Suy luận]. Scale lấy từ chính điểm MVS nên khi đo lệch VGGT so với COLMAP có một phần tự khớp. Với `align.scale_from = points` (mặc định từ 05/11) `s` thay bằng scale Umeyama điểm VGGT ↔ điểm MVS (`points_scale`); `R` và `t` vẫn như trên, `s_distances` được ghi thêm vào `chunk_XX_sim3.json` để so.
 - Umeyama Sim(3) (13)–(17) (`centers`): `y ≈ s R x + t`; `Σxy = U D Vᵀ`, `R = U S Vᵀ`, `s = tr(DS)/σx²`, `t = μy − s R μx`;
   `S = I` nếu `det U · det V ≥ 0`, ngược lại `diag(1, …, 1, −1)`.
 - RANSAC trên cặp tâm camera để bền với camera VGGT ước lượng sai (ĐC §15.1): ví dụ 12 cặp, 2 cặp sai, giữ 10 inlier.
@@ -39,6 +39,7 @@ một mốc dài 1–2 m (ĐC §15, Hình 16). Không có bước này app sẽ 
 | Khoá | Giá trị | Nguồn |
 |---|---|---|
 | `align.method` | orientation_depth | `centers` = ĐC §15.1 (tâm camera, RANSAC + Umeyama). `orientation_depth` = LỆCH ĐC (đã được người dùng duyệt 27/10): xoay R từ hướng camera, scale từ tỉ lệ khoảng cách camera→điểm MVS, tịnh tiến từ tâm camera. Lý do: 6/11 chunk trên 42444738 trải tâm camera < 0,6 m nên căn tâm camera kém điều kiện (lệch VGGT so với COLMAP trung vị 36,8 cm, p90 119 cm); phương pháp mới còn 8,9 cm, p90 21 cm (chưa phải sai số so với GT) |
+| `align.scale_from` | points | Chỉ cho `orientation_depth`. `points`: scale khớp điểm VGGT ↔ điểm MVS của chunk (Umeyama (14)–(17), 4 vòng giữ 80% cặp ít lệch nhất [Suy luận]), giữ đúng khoảng cách giữa hai điểm. `distances`: trung vị tỉ lệ khoảng cách camera→điểm (cách cũ). Lý do (05/11, 42444738): `distances` thấp hơn scale điểm 3,8–18,8% theo chunk nên điểm VGGT co 4–17% (tỉ lệ độ dài VGGT/MVS 0,83–0,96, sau sửa 0,91–1,04); LỆCH ĐC §15.1 |
 | `align.min_pairs` | 3 | ĐC §15.1 (n ≥ 3 cặp tâm camera); cũng là số view đăng ký tối thiểu của `orientation_depth` |
 | `align.ransac.max_error_ratio` | 1.5 | TẠM cho M1: ngưỡng inlier = tỷ lệ này × khoảng cách camera COLMAP trung vị của chunk. Chọn trên 42444738 từ dãy 0,05–3,0: nhỏ nhất trên cao nguyên (≥ 1,5 giữ 112/112 cặp, nghiệm không đổi), CV chéo 50/50 và nhất quán ảnh gối tốt nhất; khoá lại ở M2 trên Validation |
 | `align.anchor_file` | ground_truth/scale_anchor.json | ĐC §9 |

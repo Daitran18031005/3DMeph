@@ -60,8 +60,8 @@ def test_chieu_dai_theo_cong_thuc_30():
 @pytest.mark.parametrize("mutate,expected", [
     (lambda s: s[1:], "cần đúng 1 đoạn mốc"),                                          # không có mốc
     (lambda s: s + [seg(90, "anchor", (5, 5, 0), (6.5, 5, 0))], "cần đúng 1 đoạn mốc"),   # hai mốc
-    (lambda s: [seg(1, "anchor", (0, 0, 0), (0.8, 0, 0))] + s[1:], "ngoài 1.0–2.0 m"),
-    (lambda s: [seg(1, "anchor", (0, 0, 0), (2.5, 0, 0))] + s[1:], "ngoài 1.0–2.0 m"),
+    (lambda s: [seg(1, "anchor", (0, 0, 0), (0.8, 0, 0))] + s[1:], "ngoài 1.0–2.5 m"),
+    (lambda s: [seg(1, "anchor", (0, 0, 0), (2.6, 0, 0))] + s[1:], "ngoài 1.0–2.5 m"),
     (lambda s: [seg(1, "anchor", (0, 0, 0), (1.5, 0, 0), confirmed_not_glass=False)] + s[1:], "chưa xác nhận mốc"),
     (lambda s: s[:-1], "cần ≥ 12 đoạn test"),                                          # chỉ 11 test
     (lambda s: s + [seg(2, "test", (9, 9, 0), (9, 10, 0))], "id trùng"),

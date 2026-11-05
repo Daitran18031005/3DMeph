@@ -14,7 +14,7 @@ Cách dùng (từ thư mục gốc repo, env 3d_metric):
     python scripts/annotate_segments.py --scene arkitscenes/42444738 --finalize   # ghi measurements.csv + scale_anchor.json
     python scripts/annotate_segments.py --scene arkitscenes/42444738 --from-json doan.json   # nạp toạ độ không GUI
 
-Luật kiểm (cấu trúc, không phải ngưỡng sai số): đúng 1 mốc, dài 1–2 m, đã xác nhận không nằm trên gương/kính; ≥ 12 đoạn test (12–20 theo ĐC §8.2);
+Luật kiểm (cấu trúc, không phải ngưỡng sai số): đúng 1 mốc, dài 1–2,5 m (ĐC nêu 1–2 m, xem `ANCHOR_RANGE_M`), đã xác nhận không nằm trên gương/kính; ≥ 12 đoạn test (12–20 theo ĐC §8.2);
 id không trùng; hai đầu mút một đoạn khác nhau; đầu mút mốc không trùng hoặc gần (≤ `eval.snap_radius_m`) đầu mút đoạn test.
 
 Mã thoát: 0 ok; 1 lỗi đầu vào (scene held-out, thiếu faro_to_scene.json...); 2 không đạt luật kiểm.
@@ -50,7 +50,7 @@ from pipeline.common import splits as sp  # noqa: E402
 CSV_COLUMNS = ["id", "type", "ground_truth_m", "used_as_anchor", "endpoints/notes"]
 ROLES = ("anchor", "test")
 SEGMENT_TYPES = ("main_dimension", "door_window", "local_distance", "diagonal", "other")   # nhóm gợi ý theo ĐC §8.2 [Suy luận]
-ANCHOR_RANGE_M = (1.0, 2.0)          # ĐC §8.1: mốc 1–2 m
+ANCHOR_RANGE_M = (1.0, 2.5)          # ĐC §8.1 nêu 1–2 m; shortcut: nới tới 2,5 m cho scene dev 42444738 (S06, 05/11), siết lại 2,0 khi có đoạn 1–2 m nhìn đủ view
 TEST_COUNT_RANGE = (12, 20)          # ĐC §8.2: 12–20 đoạn test; < 12 là lỗi (tiêu chí M0b), > 20 chỉ cảnh báo
 SHORT_SEGMENT_WARN_M = 0.2           # đoạn ngắn hơn khó phân biệt với sai số click (cảnh báo, không chặn)
 DEFAULT_DISPLAY_VOXEL = 0.01
@@ -471,7 +471,7 @@ def annotate_loop(paths: Paths, sess: Dict, points: np.ndarray, snap_radius_m: f
         a, b = points[ia], points[ib]
         length = segment_length(a, b)
         out(f"  A = {_fmt3(a)}\n  B = {_fmt3(b)}\n  chiều dài = {length:.4f} m")
-        role_in = ask("  Vai trò: t = test, a = mốc scale (1–2 m, đúng 1 đoạn): ").strip().lower()
+        role_in = ask("  Vai trò: t = test, a = mốc scale (1–2,5 m, đúng 1 đoạn): ").strip().lower()
         if role_in not in ("t", "a"):
             out("  [!] chỉ nhận t hoặc a; không lưu.")
             continue
@@ -612,7 +612,7 @@ def main(argv=None) -> int:
         sess = sess or new_session(args.scene, f2s_sha, args.display_voxel)
         save_session(paths, sess)
         print(f"[phiên] {paths.session}")
-        print("Quy tắc chấm: 1 mốc 1–2 m dễ thấy, không trên gương/kính; ≥ 12 đoạn test (12–20), đầu mút khác nhau; "
+        print("Quy tắc chấm: 1 mốc 1–2,5 m dễ thấy, không trên gương/kính; ≥ 12 đoạn test (12–20), đầu mút khác nhau; "
               "mốc không dùng chung đầu mút với đoạn test. Chọn góc/cạnh rõ nét trên point cloud (sai số click cỡ 1 cm).")
         annotate_loop(paths, sess, points, snap, pick=lambda pts, title: pick_two_points(pts, title, colors), display_name=display_name)
         errors, warns = validate_segments(sess["segments"], snap)
