@@ -255,3 +255,13 @@ def test_rgb_colors_lay_mau_diem_mvs_gan_nhat_va_none_khi_thieu_hoac_lech_he(tmp
     col = pe.rgb_colors(tmp_path, xyz + [5.0, 0, 0], pf)
     assert np.allclose(col, rgb / 255.0)
     assert pe.rgb_colors(tmp_path, xyz + [9.0, 0, 0], pf) is None  # lệch hệ: khoảng cách trung vị > 10 cm
+
+
+def test_own_rgb_doc_mau_co_san_trong_ply_va_none_khi_khong_co(tmp_path):
+    xyz = np.array([[0.0, 0, 0], [1, 0, 0]], dtype=np.float32)
+    f = {"x": xyz[:, 0], "y": xyz[:, 1], "z": xyz[:, 2]}
+    write_ply(tmp_path / "khong_mau.ply", f)
+    assert pe.own_rgb(tmp_path / "khong_mau.ply") is None
+    write_ply(tmp_path / "co_mau.ply", {**f, "red": np.array([255, 0], np.uint8), "green": np.array([0, 255], np.uint8), "blue": np.array([0, 0], np.uint8)})
+    assert np.allclose(pe.own_rgb(tmp_path / "co_mau.ply"), [[1, 0, 0], [0, 1, 0]])
+    assert pe.own_rgb(tmp_path / "model.glb") is None

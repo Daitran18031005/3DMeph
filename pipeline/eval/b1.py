@@ -47,6 +47,14 @@ def _grid(geo: Dict, stride: int) -> Tuple[np.ndarray, np.ndarray]:
     return (np.arange(geo["pad_top"], geo["pad_top"] + geo["new_h"], stride), np.arange(geo["pad_left"], geo["pad_left"] + geo["new_w"], stride))
 
 
+def _view_rgb(path, geo: Dict, rows: np.ndarray, cols: np.ndarray) -> np.ndarray:
+    """RGB uint8 (len(rows), len(cols), 3) của ảnh keyframe tại đúng lưới lấy mẫu `_grid` (cùng phép resize + pad như VGGT). Chỉ để nhìn khi chấm tay."""
+    from PIL import Image
+
+    a = np.asarray(Image.open(path).convert("RGB").resize((geo["new_w"], geo["new_h"]), Image.BICUBIC))
+    return a[rows - geo["pad_top"]][:, cols - geo["pad_left"]]
+
+
 def _home_chunk(views_by_chunk: List[List[int]]) -> Dict[int, int]:
     """view → chunk mà view nằm xa biên hơn (cùng quy tắc như fusion) [Suy luận]; hoà thì chunk nhỏ."""
     best: Dict[int, Tuple[int, int]] = {}
@@ -79,7 +87,7 @@ def build_b1(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print)
 
     tf: List[Tuple[float, np.ndarray, np.ndarray]] = []     # chunk k → hệ chunk 0
     cam: Dict[int, Dict] = {}                               # view → K, R, t (cục bộ), chunk
-    links, pts_out = [], []
+    links, pts_out, rgb_out = [], [], []
     prev = None                                             # (views, points, conf) của chunk trước, đã lấy mẫu
     for k in range(len(cks)):
         raw, out, _ = read_chunk(layout, k)
@@ -112,6 +120,7 @@ def build_b1(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print)
                       "t": raw["extrinsic"][i][:, 3].astype(np.float64), "chunk": k}
             sel = (cf[i] >= c_min) & np.isfinite(pts[i]).all(-1)
             pts_out.append(apply_sim3(*tf[k], pts[i][sel]))
+            rgb_out.append(_view_rgb(layout.keyframes / f"{v:04d}.jpg", geo, rows, cols)[sel])
         prev = (views, pts, cf)
 
     # Scale mét từ mốc: tam giác hoá từng đầu mút bằng camera VGGT trong hệ chunk 0
@@ -138,7 +147,9 @@ def build_b1(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print)
     pts_all = np.concatenate(pts_out) * s_b1
     centers = {str(v): (s_b1 * apply_sim3(*tf[c["chunk"]], camera_center(c["R"], c["t"])[None])[0]).tolist() for v, c in sorted(cam.items())}
     out_dir = ensure_dir(layout.vggt_metric)
-    write_ply(out_dir / "points_metric.ply", {"x": pts_all[:, 0].astype(np.float32), "y": pts_all[:, 1].astype(np.float32), "z": pts_all[:, 2].astype(np.float32)})
+    rgb_all = np.concatenate(rgb_out)
+    write_ply(out_dir / "points_metric.ply", {"x": pts_all[:, 0].astype(np.float32), "y": pts_all[:, 1].astype(np.float32), "z": pts_all[:, 2].astype(np.float32),
+                                              "red": rgb_all[:, 0], "green": rgb_all[:, 1], "blue": rgb_all[:, 2]})
     stats = {"n_chunks": len(cks), "n_points": int(len(pts_all)), "stride": stride, "c_min": c_min, "L_real": float(anchor["L_real"]), "L_vggt": l_vggt,
              "s_b1_m_per_vggt_unit": s_b1, "anchor_id": anchor.get("id"), "anchor_reproj_px": reproj, "links": links, "seconds": round(time.time() - t0, 1)}
     write_json(out_dir / "cameras_metric.json", {"unit": "m", "frame": "chunk 0 × s_b1", "centers": centers})

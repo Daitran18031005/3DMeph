@@ -98,6 +98,14 @@ HELP_TEXT = """\
                   Đừng bấm K, C, S. Chọn đúng vị trí vật lý đã đo thước dây / chấm trên Faro (góc, cạnh rõ nét)."""
 
 
+def own_rgb(points_file: Path) -> Optional[np.ndarray]:
+    """Màu RGB (N, 3 trong [0, 1]) ghi sẵn trong PLY (`red, green, blue`, ví dụ `points_metric.ply` của B1); `None` nếu file không có màu hoặc là GLB."""
+    d = read_ply(points_file) if Path(points_file).suffix.lower() == ".ply" else {}
+    if not all(k in d for k in ("red", "green", "blue")):
+        return None
+    return np.stack([d["red"], d["green"], d["blue"]], axis=1).astype(np.float64) / 255.0
+
+
 def rgb_colors(scene_root: Path, points: np.ndarray, points_file: Path) -> Optional[np.ndarray]:
     """Màu RGB (N, 3 trong [0, 1]) của điểm mô hình, lấy từ điểm MVS gần nhất (`baselines/colmap/metric/fused_metric.ply`, hệ COLMAP × `s_m`).
     Chỉ để nhìn cho dễ chọn, không đổi toạ độ. `None` nếu thiếu file hoặc hai đám mây không cùng hệ (ví dụ B1 ở hệ VGGT)."""
@@ -285,8 +293,11 @@ def main(argv=None) -> int:
             doc, path = _open_endpoints(args, scene_root, points_file)
             points = load_points(points_file)
             print(f"[hiển thị] {len(points):,} điểm từ {points_file}; lưu vào {path}")
-            colors = None if args.height else rgb_colors(scene_root, points, points_file)
-            print("[màu] RGB lấy từ điểm MVS gần nhất" if colors is not None else "[màu] theo độ cao y")
+            colors = None if args.height else own_rgb(points_file)
+            from_own = colors is not None
+            if colors is None and not args.height:
+                colors = rgb_colors(scene_root, points, points_file)
+            print(("[màu] RGB có sẵn trong file điểm" if from_own else "[màu] RGB lấy từ điểm MVS gần nhất") if colors is not None else "[màu] theo độ cao y")
             pick_loop(doc, lambda: ms.save_endpoints(path, doc), points, gt_hints(scene_root),
                       pick=functools.partial(gui_pick, colors=colors), blind=args.blind)
             print(f"[xong] {len(doc['segments'])} đoạn trong {path}")

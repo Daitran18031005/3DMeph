@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+from PIL import Image
 
 from pipeline.common import config as cfgmod
 from pipeline.common.errors import StageError
@@ -38,6 +39,12 @@ def _make_scene(tmp_path, l_real):
     layout = SceneLayout(tmp_path / "scene")
     geo = pad_geometry(48, 64)
     write_keyframes_csv([{"view_id": v, "w": 48, "h": 64} for v in range(N_VIEWS)], layout.metadata / "keyframes.csv")
+    layout.keyframes.mkdir(parents=True, exist_ok=True)
+    img = np.zeros((64, 48, 3), np.uint8)
+    img[..., 0] = np.linspace(0, 255, 48, dtype=np.uint8)[None, :]            # đỏ tăng theo cột, xanh lá tăng theo hàng
+    img[..., 1] = np.linspace(0, 255, 64, dtype=np.uint8)[:, None]
+    for v in range(N_VIEWS):
+        Image.fromarray(img).save(layout.keyframes / f"{v:04d}.jpg", quality=100)
     tfs = [(1.0, np.eye(3), np.zeros(3)), (1.07, _rot("y", 12.0), np.array([0.3, -0.1, 0.2])), (0.93, _rot("x", -9.0) @ _rot("z", 15.0), np.array([-0.2, 0.4, 0.1]))]
     cums = [tfs[0]]
     for k in (1, 2):
@@ -83,6 +90,9 @@ def test_noi_chunk_va_scale_met(tmp_path, cfg):
     pts = read_ply(layout.vggt_metric / "points_metric.ply")
     p = np.stack([pts["x"], pts["y"], pts["z"]], axis=1)
     assert len(p) == stats["n_points"] and len(p) > 1000
+    # màu lấy từ ảnh keyframe tại đúng pixel (chỉ để nhìn khi chấm tay): đủ ba kênh, đỏ và xanh lá phủ cả khoảng giá trị ảnh
+    assert all(pts[c].dtype == np.uint8 and len(pts[c]) == len(p) for c in ("red", "green", "blue"))
+    assert pts["red"].min() < 40 and pts["red"].max() > 215 and pts["green"].min() < 40 and pts["green"].max() > 215
     # điểm B1 = điểm hệ chunk 0 × s_true: độ sâu z trong [1,6 · 2,5, 2,4 · 2,5]
     assert 1.6 * S_TRUE - 0.1 < p[:, 2].min() and p[:, 2].max() < 2.4 * S_TRUE + 0.1
     cams = {int(k): np.array(v) for k, v in b1.read_json(layout.vggt_metric / "cameras_metric.json")["centers"].items()}

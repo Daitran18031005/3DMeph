@@ -34,7 +34,7 @@ Ablation 2 (ép plane không cổng, `abl_gate`) không có ở đây: theo PDF 
 | vào (tuỳ chọn) | `evaluation/logs/endpoints_<variant>.json` | đầu mút chọn tay (xem dưới) |
 | ra | `evaluation/metrics.csv` | một dòng mỗi biến thể: chiều dài (nhãn `length_mode`), tập chung, ATE, Chamfer/F |
 | ra | `evaluation/logs/{lengths_<v>_<mode>.csv, align_<v>.json, eval_result.json}` | từng đoạn, sai số căn, khoảng snap |
-| ra | `baselines/vggt/metric/{points_metric.ply, cameras_metric.json, b1_result.json}` | B1 (VGGT thuần, mét) |
+| ra | `baselines/vggt/metric/{points_metric.ply, cameras_metric.json, b1_result.json}` | B1 (VGGT thuần, mét); `points_metric.ply` có thêm `red, green, blue` lấy từ ảnh keyframe để chấm tay (không ảnh hưởng chỉ số) |
 | ra | `outputs/eval_results/` | bảng tổng hợp chéo scene (Replica: trung bình theo không gian) |
 
 ## Công thức
