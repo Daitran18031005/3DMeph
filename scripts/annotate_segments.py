@@ -309,6 +309,94 @@ def height_colors(z: np.ndarray) -> np.ndarray:
     return np.stack([r, g, b], axis=1)
 
 
+VIS_GOOD = (8, 30.0)     # (số view, góc tia ước lượng °) cho "tốt" [Suy luận, từ chọn mốc S06 và 42445022]
+VIS_MID = (5, 15.0)
+
+
+def load_visibility_cams(keyframes_csv: Path, traj_path: Path) -> Tuple[List[Dict], Tuple[int, int]]:
+    """Camera các keyframe (pose ARKit `.traj`, quy ước OpenCV, ảnh đã xoay đứng) để tính độ nhìn thấy. Bỏ keyframe ngoài khoảng `.traj`.
+    Chỉ để chọn đầu mút (chẩn đoán), không vào pipeline và không dùng suy scale."""
+    traj = adapters.Trajectory.from_file(traj_path)
+    cams: List[Dict] = []
+    size = (0, 0)
+    with open(keyframes_csv, newline="", encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            try:
+                t = traj.pose_wc(float(r["frame_ts"]))
+            except ValueError:
+                continue
+            cams.append({"R": t[:3, :3], "c": t[:3, 3], "k": tuple(float(r[q]) for q in ("fx", "fy", "cx", "cy")), "rot": r.get("rot_applied", "none")})
+            size = (int(r["w"]), int(r["h"]))
+    if not cams:
+        raise AnnotationError(f"không có keyframe nào nằm trong khoảng `.traj` ({keyframes_csv})")
+    return cams, size
+
+
+def project_upright(d: np.ndarray, k: Tuple[float, float, float, float], rot: str) -> Tuple[np.ndarray, np.ndarray]:
+    """Điểm trong toạ độ camera OpenCV (x phải, y xuống, z trước) → pixel (u, v) của ảnh ĐÃ XOAY ĐỨNG theo `rot` (none | cw90 | ccw90 | rot180);
+    k = (fx, fy, cx, cy) của ảnh đã xoay (như `keyframes.csv`). Điểm có z ≤ 0 trả về giá trị vô nghĩa, người gọi tự lọc."""
+    fx, fy, cx, cy = k
+    zs = np.where(d[:, 2] > 1e-9, d[:, 2], 1.0)
+    x, y = d[:, 0] / zs, d[:, 1] / zs
+    if rot == "none":
+        return fx * x + cx, fy * y + cy
+    if rot == "cw90":
+        return cx - fx * y, fy * x + cy
+    if rot == "ccw90":
+        return fx * y + cx, cy - fy * x
+    if rot == "rot180":
+        return cx - fx * x, cy - fy * y
+    raise AnnotationError(f"rot_applied không hợp lệ: {rot!r}")
+
+
+def point_visibility(points: np.ndarray, cams: List[Dict], size: Tuple[int, int], margin: int = 20, z_range: Tuple[float, float] = (0.5, 4.5),
+                     cell: int = 8, occl: float = 0.12, voxel: float = 0.02) -> Tuple[np.ndarray, np.ndarray]:
+    """Mỗi điểm: (số keyframe nhìn thấy, góc tia ước lượng °). Nhìn thấy = trong ảnh (cách mép ≥ margin px), độ sâu trong z_range, không bị
+    che (z-buffer ô `cell` px, dung sai `occl` m). Góc tia = 2 × góc lớn nhất giữa hướng tới camera và hướng trung bình (ước lượng thô).
+    Tính trên điểm voxel hoá `voxel` rồi gán cho điểm gần nhất (điểm hiển thị có thể tới hàng triệu)."""
+    from scipy.spatial import cKDTree
+
+    _, keep = np.unique(np.floor(points / voxel).astype(np.int64), axis=0, return_index=True)
+    sub = points[keep]
+    w, h = size
+    nvis = np.zeros(len(sub), dtype=int)
+    sum_dir = np.zeros((len(sub), 3))
+    per_cam = []
+    for cam in cams:
+        d = (sub - cam["c"]) @ cam["R"]                                     # = Rᵀ (p − c), toạ độ camera OpenCV
+        z = d[:, 2]
+        ok = z > z_range[0]
+        u, v = project_upright(d, cam["k"], cam.get("rot", "none"))
+        inside = ok & (u >= margin) & (u < w - margin) & (v >= margin) & (v < h - margin) & (z < z_range[1])
+        key = (np.clip(v, 0, h - 1) // cell).astype(int) * (w // cell + 1) + (np.clip(u, 0, w - 1) // cell).astype(int)
+        zbuf = np.full((h // cell + 1) * (w // cell + 1), np.inf)
+        np.minimum.at(zbuf, key[ok], z[ok])
+        vis = inside & (z <= zbuf[key] + occl)
+        dv = cam["c"] - sub
+        dv /= np.maximum(np.linalg.norm(dv, axis=1, keepdims=True), 1e-9)
+        nvis += vis
+        sum_dir[vis] += dv[vis]
+        per_cam.append((vis, dv))
+    mean = sum_dir / np.maximum(np.linalg.norm(sum_dir, axis=1, keepdims=True), 1e-9)
+    spread = np.zeros(len(sub))
+    for vis, dv in per_cam:
+        ang = np.degrees(np.arccos(np.clip((dv * mean).sum(axis=1), -1.0, 1.0)))
+        spread = np.where(vis, np.maximum(spread, ang), spread)
+    _, nn = cKDTree(sub).query(points)
+    return nvis[nn], 2.0 * spread[nn]
+
+
+def visibility_colors(nvis: np.ndarray, spread: np.ndarray, rgb: Optional[np.ndarray]) -> np.ndarray:
+    """Tô theo độ nhìn thấy: xanh lá = tốt (VIS_GOOD), vàng = vừa (VIS_MID), tối = kém; giữ một phần màu RGB nếu có."""
+    base = rgb if rgb is not None else np.full((len(nvis), 3), 0.6)
+    good = (nvis >= VIS_GOOD[0]) & (spread >= VIS_GOOD[1])
+    mid = (nvis >= VIS_MID[0]) & (spread >= VIS_MID[1]) & ~good
+    col = base * 0.35
+    col[mid] = 0.5 * base[mid] + 0.5 * np.array([1.0, 0.85, 0.0])
+    col[good] = 0.4 * base[good] + 0.6 * np.array([0.0, 1.0, 0.2])
+    return col
+
+
 def load_display_points(ply: Path, box: Optional[Tuple[np.ndarray, np.ndarray]], voxel: float) -> np.ndarray:
     """Điểm Faro (hệ scene) cắt theo hộp `box` và voxel hoá `voxel` (≥ 1 cm, là độ phân giải của file)."""
     chunks = (c[np.all((c >= box[0]) & (c <= box[1]), axis=1)] if box is not None else c for c in adapters.iter_ply_xyz(ply))
@@ -440,8 +528,9 @@ HELP_TEXT = """\
 def annotate_loop(paths: Paths, sess: Dict, points: np.ndarray, snap_radius_m: float,
                   pick: Callable[[np.ndarray, str], Optional[Tuple[int, int]]] = pick_two_points,
                   ask: Callable[[str], str] = input, out: Callable[[str], None] = print,
-                  display_name: str = SCENE_PLY_NAME) -> None:
-    """Vòng chấm tương tác. `pick` và `ask` có thể thay bằng bản giả để test. Lưu phiên sau mỗi đoạn."""
+                  display_name: str = SCENE_PLY_NAME, vis: Optional[Tuple[np.ndarray, np.ndarray]] = None) -> None:
+    """Vòng chấm tương tác. `pick` và `ask` có thể thay bằng bản giả để test. Lưu phiên sau mỗi đoạn.
+    `vis` = (nvis, spread) từ `point_visibility`: in số view và góc tia của hai đầu mút vừa chọn."""
     segs = sess["segments"]
     while True:
         n_a = sum(s["role"] == "anchor" for s in segs)
@@ -471,6 +560,9 @@ def annotate_loop(paths: Paths, sess: Dict, points: np.ndarray, snap_radius_m: f
         a, b = points[ia], points[ib]
         length = segment_length(a, b)
         out(f"  A = {_fmt3(a)}\n  B = {_fmt3(b)}\n  chiều dài = {length:.4f} m")
+        if vis is not None:
+            out(f"  nhìn thấy: A {vis[0][ia]} view (góc ~{vis[1][ia]:.0f}°), B {vis[0][ib]} view (góc ~{vis[1][ib]:.0f}°)"
+                + ("" if min(vis[0][ia], vis[0][ib]) >= VIS_MID[0] else "  [ít view: khó click 2D / tam giác hoá]"))
         role_in = ask("  Vai trò: t = test, a = mốc scale (1–2,5 m, đúng 1 đoạn): ").strip().lower()
         if role_in not in ("t", "a"):
             out("  [!] chỉ nhận t hoặc a; không lưu.")
@@ -540,6 +632,8 @@ def main(argv=None) -> int:
     ap.add_argument("--box", type=float, nargs=6, metavar=("X0", "Y0", "Z0", "X1", "Y1", "Z1"),
                     help="hộp hiển thị (hệ scene); mặc định: hộp bao mesh ARKit ± 0,3 m")
     ap.add_argument("--no-crop", action="store_true", help="hiển thị cả điểm ngoài phòng")
+    ap.add_argument("--visibility", action="store_true",
+                    help="tô màu theo số keyframe nhìn thấy điểm (xanh = tốt) và in số view/góc tia của đầu mút vừa chọn; cần keyframes.csv (stage sfm đã chạy)")
     ap.add_argument("--rgb", action="store_true", help=f"hiển thị bằng {RGB_PLY_NAME} (màu thật) thay vì tô theo độ cao; cần --make-rgb trước")
     args = ap.parse_args(argv)
 
@@ -605,6 +699,17 @@ def main(argv=None) -> int:
         else:
             points = load_display_points(paths.ply, box, args.display_voxel)
             print(f"[hiển thị] {len(points):,} điểm (voxel {args.display_voxel * 100:g} cm), tô theo độ cao; hộp {box_txt}")
+        vis = None
+        if args.visibility:
+            kf_csv = paths.gt.parent / "metadata" / "keyframes.csv"
+            if not kf_csv.is_file():
+                raise AnnotationError(f"--visibility cần {kf_csv}: chạy stage keyframe/sfm trước")
+            cams, size = load_visibility_cams(kf_csv, info["raw_dir"] / "lowres_wide.traj")
+            print(f"[nhìn thấy] tính cho {len(points):,} điểm × {len(cams)} keyframe (có thể mất vài phút)")
+            vis = point_visibility(points, cams, size)
+            colors = visibility_colors(vis[0], vis[1], colors)
+            good = (vis[0] >= VIS_GOOD[0]) & (vis[1] >= VIS_GOOD[1])
+            print(f"[nhìn thấy] xanh lá (≥ {VIS_GOOD[0]} view, góc ≥ {VIS_GOOD[1]:g}°): {good.mean() * 100:.1f}% điểm; vàng: kém hơn nhưng ≥ {VIS_MID[0]} view")
         if args.view:
             print(HELP_TEXT)
             view_only(points, f"Faro đã căn: {args.scene}", colors)
@@ -614,7 +719,7 @@ def main(argv=None) -> int:
         print(f"[phiên] {paths.session}")
         print("Quy tắc chấm: 1 mốc 1–2,5 m dễ thấy, không trên gương/kính; ≥ 12 đoạn test (12–20), đầu mút khác nhau; "
               "mốc không dùng chung đầu mút với đoạn test. Chọn góc/cạnh rõ nét trên point cloud (sai số click cỡ 1 cm).")
-        annotate_loop(paths, sess, points, snap, pick=lambda pts, title: pick_two_points(pts, title, colors), display_name=display_name)
+        annotate_loop(paths, sess, points, snap, pick=lambda pts, title: pick_two_points(pts, title, colors), display_name=display_name, vis=vis)
         errors, warns = validate_segments(sess["segments"], snap)
         print_report(sess["segments"], errors, warns)
         print("Khi đủ: chạy lại với --check rồi --finalize.")

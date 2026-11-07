@@ -403,3 +403,37 @@ def test_main_chan_heldout_va_thieu_can_faro(tmp_path, capsys):
     assert "held-out" in capsys.readouterr().out
     # scene train hợp lệ nhưng root không có data/splits.csv ⇒ lỗi đầu vào, không crash
     assert an.main(["--scene", "arkitscenes/42444738", "--check", "--root", str(tmp_path)]) == 1
+
+
+# ---------------------------------------------------------------------------
+# --visibility: độ nhìn thấy của điểm Faro trong các keyframe
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("rot", ["none", "cw90", "ccw90", "rot180"])
+def test_project_upright_khop_rotate_image_voi_moi_huong_xoay(rot):
+    from pipeline.common.geometry import rotate_intrinsics
+    from pipeline.keyframe.orientation import rotate_image
+
+    w, h, fx, fy, cx, cy = 640, 480, 500.0, 510.0, 320.0, 240.0              # ảnh gốc nằm ngang
+    d = np.array([[0.3, -0.2, 2.0]])                                           # camera OpenCV
+    u_raw, v_raw = int(round(fx * 0.15 + cx)), int(round(fy * -0.1 + cy))
+    img = np.zeros((h, w))
+    img[v_raw, u_raw] = 1.0
+    row, col = np.argwhere(rotate_image(img, rot) == 1.0)[0]                    # vị trí thật sau khi xoay ảnh
+    _, _, fx2, fy2, cx2, cy2 = rotate_intrinsics(w, h, fx, fy, cx, cy, rot)
+    u, v = an.project_upright(d, (fx2, fy2, cx2, cy2), rot)
+    assert (u[0], v[0]) == pytest.approx((col, row), abs=1.0)
+
+
+def test_point_visibility_dem_view_loai_diem_sau_lung_va_diem_bi_che():
+    cams = [{"R": np.eye(3), "c": np.array([x, 0.0, 0.0]), "k": (500.0, 500.0, 240.0, 320.0), "rot": "none"} for x in (-0.3, 0.0, 0.3)]
+    front, behind, hidden = np.array([0.0, 0.0, 3.0]), np.array([0.0, 0.0, -3.0]), np.array([0.0, 0.0, 4.0])
+    blocker = np.array([[0.0 + dx, 0.0 + dy, 3.0] for dx in np.linspace(-0.2, 0.2, 9) for dy in np.linspace(-0.2, 0.2, 9)])
+    pts = np.vstack([front[None], behind[None], hidden[None], blocker])
+    nvis, spread = an.point_visibility(pts, cams, (480, 640), voxel=0.01)
+    assert nvis[0] == 3 and nvis[1] == 0                                       # trước mặt thấy ở cả 3 camera, sau lưng thì không
+    assert nvis[2] == 0                                                        # sau tấm chắn cùng tia: bị che
+    assert 3 < spread[0] < 20                                                  # ba camera cách nhau 0,3 m ở 3 m: góc tia nhỏ nhưng khác 0
+    col = an.visibility_colors(np.array([10, 6, 1]), np.array([40.0, 20.0, 5.0]), None)
+    assert col[0, 1] > col[0, 0] and col[1, 0] > col[1, 2] and col[2].max() < 0.3          # xanh lá, vàng, tối
