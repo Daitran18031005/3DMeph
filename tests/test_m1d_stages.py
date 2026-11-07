@@ -26,6 +26,29 @@ CX, CY = W / 2, H / 2
 # ---------------------------------------------------------------------------
 
 
+def write_images_bin(path, ids_names, n_points2d=0):
+    """Ghi `images.bin` tối giản của COLMAP: danh sách (image_id, tên) theo đúng thứ tự cho trước, mỗi ảnh `n_points2d` điểm 2D rỗng."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    body = struct.pack("<Q", len(ids_names))
+    for iid, name in ids_names:
+        body += struct.pack("<I7dI", iid, 1, 0, 0, 0, 0, 0, 0, 1) + name.encode() + b"\0" + struct.pack("<Q", n_points2d) + b"\0" * (24 * n_points2d)
+    path.write_bytes(body)
+
+
+def test_read_fusion_image_names_theo_image_id_khong_theo_thu_tu_file(tmp_path):
+    """`fused.ply.vis` đánh chỉ số theo image_id tăng dần trong mvs/sparse/images.bin; `fusion.cfg` (xáo thứ tự) không được dùng."""
+    write_images_bin(tmp_path / "sparse" / "images.bin", [(9, "0000.jpg"), (2, "0003.jpg"), (5, "0001.jpg")], n_points2d=3)
+    (tmp_path / "stereo").mkdir()
+    (tmp_path / "stereo" / "fusion.cfg").write_text("0000.jpg\n0001.jpg\n0003.jpg\n", encoding="utf-8")
+    assert fs.read_fusion_image_names(tmp_path) == ["0003.jpg", "0001.jpg", "0000.jpg"]
+    f = tmp_path / "sparse" / "images.bin"
+    f.write_bytes(f.read_bytes() + b"\0")
+    with pytest.raises(StageError):
+        fs.read_fusion_image_names(tmp_path)
+    with pytest.raises(StageError):
+        fs.read_fusion_image_names(tmp_path / "khong_co")
+
+
 def test_ply_khu_hoi_nhieu_kieu(tmp_path):
     f = {"x": np.array([1, 2], np.float32), "y": np.array([3, 4], np.float32), "n_views": np.array([5, 6], np.uint8), "plane_id": np.array([-1, 7], np.int32)}
     write_ply(tmp_path / "a.ply", f)
@@ -101,7 +124,7 @@ def make_fuse_scene(tmp_path, s_m=0.5):
     pcd = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(x_colmap))
     o3d.io.write_point_cloud(str(lay.colmap_mvs / "fused.ply"), pcd)
     (lay.colmap_mvs / "fused.ply.vis").write_bytes(struct.pack("<Q", 36) + b"".join(struct.pack("<I3I", 3, 0, 1, 2) for _ in range(36)))
-    (lay.colmap_mvs / "stereo" / "fusion.cfg").write_text("0000.jpg\n0001.jpg\n0002.jpg\n", encoding="utf-8")
+    write_images_bin(lay.colmap_mvs / "sparse" / "images.bin", [(1, "0000.jpg"), (2, "0001.jpg"), (3, "0002.jpg")])
     return lay, cams, x_colmap
 
 

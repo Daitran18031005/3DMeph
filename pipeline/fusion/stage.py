@@ -42,11 +42,26 @@ def read_vis(path) -> Tuple[np.ndarray, np.ndarray]:
 
 
 def read_fusion_image_names(mvs_dir: Path) -> List[str]:
-    """Thứ tự ảnh mà `fused.ply.vis` dùng để đánh chỉ số: `stereo/fusion.cfg` (mỗi dòng một tên ảnh)."""
-    cfg = Path(mvs_dir) / "stereo" / "fusion.cfg"
-    if not cfg.is_file():
-        raise StageError(E_MISSING_INPUT, f"thiếu {cfg}: chạy stage mvs trước")
-    return [ln.strip() for ln in cfg.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    """Thứ tự ảnh mà `fused.ply.vis` dùng để đánh chỉ số: `image_id` tăng dần trong `sparse/images.bin` của thư mục MVS (COLMAP 4.0.4).
+
+    KHÔNG phải thứ tự dòng của `stereo/fusion.cfg` (thứ tự đó bị xáo): đo trên 42444738 (07/11), chiếu điểm vào view theo `fusion.cfg` chỉ 37,2%
+    cặp rơi trong ảnh, theo `image_id` là 99,96%. `images.bin`: uint64 số ảnh; mỗi ảnh uint32 id, 4+3 double, uint32 camera_id, tên kết thúc bằng 0,
+    uint64 số điểm 2D, rồi 24 byte mỗi điểm 2D."""
+    p = Path(mvs_dir) / "sparse" / "images.bin"
+    if not p.is_file():
+        raise StageError(E_MISSING_INPUT, f"thiếu {p}: chạy stage mvs trước")
+    raw = p.read_bytes()
+    n, pos, out = struct.unpack_from("<Q", raw, 0)[0], 8, {}
+    for _ in range(n):
+        iid = struct.unpack_from("<I", raw, pos)[0]
+        pos += 4 + 56 + 4                                   # id; qvec, tvec (7 double); camera_id
+        end = raw.index(b"\0", pos)
+        out[iid] = raw[pos:end].decode("utf-8")
+        pos = end + 1
+        pos += 8 + 24 * struct.unpack_from("<Q", raw, pos)[0]
+    if pos != len(raw):
+        raise StageError(E_MISSING_INPUT, f"{p}: còn {len(raw) - pos} byte thừa sau {n} ảnh (định dạng images.bin lạ)")
+    return [out[i] for i in sorted(out)]
 
 
 def sample_bilinear(arr: np.ndarray, uv: np.ndarray) -> np.ndarray:
