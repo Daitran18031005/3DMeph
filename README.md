@@ -1,6 +1,6 @@
 # 3DMeph — Metric 3D Indoor Reconstruction từ smartphone RGB video
 
-GVHD: Lê Thị Vĩnh Thanh · Nhóm 4 người · Đồ án 2026
+GVHD: Lê Thị Vĩnh Thanh · Sinh viên thực hiện: Trần Quang Đại (một người) · Đồ án 2026
 
 Đây là README chung của dự án. Mỗi module trong `pipeline/` có README riêng ghi quy trình, công thức,
 tham số và test của module đó; README gốc chỉ nêu bức tranh chung và trỏ tới chúng.
@@ -152,8 +152,8 @@ tuần đầu: một scene chạy xuyên suốt, chưa train confidence head, Đ
 | M0a | môi trường, `default.yaml`, `common/`, lõi toán các module và test, README, sửa lỗi repo | có |
 | M0b | chọn và chia scene, tải `vga_wide` và Faro, căn Faro, chấm mốc scale và đoạn test, đo `V_ref`, `G_ref` | xong cho scene dev (chia scene, tải, `V_ref`/`G_ref`, căn Faro, 1 mốc + 12 đoạn test) |
 | M1 | cả chín stage chạy một lệnh trên scene 42444738 (CLI, chưa FastAPI/Unity) | xong có điều kiện: 8/9 stage, chạy từ `align`, chất lượng hình học còn thấp, `eval` hoãn M3 |
-| M2 | khoá ngưỡng keyframe trên Validation, đo VRAM và tỷ lệ đăng ký SfM | gần xong: đăng ký SfM trung vị 95,9% trên 6 Validation (SfM trên tập dày), VGGT peak 6.021 MiB; còn khoá ngưỡng |
-| M3 | `eval/` đủ chỉ số; B0, B1, B3, Proposed, Ablation 1–2 trên một scene | chưa |
+| M2 | khoá ngưỡng keyframe trên Validation, đo VRAM và tỷ lệ đăng ký SfM | xong có điều kiện (07/11): đăng ký SfM trung vị 95,9% trên 6 Validation (SfM trên tập dày), VGGT peak 6.021 MiB; ngưỡng keyframe đã khoá; 47204552 còn 84,4% |
+| M3 | `eval/` đủ chỉ số; B0, B1, B3, Proposed, Ablation 1–2 trên một scene | đang làm: `eval` chạy 5 biến thể trên scene dev (chiều dài chấm mù 3 đoạn); chưa chấm B1; Ablation 2 sang M5 |
 | M4 | nhiều scene ARKit: val khoá ngưỡng, held-out chạy một lần | chưa |
 | M5 | Replica (render, nhãn), tự thu pilot | chưa |
 | M6 | FastAPI + Unity, báo cáo | chưa |
@@ -171,7 +171,7 @@ Xem [CONTRIBUTING.md](CONTRIBUTING.md): mỗi việc một nhánh `feature/<tên
 
 `Docs/` (đề cương PDF, sơ đồ) và `Papers/` (bài báo gốc kèm bản dịch tiếng Việt) trong thư mục làm việc `3D_Metric/`.
 Bài cốt lõi: ARKitScenes, Replica, VGGT, COLMAP SfM/MVS, GGPT, UniDepthV2, PlanarSplatting (ĐC §22). File
-`Papers/Umeyama.pdf` là bài khác (ghép đồ thị Gaussian), không phải bài gốc 1991 (IEEE TPAMI 13(4)); cần thêm bài gốc.
+`Papers/Umeyama.pdf` là bài gốc 1991 (Umeyama, IEEE TPAMI 13(4)), dùng cho căn Sim(3).
 
 ## 10. Giới hạn đã biết
 

@@ -10,11 +10,11 @@ keyframe:
   rotate_from_sky: true       # xoay ảnh upright theo sky_direction (quyết định của nhóm)
   overlap:
     max: 0.99                 # tập ứng viên cho SfM: chỉ bỏ khung gần như giống hệt [Suy luận; 0,8 làm SfM đứt chuỗi, M2]
-    min: 0.3                  # dưới mức này coi là mất kết nối [Suy luận từ ĐC §6.1; M2 nới từ 0,6]
+    min: 0.3                  # dưới mức này coi là mất kết nối [Suy luận từ ĐC §6.1; M2 nới từ 0,6]; KHOÁ 07/11 (người dùng): SfM với 0,2/0,3/0,5 cho trung vị đăng ký 95,9/95,9/96,6%, chênh chỉ 1 keyframe ở 2 scene nên giữ 0,3
   blur:
     q_drop: 0.35              # loại khung có q_blur dưới ngưỡng; KHOÁ 31/10 (người dùng): quét 0,2/0,35/0,5 trên 6 Validation cho đăng ký trung vị 96,4/95,9/93,7%, chênh không đủ kết luận nên giữ 0,35
   exposure:
-    q_drop: 0.5               # loại khung có q_exposure dưới ngưỡng (tối/cháy, ĐC §7.2 không nêu số); TẠM, chưa quét với SfM mới
+    q_drop: 0.5               # loại khung có q_exposure dưới ngưỡng (tối/cháy, ĐC §7.2 không nêu số); KHOÁ 07/11: quét 0,3/0,5/0,7 trên 6 Validation đều loại 0 khung (docs/evidence/m2_sfm/after_07-11/)
 
 video:                        # nguồn video điện thoại (dữ liệu tự thu); mọi khoá là [Suy luận], chưa chạy trên video thật
   source_dir: data/self_collected   # chứa <id>/ với đúng một file mp4/mov/m4v; tương đối so với gốc repo, ngoài git
