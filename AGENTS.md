@@ -116,7 +116,7 @@ COLMAP chạy bằng CLI 4.2 (`../colmap/bin/colmap.exe`, hoặc biến `COLMAP_
 ## 9. Quy trình git và mốc
 
 Mỗi mốc một nhánh `feature/<tên>` và một PR vào `main` (≥ 1 approve), theo `CONTRIBUTING.md`. Commit nhỏ, thông điệp rõ.
-`QuangDai_Work` (origin) chỉ để **sao lưu** cá nhân. **Nhánh hiện tại:** `feature/integration-m3` (gộp `feature/m2-quality` và ba luồng M3: eval, measure-tool, video-adapter; chưa push, chưa PR). Trạng thái từng mốc: xem `WORKING_LOG.md`.
+`QuangDai_Work` (origin) chỉ để **sao lưu** cá nhân. **Nhánh hiện tại:** `feature/integration-m3` (gộp `feature/m2-quality` và ba luồng M3: eval, measure-tool, video-adapter; đã push 07/11, chưa PR). Trạng thái từng mốc: xem `WORKING_LOG.md`.
 
 | Mốc | Việc | Tiêu chí đạt [PLAN §10] |
 |---|---|---|

@@ -2,7 +2,7 @@
 
 - **Ngày tạo:** 2026-10-17
 - **Người thực hiện:** Trần Quang Đại (hiện chỉ một người làm toàn bộ dự án; MSSV 23714441). GVHD: Lê Thị Vĩnh Thanh
-- **Nhánh (kiểm 06/11):** đang ở `feature/integration-m3` (HEAD `440e619`, 05/11 19:52; không có upstream, **chưa push, chưa PR**). M1, M2, M3 nằm ở các nhánh `feature/m1-skeleton`, `feature/m2-quality`, `feature/m3-eval`, `feature/measure-tool`, `feature/video-adapter` đã gộp vào nhánh tích hợp này. `main` = `remotes/origin/main` = `0c3a0aa` (PR #9: M0a + M0b). Còn thay đổi chưa commit: `WORKING_LOG.md`, `scripts/README.md`, `scripts/annotate_segments.py`, `tests/test_annotate_segments.py`. Lịch sử M0a/M0b: `feature/m0a-foundation` theo dõi `origin/QuangDai_Work`; `feature/m0b-data` đã push đến `a055a0e` (26/10)
+- **Nhánh (kiểm 06/11):** đang ở `feature/integration-m3` (đã push lên `origin/feature/integration-m3` ngày 07/11, HEAD `1b6e911`; **chưa PR**). M1, M2, M3 nằm ở các nhánh `feature/m1-skeleton`, `feature/m2-quality`, `feature/m3-eval`, `feature/measure-tool`, `feature/video-adapter` đã gộp vào nhánh tích hợp này. `main` = `remotes/origin/main` = `0c3a0aa` (PR #9: M0a + M0b). Lịch sử M0a/M0b: `feature/m0a-foundation` theo dõi `origin/QuangDai_Work`; `feature/m0b-data` đã push đến `a055a0e` (26/10)
 - **Commit khi tạo file:** `6a7ea50` (commit chứa chính file này sẽ đứng ngay sau)
 - **Chốt M0a:** 2026-10-17 14:2x, trên `c7fa757` (đã đồng bộ `origin/main` bằng merge `8629ac3`); commit cập nhật log M0a: `76d9353`
 - **Cập nhật M0b (phần 1: chia scene và tải dữ liệu; đo `V_ref`/`G_ref`):** 2026-10-18, trên `feature/m0b-data` sau commit `06004c8`; commit chứa bản cập nhật này đứng ngay sau
