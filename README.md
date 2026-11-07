@@ -153,7 +153,7 @@ tuần đầu: một scene chạy xuyên suốt, chưa train confidence head, Đ
 | M0b | chọn và chia scene, tải `vga_wide` và Faro, căn Faro, chấm mốc scale và đoạn test, đo `V_ref`, `G_ref` | xong cho scene dev (chia scene, tải, `V_ref`/`G_ref`, căn Faro, 1 mốc + 12 đoạn test) |
 | M1 | cả chín stage chạy một lệnh trên scene 42444738 (CLI, chưa FastAPI/Unity) | xong có điều kiện: 8/9 stage, chạy từ `align`, chất lượng hình học còn thấp, `eval` hoãn M3 |
 | M2 | khoá ngưỡng keyframe trên Validation, đo VRAM và tỷ lệ đăng ký SfM | xong có điều kiện (07/11): đăng ký SfM trung vị 95,9% trên 6 Validation (SfM trên tập dày), VGGT peak 6.021 MiB; ngưỡng keyframe đã khoá; 47204552 còn 84,4% |
-| M3 | `eval/` đủ chỉ số; B0, B1, B3, Proposed, Ablation 1–2 trên một scene | xong có điều kiện (07/11): `eval` 5 biến thể trên scene dev (chiều dài chấm mù 3 đoạn, cả B1); proposed chưa tốt hơn B0; Ablation 2 sang M5 |
+| M3 | `eval/` đủ chỉ số; B0, B1, B3, Proposed, Ablation 1–2 trên một scene | xong có điều kiện (07/11): `eval` 5 biến thể trên scene dev (chiều dài chấm mù 3 đoạn, cả B1); sau khi sửa lỗi ánh xạ ảnh ở `fuse`/`align`, proposed ngang B0 về hình học (Chamfer 22,4 cm), chênh chiều dài trong nhiễu chấm tay; Ablation 2 sang M5 |
 | M4 | nhiều scene ARKit: val khoá ngưỡng, held-out chạy một lần | chưa |
 | M5 | Replica (render, nhãn), tự thu pilot | chưa |
 | M6 | FastAPI + Unity, báo cáo | chưa |
