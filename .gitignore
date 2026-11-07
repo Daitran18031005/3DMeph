@@ -21,3 +21,7 @@ data/scenes/
 *.ckpt
 
 data/sweeps/
+
+# Slide báo cáo: file nhị phân nặng (>5 MB), sinh lại bằng docs/slides/build_deck.py
+docs/slides/*.pptx
+docs/slides/img/
