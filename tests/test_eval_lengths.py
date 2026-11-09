@@ -143,3 +143,27 @@ def test_measure_transfer_snap_va_doan_chua_cham():
     assert not rows[1]["valid"] and rows[1]["mode"] == "manual_transfer"
     far = ln.measure_transfer(segs, ep, r, t + 0.5 * r[:, 0], cloud, 0.02)             # lệch 0,5 m: không snap được
     assert not far[0]["valid"]
+
+
+def test_kabsch_cat_tia_bo_camera_sai_va_khoi_phuc_phep_can():
+    rng = np.random.default_rng(1)
+    x = rng.normal(size=(40, 3)) * 2.0
+    r, t = _rot_z(25.0), np.array([0.3, 1.0, -0.7])
+    y = x @ r.T + t + rng.normal(scale=0.01, size=x.shape)
+    bad = [3, 7, 8, 20]
+    y[bad] += np.array([[4, 3, 0], [-3, 4, 0], [0, 5, 2], [6, 0, -3]])               # 4 camera SfM đặt sai vài mét
+    r0, t0, rms0 = ln.kabsch_rigid(x, y)
+    r1, t1, rms1, keep = ln.kabsch_rigid_trimmed(x, y, 3.0)
+    assert set(np.nonzero(~keep)[0]) == set(bad)
+    assert np.linalg.norm(t1 - t) < 0.01 < np.linalg.norm(t0 - t) and rms1 < 0.02 < rms0
+    assert np.degrees(np.arccos(np.clip((np.trace(r1.T @ r) - 1) / 2, -1, 1))) < 0.5
+
+
+def test_kabsch_cat_tia_khong_loai_gi_khi_khop_hoan_hao_hoac_con_qua_it_cap():
+    x = np.random.default_rng(2).normal(size=(10, 3))
+    y = x @ _rot_z(10.0).T + [1.0, 0.0, 0.0]
+    assert ln.kabsch_rigid_trimmed(x, y, 3.0)[3].all()                              # residual đều ≈ 0: không loại ai
+    x3 = x[:4]
+    y3 = x3 @ _rot_z(10.0).T
+    y3[0] += 100.0                                                                  # chỉ 4 cặp: loại 1 còn 3 vẫn hợp lệ
+    assert ln.kabsch_rigid_trimmed(x3, y3, 0.0)[3].sum() >= 3

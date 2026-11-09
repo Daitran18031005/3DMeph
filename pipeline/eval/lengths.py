@@ -61,6 +61,20 @@ def kabsch_rigid(src: np.ndarray, dst: np.ndarray) -> Tuple[np.ndarray, np.ndarr
     return r, t, float(np.sqrt(np.mean(np.sum((x @ r.T + t - y) ** 2, axis=1))))
 
 
+def kabsch_rigid_trimmed(src: np.ndarray, dst: np.ndarray, k: float) -> Tuple[np.ndarray, np.ndarray, float, np.ndarray]:
+    """Kabsch cắt tỉa: căn một lần trên mọi cặp, bỏ cặp có residual > `k` × trung vị residual, căn lại trên phần còn lại.
+    Trả về (R, t, rms trên cặp giữ lại, mask giữ lại). Còn < 3 cặp thì giữ phép căn đầu và mask toàn True.
+    Dùng khi SfM đặt sai vài camera (scene 42445022: ~10/78 camera lệch tới 6,8 m làm phép căn cứng hỏng)."""
+    x, y = np.asarray(src, dtype=np.float64), np.asarray(dst, dtype=np.float64)
+    r, t, rms = kabsch_rigid(x, y)
+    res = np.linalg.norm(x @ r.T + t - y, axis=1)
+    keep = res <= k * np.median(res) + 1e-12
+    if keep.all() or keep.sum() < 3:
+        return r, t, rms, np.ones(len(x), dtype=bool)
+    r, t, rms = kabsch_rigid(x[keep], y[keep])
+    return r, t, rms, keep
+
+
 def _row(seg: Dict, a: Optional[np.ndarray], b: Optional[np.ndarray], mode: str, extra: Optional[Dict] = None) -> Dict:
     ok = a is not None and b is not None
     pred = distance(a, b) if ok else None

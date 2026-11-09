@@ -33,7 +33,7 @@ MAX_POSE_GAP_S = 0.5     # không nội suy pose GT qua khoảng trống pose l�
 
 COLUMNS = ["variant", "length_mode", "n_segments", "n_valid", "mae_cm", "median_cm", "mape_pct", "pct_lt5cm",
            "n_common", "mae_cm_common", "median_cm_common", "mape_pct_common", "pct_lt5cm_common", "delta_pct_mae_vs_B0", "delta_pct_median_vs_B0",
-           "ate_rigid_cm", "ate_sim3_cm", "n_cameras", "n_unsnapped_endpoints", "snap_mean_cm", "nn_median_cm",
+           "ate_rigid_cm", "ate_rigid_all_cm", "ate_sim3_cm", "n_cameras", "n_cameras_dropped", "n_unsnapped_endpoints", "snap_mean_cm", "nn_median_cm",
            "acc_cm", "comp_cm", "chamfer_cm", "precision", "recall", "f_score", "acc_cm_kabsch", "comp_cm_kabsch", "chamfer_cm_kabsch", "f_score_kabsch"]
 
 
@@ -68,7 +68,10 @@ def _eval_variant(name: str, layout: SceneLayout, cfg: Dict, segs: List[Dict], g
     if len(views) < 3:
         raise StageError(E_MISSING_INPUT, f"{name}: chỉ {len(views)} view có cả tâm camera mô hình và GT (cần ≥ 3)")
     c_mod, c_gt = np.array([cams[v] for v in views]), np.array([gt_cams[v] for v in views])
-    r, t, rms = ln.kabsch_rigid(c_gt, c_mod)            # mô hình = R·GT + t, scale cố định 1
+    trim_k = float(cfgmod.require(cfg, "eval.align.trim_k"))
+    r, t, rms, keep = ln.kabsch_rigid_trimmed(c_gt, c_mod, trim_k)   # mô hình = R·GT + t, scale cố định 1; bỏ camera residual > trim_k × trung vị
+    err_all = np.linalg.norm(c_gt @ r.T + t - c_mod, axis=1)         # residual của MỌI camera dưới phép căn bền (camera bị loại vẫn được báo)
+    n_drop = int((~keep).sum())
     auto = ln.measure_auto(segs, r, t, cloud, snap)
     ep_path, src_path = layout.logs / f"endpoints_{name}.json", layout.logs / "endpoints_proposed.json"
     export_json = layout.export / "measurements.json"
@@ -84,17 +87,19 @@ def _eval_variant(name: str, layout: SceneLayout, cfg: Dict, segs: List[Dict], g
             common = sorted(set(c_cm) & set(cams))
             if len(common) < 3:
                 raise StageError(E_MISSING_INPUT, f"B1: chỉ {len(common)} view chung với COLMAP để truyền đầu mút (cần ≥ 3)")
-            r_t, t_t, _ = ln.kabsch_rigid(np.array([c_cm[v] for v in common]), np.array([cams[v] for v in common]))
+            r_t, t_t, _, _ = ln.kabsch_rigid_trimmed(np.array([c_cm[v] for v in common]), np.array([cams[v] for v in common]), trim_k)
         rows, label = ln.measure_transfer(segs, eps, r_t, t_t, cloud, snap), "manual_transfer"
     ln.write_lengths_csv(layout.logs / f"lengths_{name}_auto.csv", auto)
     if label != "auto":
         ln.write_lengths_csv(layout.logs / f"lengths_{name}_{label}.csv", rows)
-    ate_sim3 = ate_after_sim3(c_mod, c_gt)
-    res = {"variant": name, "length_mode": label, "rows": rows, "n_segments": len(segs), "ate_rigid_cm": rms * 100.0, "ate_sim3_cm": ate_sim3 * 100.0, "n_cameras": len(views)}
+    ate_sim3 = ate_after_sim3(c_mod[keep], c_gt[keep])
+    res = {"variant": name, "length_mode": label, "rows": rows, "n_segments": len(segs), "ate_rigid_cm": rms * 100.0, "ate_rigid_all_cm": float(np.sqrt(np.mean(err_all ** 2))) * 100.0, "ate_sim3_cm": ate_sim3 * 100.0,
+           "n_cameras": len(views), "n_cameras_dropped": n_drop}
     snap_info = ln.snap_summary(auto)
     res.update(n_unsnapped_endpoints=snap_info["n_unsnapped"], snap_mean_cm=snap_info["snap_mean_cm"], nn_median_cm=snap_info["nn_median_cm"])
     info = {"variant": name, "length_mode": label, "cloud": str(cloud_path(layout, name)), "n_points": int(len(cloud)), "n_cameras": len(views),
-            "kabsch_rms_cm": rms * 100.0, "kabsch_max_cm": float(np.max(np.linalg.norm(c_mod - (c_gt @ r.T + t), axis=1)) * 100.0), "ate_sim3_cm": ate_sim3 * 100.0,
+            "kabsch_rms_cm": rms * 100.0, "kabsch_max_cm": float(err_all.max() * 100.0), "ate_sim3_cm": ate_sim3 * 100.0,
+            "trim_k": trim_k, "n_cameras_dropped": n_drop, "dropped_views": [int(views[i]) for i in np.nonzero(~keep)[0]], "ate_rigid_all_cm": res["ate_rigid_all_cm"],
             "R_gt_to_model": r.tolist(), "t_gt_to_model": t.tolist(), "snap_radius_m": snap, "snap_auto": snap_info}
     if faro is not None:
         model_scene = (cloud - t) @ r                   # Rᵀ(p − t): mô hình → hệ scene
@@ -107,7 +112,7 @@ def _eval_variant(name: str, layout: SceneLayout, cfg: Dict, segs: List[Dict], g
         info["geometry"] = {"kabsch": g["kabsch"], "icp": g["icp"], "icp_info": g["icp_info"], "n_model_voxels": g["n_model"], "n_faro_voxels": g["n_faro"]}
     write_json(layout.logs / f"align_{name}.json", info)
     m = ln.length_metrics(rows)
-    log(f"[eval] {name} ({label}): ATE cứng {rms * 100:.1f} cm ({len(views)} camera); hợp lệ {m['n_valid']}/{len(segs)} đoạn"
+    log(f"[eval] {name} ({label}): ATE cứng {rms * 100:.1f} cm trên {len(views) - n_drop}/{len(views)} camera (loại {n_drop}; mọi camera {res['ate_rigid_all_cm']:.1f} cm); hợp lệ {m['n_valid']}/{len(segs)} đoạn"
         + (f", MAE {m['mae_cm']:.1f} cm, median {m['median_cm']:.1f} cm" if m["n_valid"] else "")
         + f"; đầu mút không snap {snap_info['n_unsnapped']}/{snap_info['n_endpoints']} (điểm gần nhất trung vị {snap_info['nn_median_cm']:.1f} cm)"
         + (f"; Chamfer {res['chamfer_cm']:.1f} cm (sau Kabsch {res['chamfer_cm_kabsch']:.1f}), F {res['f_score']:.3f}" if faro is not None else ""))

@@ -23,6 +23,8 @@ Cấu hình so sánh (ĐC Hình 26): **B0** COLMAP, **B1** VGGT, **B3** + fusion
 
 Ablation 2 (ép plane không cổng, `abl_gate`) không có ở đây: theo PDF chấm trên Replica (M5).
 
+**Phép căn bền và ATE (09/11).** Phép căn mô hình ↔ scene là Kabsch cứng (scale 1) trên tâm camera COLMAP so với ARKit, có cắt tỉa (`eval.align.trim_k`): vài camera lệch rất xa quỹ đạo còn lại (nguồn có thể là pose ARKit: 42445022 ở 5 giây đầu có pose GT nhảy tới 6 m trong khi COLMAP và VGGT khớp nhau; hoặc SfM đặt sai) và làm hỏng phép căn nếu dùng mọi camera. Cắt tỉa lặp một lần có thể chưa đủ khi camera lệch quá nhiều (42445022 giữ ATE 15,7 cm sau một lượt, 3,0 cm sau khi lặp tới hội tụ). `metrics.csv` luôn ghi cùng nhau: `n_cameras` (số camera có GT), `n_cameras_dropped` (số camera bị loại), `ate_rigid_cm` (rms trên camera giữ lại, **che bớt lỗi SfM**) và `ate_rigid_all_cm` (rms trên MỌI camera dưới cùng phép căn). `ate_sim3_cm` tính trên camera giữ lại. Đọc `ate_rigid_cm` mà không nhìn `n_cameras_dropped` thì dễ hiểu nhầm SfM tốt hơn thực tế. Số trước khi có cắt tỉa (căn trên mọi camera) nằm ở `docs/evidence/m3_eval/`.
+
 ## Input/Output
 
 | | Đường dẫn | Nội dung |
@@ -74,6 +76,7 @@ Ablation 2 (ép plane không cổng, `abl_gate`) không có ở đây: theo PDF 
 | Khoá | Giá trị | Nguồn |
 |---|---|---|
 | `eval.snap_radius_m` | 0.02 | quyết định của nhóm (2 cm) |
+| `eval.align.trim_k` | 3.0 | Kabsch cắt tỉa tâm camera: căn một lần, bỏ camera có residual > `trim_k` × trung vị, căn lại; khoá 09/11, không chỉnh theo kết quả |
 | `eval.mode` | manual | `manual` (chọn trên point cloud, thiếu file thì rơi về auto) hoặc `auto` (căn cứng, scale cố định) |
 | `eval.delta_m` | 0.05 | δ của Prec/Rec/F-score [ĐC (35)] |
 | `eval.b1.stride` | 4 | bước lấy mẫu pixel của point cloud B1 [Suy luận, TẠM] |

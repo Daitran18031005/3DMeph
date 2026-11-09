@@ -108,6 +108,8 @@ eval:
   b1:
     stride: 4                 # bước lấy mẫu pixel khi dựng point cloud B1 [Suy luận, TẠM]
     c_min: 0.5                # chỉ giữ điểm VGGT có c_model ≥ c_min (nối chunk và B1) [Suy luận, TẠM]
+  align:
+    trim_k: 3.0               # Kabsch cắt tỉa tâm camera: bỏ camera có residual > trim_k × trung vị rồi căn lại; KHOÁ 09/11 (người dùng), không chỉnh theo kết quả
   crop_margin_m: 1.0          # lề quanh hộp quỹ đạo camera GT khi cắt Faro và mô hình cho Chamfer/F [Suy luận, TẠM]
   voxel_m: 0.02               # voxel hoá trước khi tính Chamfer/F [Suy luận, TẠM]
   icp_max_dist_m: 0.10        # khoảng ghép tối đa của ICP cứng scale = 1 [Suy luận, TẠM]
