@@ -167,3 +167,16 @@ def test_kabsch_cat_tia_khong_loai_gi_khi_khop_hoan_hao_hoac_con_qua_it_cap():
     y3 = x3 @ _rot_z(10.0).T
     y3[0] += 100.0                                                                  # chỉ 4 cặp: loại 1 còn 3 vẫn hợp lệ
     assert ln.kabsch_rigid_trimmed(x3, y3, 0.0)[3].sum() >= 3
+
+
+def test_kabsch_cat_tia_lap_toi_hoi_tu_khi_mot_luot_chua_du():
+    rng = np.random.default_rng(3)
+    x = rng.normal(size=(60, 3)) * 2.0
+    r, t = _rot_z(0.4 * 180 / np.pi), np.array([0.5, -1.0, 0.2])
+    y = x @ r.T + t + rng.normal(scale=0.01, size=x.shape)
+    bad = np.arange(10, 25)                                                          # 15 camera 'trôi' tăng dần như pose ARKit đầu video
+    y[bad] += np.outer(np.linspace(0.3, 7.0, 15), [1, 0.6, 0.2])
+    _, t1, rms1, keep1 = ln.kabsch_rigid_trimmed(x, y, 3.0, max_iters=1)
+    _, t5, rms5, keep5 = ln.kabsch_rigid_trimmed(x, y, 3.0, max_iters=5)
+    assert keep1[bad].any() and rms1 > 0.5                                           # một lượt còn sót camera sai
+    assert not keep5[bad].any() and keep5.sum() == 45 and rms5 < 0.03 and np.linalg.norm(t5 - t) < 0.01

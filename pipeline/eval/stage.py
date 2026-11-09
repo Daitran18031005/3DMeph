@@ -68,8 +68,8 @@ def _eval_variant(name: str, layout: SceneLayout, cfg: Dict, segs: List[Dict], g
     if len(views) < 3:
         raise StageError(E_MISSING_INPUT, f"{name}: chỉ {len(views)} view có cả tâm camera mô hình và GT (cần ≥ 3)")
     c_mod, c_gt = np.array([cams[v] for v in views]), np.array([gt_cams[v] for v in views])
-    trim_k = float(cfgmod.require(cfg, "eval.align.trim_k"))
-    r, t, rms, keep = ln.kabsch_rigid_trimmed(c_gt, c_mod, trim_k)   # mô hình = R·GT + t, scale cố định 1; bỏ camera residual > trim_k × trung vị
+    trim_k, trim_iters = float(cfgmod.require(cfg, "eval.align.trim_k")), int(cfgmod.require(cfg, "eval.align.trim_max_iters"))
+    r, t, rms, keep = ln.kabsch_rigid_trimmed(c_gt, c_mod, trim_k, trim_iters)   # mô hình = R·GT + t, scale cố định 1; lặp bỏ camera residual > trim_k × trung vị
     err_all = np.linalg.norm(c_gt @ r.T + t - c_mod, axis=1)         # residual của MỌI camera dưới phép căn bền (camera bị loại vẫn được báo)
     n_drop = int((~keep).sum())
     auto = ln.measure_auto(segs, r, t, cloud, snap)
@@ -87,7 +87,7 @@ def _eval_variant(name: str, layout: SceneLayout, cfg: Dict, segs: List[Dict], g
             common = sorted(set(c_cm) & set(cams))
             if len(common) < 3:
                 raise StageError(E_MISSING_INPUT, f"B1: chỉ {len(common)} view chung với COLMAP để truyền đầu mút (cần ≥ 3)")
-            r_t, t_t, _, _ = ln.kabsch_rigid_trimmed(np.array([c_cm[v] for v in common]), np.array([cams[v] for v in common]), trim_k)
+            r_t, t_t, _, _ = ln.kabsch_rigid_trimmed(np.array([c_cm[v] for v in common]), np.array([cams[v] for v in common]), trim_k, trim_iters)
         rows, label = ln.measure_transfer(segs, eps, r_t, t_t, cloud, snap), "manual_transfer"
     ln.write_lengths_csv(layout.logs / f"lengths_{name}_auto.csv", auto)
     if label != "auto":
