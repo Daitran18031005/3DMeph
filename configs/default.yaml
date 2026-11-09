@@ -111,7 +111,13 @@ eval:
   align:
     trim_k: 3.0               # Kabsch cắt tỉa tâm camera: bỏ camera có residual > trim_k × trung vị rồi căn lại; KHOÁ 09/11 (người dùng), không chỉnh theo kết quả
     trim_max_iters: 5         # số lượt cắt tỉa tối đa (dừng sớm khi tập giữ lại không đổi); KHOÁ 09/11 (người dùng 'lặp tới hội tụ')
-  crop_margin_m: 1.0          # lề quanh hộp quỹ đạo camera GT khi cắt Faro và mô hình cho Chamfer/F [Suy luận, TẠM]
+  region:                     # vùng đánh giá Chamfer/F (lệch #46); KHOÁ 09/11, không chỉnh theo kết quả
+    mode: visible_gt          # MẶC ĐỊNH visible_gt từ 09/11 (người dùng duyệt). box (hộp quỹ đạo GT, đối chiếu số cũ) | visible_gt (Faro được keyframe thấy) | visible_both (thêm: mô hình thấy và gần Faro)
+    z_range_m: [0.5, 4.5]     # độ sâu camera → điểm được coi là thấy (mặc định của point_visibility)
+    occl_m: 0.12              # dung sai z-buffer che khuất (m)
+    margin_px: 20             # điểm cách mép ảnh < margin_px coi là không thấy
+    gt_support_m: 0.10        # visible_both: bỏ điểm mô hình nếu trong bán kính này không có điểm Faro
+  crop_margin_m: 1.0         # lề quanh hộp quỹ đạo camera GT khi cắt Faro và mô hình cho Chamfer/F [Suy luận, TẠM]
   voxel_m: 0.02               # voxel hoá trước khi tính Chamfer/F [Suy luận, TẠM]
   icp_max_dist_m: 0.10        # khoảng ghép tối đa của ICP cứng scale = 1 [Suy luận, TẠM]
 

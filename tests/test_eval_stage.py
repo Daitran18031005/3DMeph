@@ -59,6 +59,7 @@ def scene(tmp_path):
 def cfg():
     c = cfgmod.load_config()
     c["eval"].update(crop_margin_m=2.0, voxel_m=0.02, mode="auto")
+    c["eval"]["region"]["mode"] = "box"                                               # scene tổng hợp không có nội tham số camera để tính tầm nhìn
     return c
 
 
@@ -184,3 +185,16 @@ def test_eval_manual_doc_file_segments_he_model_cho_b0(scene, cfg):
     es.run_eval(layout, cfg, log=lambda m: None, variants=["B0"], load_cameras=lambda lay: cams)
     row = _read(layout.evaluation / "metrics.csv")["B0"]
     assert row["length_mode"] == "manual" and int(row["n_valid"]) == 1 and float(row["mae_cm"]) == pytest.approx(3.0)
+
+
+def test_eval_dung_mot_vung_cho_moi_bien_the(scene, cfg, monkeypatch):
+    layout, cams = scene
+    calls = []
+    real = es.rg.build_region
+    monkeypatch.setattr(es.rg, "build_region", lambda *a, **k: calls.append(1) or real(*a, **k))
+    es.run_eval(layout, cfg, log=lambda m: None, variants=["B0", "B3"], load_cameras=lambda lay: cams)
+    assert len(calls) == 1                                                            # vùng dựng một lần cho cả scene, không dựng riêng từng biến thể
+    rows = _read(layout.evaluation / "metrics.csv")
+    assert {r["region_mode"] for r in rows.values()} == {"box"}
+    assert rows["B0"]["region_gt_kept_frac"] == rows["B3"]["region_gt_kept_frac"] and rows["B0"]["region_n_views"] == rows["B3"]["region_n_views"] == "8"
+    assert 0.0 < float(rows["B0"]["region_gt_kept_frac"]) <= 1.0 and 0.0 < float(rows["B0"]["region_model_kept_frac"]) <= 1.0

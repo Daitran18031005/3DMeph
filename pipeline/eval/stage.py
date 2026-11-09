@@ -25,6 +25,7 @@ from ..common.io import SceneLayout, ensure_dir, read_json, write_json
 from ..common.schema import read_keyframes_csv
 from . import geometry as geo
 from . import lengths as ln
+from . import region as rg
 from .b1 import build_b1
 from .metrics import ate_after_sim3, delta_percent
 from .variants import VARIANTS, base_layout, camera_centers, cloud_path
@@ -33,7 +34,8 @@ MAX_POSE_GAP_S = 0.5     # không nội suy pose GT qua khoảng trống pose l�
 
 COLUMNS = ["variant", "length_mode", "n_segments", "n_valid", "mae_cm", "median_cm", "mape_pct", "pct_lt5cm",
            "n_common", "mae_cm_common", "median_cm_common", "mape_pct_common", "pct_lt5cm_common", "delta_pct_mae_vs_B0", "delta_pct_median_vs_B0",
-           "ate_rigid_cm", "ate_rigid_all_cm", "ate_sim3_cm", "n_cameras", "n_cameras_dropped", "n_unsnapped_endpoints", "snap_mean_cm", "nn_median_cm",
+           "ate_rigid_cm", "ate_rigid_all_cm", "ate_sim3_cm", "n_cameras", "n_cameras_dropped",
+           "region_mode", "region_gt_kept_frac", "region_model_kept_frac", "region_n_views", "n_unsnapped_endpoints", "snap_mean_cm", "nn_median_cm",
            "acc_cm", "comp_cm", "chamfer_cm", "precision", "recall", "f_score", "acc_cm_kabsch", "comp_cm_kabsch", "chamfer_cm_kabsch", "f_score_kabsch"]
 
 
@@ -60,7 +62,7 @@ def _fmt(v):
 
 
 def _eval_variant(name: str, layout: SceneLayout, cfg: Dict, segs: List[Dict], gt_cams: Dict[int, np.ndarray], faro: Optional[np.ndarray],
-                  load_cameras: Callable, log: Callable[[str], None]) -> Dict:
+                  load_cameras: Callable, log: Callable[[str], None], region: Optional[rg.Region] = None) -> Dict:
     snap, mode = float(cfgmod.require(cfg, "eval.snap_radius_m")), str(cfgmod.require(cfg, "eval.mode"))
     cloud = geo.load_points(cloud_path(layout, name))
     cams = camera_centers(layout, name, load_cameras)
@@ -103,10 +105,13 @@ def _eval_variant(name: str, layout: SceneLayout, cfg: Dict, segs: List[Dict], g
             "R_gt_to_model": r.tolist(), "t_gt_to_model": t.tolist(), "snap_radius_m": snap, "snap_auto": snap_info}
     if faro is not None:
         model_scene = (cloud - t) @ r                   # Rᵀ(p − t): mô hình → hệ scene
-        pad = float(cfgmod.require(cfg, "eval.crop_margin_m"))
-        allc = np.array(list(gt_cams.values()))
-        g = geo.evaluate_geometry(model_scene, faro, (allc.min(axis=0) - pad, allc.max(axis=0) + pad), float(cfgmod.require(cfg, "eval.voxel_m")),
+        region = region or rg.build_region(layout, cfg, gt_cams, faro, load_cameras)   # một vùng chung cho cả scene; tự dựng nếu gọi riêng lẻ
+        model_r, model_frac = region.filter_model(model_scene)
+        g = geo.evaluate_geometry(model_r, region.faro, region.box, float(cfgmod.require(cfg, "eval.voxel_m")),
                                   float(cfgmod.require(cfg, "eval.delta_m")), float(cfgmod.require(cfg, "eval.icp_max_dist_m")))
+        res.update(region_mode=region.mode, region_gt_kept_frac=region.gt_kept_frac, region_model_kept_frac=model_frac, region_n_views=region.n_views)
+        info["region"] = {"mode": region.mode, "gt_kept_frac": region.gt_kept_frac, "model_kept_frac": model_frac, "n_views": region.n_views,
+                          "dropped_views": region.dropped_views, "box": None if region.box is None else [b.tolist() for b in region.box]}
         res.update(**{k: g["icp"][k] for k in ("acc_cm", "comp_cm", "chamfer_cm", "precision", "recall", "f_score")},
                    **{f"{k}_kabsch": g["kabsch"][k] for k in ("acc_cm", "comp_cm", "chamfer_cm", "f_score")})
         info["geometry"] = {"kabsch": g["kabsch"], "icp": g["icp"], "icp_info": g["icp_info"], "n_model_voxels": g["n_model"], "n_faro_voxels": g["n_faro"]}
@@ -139,6 +144,7 @@ def run_eval(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
     if faro is None:
         log(f"[eval] CẢNH BÁO: thiếu {faro_path}: bỏ qua Chamfer/F-score")
     ensure_dir(base.logs)
+    region = rg.build_region(base, cfg, gt_cams, faro, load_cameras) if faro is not None else None
     results, skipped = [], {}
     for name in names:
         try:
@@ -146,7 +152,7 @@ def run_eval(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
                 build_b1(base, cfg, log)
             if not cloud_path(base, name).is_file():
                 raise StageError(E_MISSING_INPUT, f"thiếu {cloud_path(base, name)}")
-            results.append(_eval_variant(name, base, cfg, segs, gt_cams, faro, load_cameras, log))
+            results.append(_eval_variant(name, base, cfg, segs, gt_cams, faro, load_cameras, log, region))
         except StageError as e:
             if explicit:
                 raise

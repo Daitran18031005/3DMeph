@@ -78,6 +78,13 @@ Ablation 2 (ép plane không cổng, `abl_gate`) không có ở đây: theo PDF 
 | `eval.snap_radius_m` | 0.02 | quyết định của nhóm (2 cm) |
 | `eval.align.trim_k` | 3.0 | Kabsch cắt tỉa tâm camera: bỏ camera có residual > `trim_k` × trung vị (của các camera đang giữ), căn lại; khoá 09/11, không chỉnh theo kết quả |
 | `eval.align.trim_max_iters` | 5 | số lượt cắt tỉa tối đa; dừng sớm khi tập giữ lại không đổi (hội tụ); khoá 09/11 |
+| `eval.region.mode` | visible_gt | vùng đánh giá Chamfer/F (lệch #46): `box` hộp quỹ đạo GT ± `crop_margin_m` (đối chiếu số cũ); `visible_gt` chỉ giữ Faro mà keyframe thấy (có che khuất); `visible_both` thêm: giữ điểm mô hình được thấy và có Faro trong `gt_support_m`. Mặc định `visible_gt` từ 09/11 (người dùng duyệt); số cũ của `box` ở `docs/evidence/m3_eval/vung_danh_gia_09-11/` |
+| `eval.region.z_range_m` | [0.5, 4.5] | độ sâu camera → điểm coi là thấy (mặc định của `point_visibility`); khoá 09/11 |
+| `eval.region.occl_m` | 0.12 | dung sai z-buffer che khuất (m); khoá 09/11 |
+| `eval.region.margin_px` | 20 | điểm cách mép ảnh dưới ngưỡng này coi là không thấy; khoá 09/11 |
+| `eval.region.gt_support_m` | 0.10 | `visible_both`: bỏ điểm mô hình nếu trong bán kính này không có điểm Faro; khoá 09/11 |
+
+**Vùng đánh giá (09/11).** Camera để tính tầm nhìn là camera COLMAP (B0) đặt vào hệ scene bằng phép căn bền (`kabsch_rigid_trimmed`), chỉ các view còn lại sau cắt tỉa, không dùng pose ARKit thô. Vùng dựng một lần từ camera B0 rồi áp cho mọi biến thể. `metrics.csv` ghi `region_mode`, `region_gt_kept_frac` (tỉ lệ điểm Faro giữ lại), `region_model_kept_frac` (mô hình giữ lại; trống với `visible_gt`) và `region_n_views` (số view dùng để dựng vùng; `box`: số camera GT dựng hộp); `align_<biến thể>.json` có khoá `region`. Lõi tầm nhìn nằm ở `pipeline/common/visibility.py` (dùng chung với `scripts/annotate_segments.py`).
 | `eval.mode` | manual | `manual` (chọn trên point cloud, thiếu file thì rơi về auto) hoặc `auto` (căn cứng, scale cố định) |
 | `eval.delta_m` | 0.05 | δ của Prec/Rec/F-score [ĐC (35)] |
 | `eval.b1.stride` | 4 | bước lấy mẫu pixel của point cloud B1 [Suy luận, TẠM] |

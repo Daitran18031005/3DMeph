@@ -7,7 +7,7 @@ Hộp, voxel và khoảng ICP chưa có trong đề cương [Suy luận, TẠM] 
 
 from __future__ import annotations
 
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 
@@ -49,11 +49,11 @@ def geometry_metrics(model: np.ndarray, gt: np.ndarray, delta_m: float) -> Dict:
     return {"acc_cm": acc * 100.0, "comp_cm": comp * 100.0, "chamfer_cm": chamfer(acc, comp) * 100.0, "precision": prec, "recall": rec, "f_score": f_score(prec, rec)}
 
 
-def evaluate_geometry(model_scene: np.ndarray, faro_scene: np.ndarray, box: Tuple[np.ndarray, np.ndarray], voxel_m: float, delta_m: float,
+def evaluate_geometry(model_scene: np.ndarray, faro_scene: np.ndarray, box: Optional[Tuple[np.ndarray, np.ndarray]], voxel_m: float, delta_m: float,
                       icp_max_dist_m: float) -> Dict:
     """model_scene, faro_scene: điểm ở hệ scene (mét). Trả về {"kabsch": {...}, "icp": {...}, "icp_info": {...}, "n_model", "n_faro"}."""
-    m = voxel_downsample(crop_box(model_scene, *box), voxel_m)
-    g = voxel_downsample(crop_box(faro_scene, *box), voxel_m)
+    m = voxel_downsample(crop_box(model_scene, *box) if box is not None else model_scene, voxel_m)   # box=None: đã lọc theo vùng (eval/region.py)
+    g = voxel_downsample(crop_box(faro_scene, *box) if box is not None else faro_scene, voxel_m)
     if len(m) < 10 or len(g) < 10:
         raise ValueError(f"quá ít điểm sau khi cắt hộp: mô hình {len(m)}, Faro {len(g)}")
     out = {"kabsch": geometry_metrics(m, g, delta_m), "n_model": int(len(m)), "n_faro": int(len(g))}
