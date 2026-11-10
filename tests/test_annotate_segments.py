@@ -142,6 +142,17 @@ def test_finalize_tu_choi_khi_loi_hoac_ghi_de(tmp_path):
     an.finalize(paths, sess, SNAP, overwrite=True)
 
 
+def test_finalize_test_min_ha_nguong_so_doan_test_cho_validation(tmp_path):
+    paths = make_paths(tmp_path)
+    sess = make_session(good_segments(5))
+    with pytest.raises(an.AnnotationError, match="không đạt luật kiểm"):
+        an.finalize(paths, sess, SNAP)                                   # mặc định vẫn ≥ 12
+    an.finalize(paths, sess, SNAP, test_min=5)
+    assert len(paths.csv.read_text(encoding="utf-8").splitlines()) == 7   # tiêu đề + 1 mốc + 5 đoạn test
+    with pytest.raises(an.AnnotationError, match="không đạt luật kiểm"):
+        an.finalize(make_paths(tmp_path / "b"), make_session(good_segments(4)), SNAP, test_min=5)
+
+
 def test_phat_hien_csv_bi_sua_tay(tmp_path):
     paths = make_paths(tmp_path)
     sess = make_session(good_segments(12))

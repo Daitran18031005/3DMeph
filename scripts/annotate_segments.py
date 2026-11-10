@@ -226,8 +226,8 @@ def anchor_json(seg: Dict, f2s_sha: str) -> Dict:
             "note": "L_real đo trên Faro; L_model (click 2D + tam giác hoá bằng camera COLMAP) do stage alignment ở M1 điền"}
 
 
-def finalize(paths: Paths, sess: Dict, snap_radius_m: float, overwrite: bool = False) -> Dict:
-    errors, warns = validate_segments(sess["segments"], snap_radius_m)
+def finalize(paths: Paths, sess: Dict, snap_radius_m: float, overwrite: bool = False, test_min: int = TEST_COUNT_RANGE[0]) -> Dict:
+    errors, warns = validate_segments(sess["segments"], snap_radius_m, test_min=test_min)
     if errors:
         raise AnnotationError("không đạt luật kiểm:\n  - " + "\n  - ".join(errors))
     if not overwrite and (paths.csv.exists() or paths.anchor.exists()):
@@ -478,14 +478,14 @@ HELP_TEXT = """\
 def annotate_loop(paths: Paths, sess: Dict, points: np.ndarray, snap_radius_m: float,
                   pick: Callable[[np.ndarray, str], Optional[Tuple[int, int]]] = pick_two_points,
                   ask: Callable[[str], str] = input, out: Callable[[str], None] = print,
-                  display_name: str = SCENE_PLY_NAME, vis: Optional[Tuple[np.ndarray, np.ndarray]] = None) -> None:
+                  display_name: str = SCENE_PLY_NAME, vis: Optional[Tuple[np.ndarray, np.ndarray]] = None, test_min: int = TEST_COUNT_RANGE[0]) -> None:
     """Vòng chấm tương tác. `pick` và `ask` có thể thay bằng bản giả để test. Lưu phiên sau mỗi đoạn.
     `vis` = (nvis, spread) từ `point_visibility`: in số view và góc tia của hai đầu mút vừa chọn."""
     segs = sess["segments"]
     while True:
         n_a = sum(s["role"] == "anchor" for s in segs)
         n_t = sum(s["role"] == "test" for s in segs)
-        out(f"\n[phiên] {n_a}/1 mốc, {n_t} đoạn test (cần ≥ {TEST_COUNT_RANGE[0]}, nên ≤ {TEST_COUNT_RANGE[1]})")
+        out(f"\n[phiên] {n_a}/1 mốc, {n_t} đoạn test (cần ≥ {test_min}, nên ≤ {TEST_COUNT_RANGE[1]})")
         cmd = ask("Enter = chấm đoạn mới · l = liệt kê · u = xoá đoạn cuối · q = dừng: ").strip().lower()
         if cmd == "q":
             return
@@ -578,6 +578,8 @@ def main(argv=None) -> int:
                       help=f"tạo {RGB_PLY_NAME} (file hiển thị có màu RGB, tách riêng, KHÔNG ghi đè {SCENE_PLY_NAME}); dùng --box/--display-voxel")
     mode.add_argument("--from-json", metavar="FILE", help="nạp các đoạn (toạ độ hệ scene) từ JSON vào phiên, không GUI")
     ap.add_argument("--overwrite", action="store_true", help="cho phép --finalize ghi đè measurements.csv / scale_anchor.json")
+    ap.add_argument("--test-min", type=int, default=TEST_COUNT_RANGE[0],
+                    help=f"số đoạn test tối thiểu (mặc định {TEST_COUNT_RANGE[0]}, ĐC §8.2); M4 hạ xuống 5 cho scene Validation (người dùng đồng ý 09/11)")
     ap.add_argument("--display-voxel", type=float, default=DEFAULT_DISPLAY_VOXEL, help="voxel (m) của điểm hiển thị, ≥ 0,01")
     ap.add_argument("--box", type=float, nargs=6, metavar=("X0", "Y0", "Z0", "X1", "Y1", "Z1"),
                     help="hộp hiển thị (hệ scene); mặc định: hộp bao mesh ARKit ± 0,3 m")
@@ -607,12 +609,12 @@ def main(argv=None) -> int:
         if args.check or args.finalize:
             if sess is None:
                 raise AnnotationError("chưa có phiên chấm (annotation_session.json)")
-            errors, warns = validate_segments(sess["segments"], snap)
+            errors, warns = validate_segments(sess["segments"], snap, test_min=args.test_min)
             print_report(sess["segments"], errors, warns)
             if args.finalize:
                 if errors:
                     return 2
-                res = finalize(paths, sess, snap, overwrite=args.overwrite)
+                res = finalize(paths, sess, snap, overwrite=args.overwrite, test_min=args.test_min)
                 print(f"[OK] ghi {paths.csv} ({len(res['rows'])} dòng) và {paths.anchor} (mốc {res['anchor']['id']}, L_real {res['anchor']['L_real']} m)")
                 return 0
             mism = check_outputs_match_session(paths, sess)
@@ -625,7 +627,7 @@ def main(argv=None) -> int:
             new = segments_from_json(Path(args.from_json), sess["segments"], args.display_voxel)
             sess["segments"].extend(new)
             save_session(paths, sess)
-            errors, warns = validate_segments(sess["segments"], snap)
+            errors, warns = validate_segments(sess["segments"], snap, test_min=args.test_min)
             print(f"[OK] nạp {len(new)} đoạn vào {paths.session}")
             print_report(sess["segments"], errors, warns)
             return 2 if errors else 0
@@ -667,10 +669,11 @@ def main(argv=None) -> int:
         sess = sess or new_session(args.scene, f2s_sha, args.display_voxel)
         save_session(paths, sess)
         print(f"[phiên] {paths.session}")
-        print("Quy tắc chấm: 1 mốc 1–2,5 m dễ thấy, không trên gương/kính; ≥ 12 đoạn test (12–20), đầu mút khác nhau; "
+        print(f"Quy tắc chấm: 1 mốc 1–2,5 m dễ thấy, không trên gương/kính; ≥ {args.test_min} đoạn test (nên ≤ 20), đầu mút khác nhau; "
               "mốc không dùng chung đầu mút với đoạn test. Chọn góc/cạnh rõ nét trên point cloud (sai số click cỡ 1 cm).")
-        annotate_loop(paths, sess, points, snap, pick=lambda pts, title: pick_two_points(pts, title, colors), display_name=display_name, vis=vis)
-        errors, warns = validate_segments(sess["segments"], snap)
+        annotate_loop(paths, sess, points, snap, pick=lambda pts, title: pick_two_points(pts, title, colors), display_name=display_name, vis=vis,
+                      test_min=args.test_min)
+        errors, warns = validate_segments(sess["segments"], snap, test_min=args.test_min)
         print_report(sess["segments"], errors, warns)
         print("Khi đủ: chạy lại với --check rồi --finalize.")
         return 0
