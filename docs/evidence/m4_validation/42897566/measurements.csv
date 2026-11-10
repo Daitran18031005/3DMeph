@@ -1,0 +1,8 @@
+id,type,ground_truth_m,used_as_anchor,endpoints/notes
+S01,local_distance,1.1745,1,"A=(1.086, 3.179, -0.040) B=(1.830, 2.270, -0.048); Rộng bệ sắt dưới cửa sổ"
+S02,local_distance,1.0482,0,"A=(-1.508, 1.698, -0.387) B=(-0.724, 2.393, -0.382); Rộng kệ dưới gương"
+S04,local_distance,0.5338,0,"A=(1.799, 1.958, 0.150) B=(2.125, 1.535, 0.151); Rộng tủ nhiều tầng gần cửa sổ; chiều rộng ngăn trên cùng của tủ"
+S05,local_distance,0.3482,0,"A=(-0.948, 2.682, -0.379) B=(-0.725, 2.415, -0.376); Bề dày của kệ dưới gương; Mé bên hướng của cửa sổ, từ tường ra ngoài"
+S06,local_distance,1.0065,0,"A=(-1.007, 2.527, -0.335) B=(-1.106, 2.657, 0.658); Chiều cao viền gương; gương có thể khó xây dựng mô hình để chấm đầu mút"
+S07,local_distance,0.3607,0,"A=(-0.048, 1.701, -0.315) B=(-0.033, 1.696, -0.675); Chiều cao chân ghế; chiều cao từ chân ghế đến đệm ghế"
+S08,local_distance,0.4591,0,"A=(1.785, 2.325, -0.056) B=(1.776, 2.335, -0.515); Chiều cao bệ sắt gần cửa sổ; Cách mé bên phải bệ một đoạn nhỏ cỡ 1-2 thanh sắt"
