@@ -37,10 +37,10 @@ dataflow ("chỉ điểm qua gate mới vào GLB") khác đề cương; mặc đ
 
 | Khoá | Giá trị | Nguồn |
 |---|---|---|
-| `plane.tau_r` | 0.05 | ĐC §17.1 (m, ví dụ); khoá trên Validation |
-| `plane.tau_n_deg` | 15 | ĐC §17.1 (độ, ví dụ); khoá trên Validation |
-| `plane.tau_w` | 0.5 | ĐC §17.1 (ví dụ); khoá trên Validation |
-| `plane.alpha` | 0.5 | ĐC §17.2 (ví dụ); khác `loss.alpha_r` |
+| `plane.tau_r` | 0.05 | ĐC §17.1 (m, ví dụ); khoá 12/11 trên 5 Validation (M4): quét 3 giá trị, không giá trị nào qua quy tắc, giữ mặc định |
+| `plane.tau_n_deg` | 15 | ĐC §17.1 (độ, ví dụ); khoá 12/11 trên 5 Validation (M4): quét 3 giá trị, không giá trị nào qua quy tắc, giữ mặc định |
+| `plane.tau_w` | 0.5 | ĐC §17.1 (ví dụ); khoá 12/11 trên 5 Validation (M4): quét 3 giá trị, không giá trị nào qua quy tắc, giữ mặc định |
+| `plane.alpha` | 0.5 | ĐC §17.2 (ví dụ); khác `loss.alpha_r`; khoá 12/11 trên 5 Validation (M4): quét 3 giá trị, không giá trị nào qua quy tắc, giữ mặc định |
 | `plane.up_refine_deg` | 20 | quyết định của nhóm (tinh chỉnh hướng lên) |
 | `plane.force` | false | `true` = Ablation 2 |
 | `plane.max_planes` | 8 | TẠM cho M1 [Suy luận]: số mặt phẳng RANSAC tuần tự tối đa |

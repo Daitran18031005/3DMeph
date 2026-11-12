@@ -45,8 +45,8 @@ bản đồ điểm VGGT (đã sang mét). COLMAP chỉ cho tín hiệu; nhánh 
 
 | Khoá | Giá trị | Nguồn |
 |---|---|---|
-| `fusion.tau_e` | 2.0 | ĐC §16.1: px, "minh họa"; khoá trên Validation |
-| `fusion.tau_sigma` | 0.20 | ĐC §16.1: m, "minh họa"; khoá trên Validation |
+| `fusion.tau_e` | 2.0 | ĐC §16.1: px, "minh họa"; khoá 12/11 trên 5 Validation (M4): quét 3 giá trị, không giá trị nào qua quy tắc, giữ mặc định |
+| `fusion.tau_sigma` | 0.20 | ĐC §16.1: m, "minh họa"; khoá 12/11 trên 5 Validation (M4): quét 3 giá trị, không giá trị nào qua quy tắc, giữ mặc định |
 | `fusion.e_cap_px` | 4.0 | Suy luận (ngưỡng RANSAC 1–4 px, ĐC §14.1) |
 | `fusion.use_quality` | true | `false` là Ablation 1: bỏ `q_blur, q_texture, q_exposure` |
 
