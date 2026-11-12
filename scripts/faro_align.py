@@ -306,7 +306,11 @@ class HighresSource:
         self.traj = adapters.Trajectory.from_file(raw_dir / "lowres_wide.traj")
         self.intr = adapters.read_intrinsics(self.intr_reader)
         self.intr_ts = np.array(sorted(self.intr))
-        self.entries = sorted(self.depth.list_pngs(), key=adapters.frame_timestamp)
+        entries = sorted(self.depth.list_pngs(), key=adapters.frame_timestamp)
+        # Khung ngoài đoạn [t_min, t_max] của .traj không có pose để nội suy (42897599: 1 khung sớm 0,33 s): bỏ, không ngoại suy.
+        keep = [self.traj.t_min <= adapters.frame_timestamp(e) <= self.traj.t_max for e in entries]
+        self.n_outside_traj = len(entries) - sum(keep)
+        self.entries = [e for e, k in zip(entries, keep) if k]
         self.ts = np.array([adapters.frame_timestamp(e) for e in self.entries])
 
     def close(self):
@@ -506,6 +510,8 @@ def run_alignment(info: Dict, out_dir: Path, args) -> int:
     t0 = time.time()
     src = HighresSource(info["raw_dir"])
     try:
+        if src.n_outside_traj:
+            print(f"[pha 3] bỏ {src.n_outside_traj} khung highres_depth nằm ngoài đoạn thời gian của .traj")
         print(f"[pha 3] {len(src.entries)} khung highres_depth; pose {len(src.traj)} dòng, khoảng cách pose lớn nhất quanh khung: "
               f"{max(src.traj.gap_at(float(t)) for t in src.ts):.3f} s")
         mesh_v = load_mesh_vertices(info["raw_dir"], info["video_id"])

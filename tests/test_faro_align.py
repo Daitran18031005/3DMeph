@@ -158,6 +158,23 @@ def test_icp_fix_up_chi_xoay_quanh_truc_dung(scene):
     assert res["converged"] and frs.tilt_deg(res["T"][:3, :3]) == pytest.approx(0.0, abs=1e-6)
 
 
+def test_highres_source_bo_khung_ngoai_doan_traj(tmp_path, monkeypatch):
+    class _Reader:
+        def __init__(self, *_a): pass
+        def exists(self): return True
+        def list_pngs(self): return ["9_100.000.png", "9_100.400.png", "9_150.000.png", "9_200.500.png"]
+        def close(self): pass
+
+    class _Traj:
+        t_min, t_max = 100.2, 200.0
+
+    monkeypatch.setattr(fa.adapters, "AssetReader", _Reader)
+    monkeypatch.setattr(fa.adapters.Trajectory, "from_file", classmethod(lambda cls, p: _Traj()))
+    monkeypatch.setattr(fa.adapters, "read_intrinsics", lambda r: {1.0: {}})
+    src = fa.HighresSource(tmp_path)
+    assert src.n_outside_traj == 2 and list(src.ts) == [100.4, 150.0]      # 100.0 sớm hơn t_min, 200.5 muộn hơn t_max
+
+
 def test_distance_stats():
     st = frs.distance_stats(np.array([0.0, 0.005, 0.015, 0.03, 0.2, np.nan]))
     assert st["n"] == 5 and st["median"] == pytest.approx(0.015) and st["frac_le_1cm"] == pytest.approx(0.4)
