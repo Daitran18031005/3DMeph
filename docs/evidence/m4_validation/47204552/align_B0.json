@@ -1,0 +1,86 @@
+{
+  "variant": "B0",
+  "length_mode": "auto",
+  "cloud": "D:\\Nghien_Cuu\\3D_Metric\\3DMeph\\data\\scenes\\arkitscenes\\47204552\\baselines\\colmap\\metric\\fused_metric.ply",
+  "n_points": 101990,
+  "n_cameras": 79,
+  "kabsch_rms_cm": 251.40388312159038,
+  "kabsch_max_cm": 880.3427494139561,
+  "ate_sim3_cm": 213.11012810801628,
+  "trim_k": 3.0,
+  "n_cameras_dropped": 3,
+  "dropped_views": [
+    1,
+    2,
+    3
+  ],
+  "ate_rigid_all_cm": 295.4528790523585,
+  "R_gt_to_model": [
+    [
+      0.069361813926346,
+      0.48650690159880633,
+      -0.8709190395585436
+    ],
+    [
+      -0.18476005059360298,
+      0.8641829831385275,
+      0.4680293744610954
+    ],
+    [
+      0.9803329345041386,
+      0.1284476794283338,
+      0.14982833902830187
+    ]
+  ],
+  "t_gt_to_model": [
+    -0.3483381943261432,
+    -1.746844938440903,
+    4.468573158419101
+  ],
+  "snap_radius_m": 0.02,
+  "snap_auto": {
+    "n_endpoints": 12,
+    "n_unsnapped": 12,
+    "snap_mean_cm": null,
+    "nn_median_cm": 51.33558001932131,
+    "nn_max_cm": 120.07738478101564
+  },
+  "region": {
+    "mode": "visible_gt",
+    "gt_kept_frac": 0.31561192444249786,
+    "model_kept_frac": null,
+    "n_views": 76,
+    "dropped_views": [
+      1,
+      2,
+      3
+    ],
+    "box": null
+  },
+  "geometry": {
+    "kabsch": {
+      "acc_cm": 49.91733023134421,
+      "comp_cm": 73.71545150977407,
+      "chamfer_cm": 61.81639087055913,
+      "precision": 0.05985326894502229,
+      "recall": 0.012965749988598532,
+      "f_score": 0.021314281145394718
+    },
+    "icp": {
+      "acc_cm": 48.08440897010248,
+      "comp_cm": 74.92223772026229,
+      "chamfer_cm": 61.50332334518238,
+      "precision": 0.07703380386329867,
+      "recall": 0.014092215077301956,
+      "f_score": 0.02382583909370427
+    },
+    "icp_info": {
+      "fitness": 0.14060178306092125,
+      "inlier_rmse_m": 0.05541630474444285,
+      "shift_m": 0.19735130917241958,
+      "rot_deg": 3.92817237043979
+    },
+    "n_model_voxels": 21536,
+    "n_faro_voxels": 219270
+  }
+}

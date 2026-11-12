@@ -1,0 +1,8 @@
+id,type,ground_truth_m,used_as_anchor,endpoints/notes
+S01,local_distance,1.9491,0,"A=(-0.946, 2.594, 0.546) B=(-0.955, 2.595, -1.403); cao cửa chính, cửa bên phải"
+S02,local_distance,0.4001,0,"A=(1.669, 3.125, -1.015) B=(1.672, 3.124, -1.415); Cao chân bàn kế sofa, chân bên phải mé ngoài"
+S03,local_distance,0.8974,0,"A=(3.511, 5.039, -0.979) B=(3.485, 5.936, -0.986); Rộng bàn giữa sofa, góc lò sưởi"
+S04,local_distance,1.2650,0,"A=(2.598, 5.921, -0.988) B=(3.509, 5.043, -0.980); đường chéo bàn, góc lò sưởi"
+S05,local_distance,1.1806,0,"A=(-3.835, 1.873, -0.549) B=(-5.015, 1.836, -0.565); Rộng tủ bếp,nằm ngang với cửa chính, ngay bo góc, có thể khó nhận diện đầu mút"
+S06,local_distance,0.8303,0,"A=(-3.855, 1.865, -0.595) B=(-3.855, 1.873, -1.425); chiều cao tủ bếp, cạnh gần cửa chỉnh, không có phần nhô ra"
+S07,local_distance,1.3934,1,"A=(2.698, 7.385, -0.967) B=(4.091, 7.425, -0.967); dài kệ sắt dưới cửa sổ"

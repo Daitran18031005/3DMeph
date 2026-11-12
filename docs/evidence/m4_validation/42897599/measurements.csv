@@ -1,0 +1,7 @@
+id,type,ground_truth_m,used_as_anchor,endpoints/notes
+S01,local_distance,0.3037,0,"A=(0.620, 1.010, 1.389) B=(0.617, 1.015, 1.085); Cao khung cửa, đầu tiên bên trái"
+S02,local_distance,0.4117,0,"A=(0.443, 2.404, -0.305) B=(0.490, 1.995, -0.309); rộng chân ghế, bên trái chân cửa chính"
+S03,local_distance,2.2302,0,"A=(3.165, 1.213, 0.354) B=(0.935, 1.214, 0.351); Rộng tử bếp, mặt nhô ra; Đặt điểm mút tại các phần nhô ra nên cần chấm đúng điểm đó"
+S04,local_distance,0.7000,0,"A=(3.155, 1.201, 0.315) B=(3.165, 1.198, -0.385); cao tủ bếp, kệ dưới, cách bề mặt và chân đế"
+S05,local_distance,0.7551,0,"A=(0.757, 1.253, 1.055) B=(0.401, 0.588, 1.065); rộng cửa chính, thanh ngang đầu tiên từ trên xuống"
+S06,local_distance,2.0203,1,"A=(3.045, 0.984, 0.675) B=(1.025, 0.985, 0.685); rộng tủ bếp trên, phía dưới, không lấy 2 trục"

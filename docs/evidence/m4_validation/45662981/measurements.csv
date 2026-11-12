@@ -1,0 +1,7 @@
+id,type,ground_truth_m,used_as_anchor,endpoints/notes
+S01,local_distance,1.8148,1,"A=(-1.489, -3.609, -0.386) B=(-3.295, -3.436, -0.374); rộng tủ kế sofa, mặt nhô ra"
+S02,local_distance,2.0501,0,"A=(-1.725, 0.067, 0.955) B=(-1.714, 0.076, -1.095); cao cửa chính, mặt trong cửa"
+S03,local_distance,2.0983,0,"A=(-3.324, -0.036, -0.692) B=(-5.413, 0.166, -0.695); dài sofa gần cửa sổ"
+S04,main_dimension,0.8271,0,"A=(-6.665, -3.276, 0.513) B=(-6.660, -3.258, -0.314); cao tivi, góc gần cửa sổ"
+S05,local_distance,1.1478,0,"A=(-3.779, 1.308, 1.233) B=(-3.775, 1.316, 0.085); Chiều cao bức tranh, góc gần cửa chính"
+S06,local_distance,0.5934,0,"A=(-1.508, -3.621, -0.423) B=(-1.496, -3.588, -1.015); cao tủ gần cửa chính, bỏ mặt bằng phía trên và chân trụ phía dưới"

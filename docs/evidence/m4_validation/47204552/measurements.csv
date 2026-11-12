@@ -1,0 +1,8 @@
+id,type,ground_truth_m,used_as_anchor,endpoints/notes
+S01,local_distance,2.7271,0,"A=(-6.433, 2.306, -0.306) B=(-3.707, 2.397, -0.307); dài tủ, bề mặt trên"
+S02,local_distance,1.5105,0,"A=(-5.825, 2.364, -0.735) B=(-4.315, 2.413, -0.726); dài tủ bên dưới đoạn khoảng trống"
+S03,local_distance,0.8003,0,"A=(-5.828, 2.339, -0.345) B=(-5.835, 2.363, -1.145); cao tủ từ chân khoảng trống bên trái lên phần dưới bề mặt tủ"
+S04,local_distance,1.2649,0,"A=(-5.697, 2.753, 0.043) B=(-4.432, 2.780, 0.031); dài tivi dưới đáy; màn đen khó lấy điểm mút"
+S05,local_distance,0.5587,0,"A=(-2.563, 0.696, -0.587) B=(-2.565, 0.695, -1.145); cao ghế sofa, phần cạnh ngoài của ghế gaafn cửa kính"
+S06,local_distance,1.2882,0,"A=(-3.517, 1.065, -0.455) B=(-4.805, 1.055, -0.445); Đường kính bàn, hướng từ ghế sofa ra bếp"
+S07,local_distance,1.5017,1,"A=(-5.829, 2.340, -0.514) B=(-4.328, 2.390, -0.515); Rộng tủ ngay đường khe, mép từ các ngăn tủ"

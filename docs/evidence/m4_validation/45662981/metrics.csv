@@ -1,0 +1,6 @@
+variant,length_mode,n_segments,n_valid,mae_cm,median_cm,mape_pct,pct_lt5cm,n_common,mae_cm_common,median_cm_common,mape_pct_common,pct_lt5cm_common,delta_pct_mae_vs_B0,delta_pct_median_vs_B0,ate_rigid_cm,ate_rigid_all_cm,ate_sim3_cm,n_cameras,n_cameras_dropped,region_mode,region_gt_kept_frac,region_model_kept_frac,region_n_views,n_unsnapped_endpoints,snap_mean_cm,nn_median_cm,acc_cm,comp_cm,chamfer_cm,precision,recall,f_score,acc_cm_kabsch,comp_cm_kabsch,chamfer_cm_kabsch,f_score_kabsch
+B0,auto,5,0,,,,,0,,,,,,,7.88842,37.1172,6.91571,79,7,visible_gt,0.646738,,72,9,1.09705,5.6707,3.0932,32.7542,17.9237,0.843936,0.306578,0.449768,4.39056,33.6497,19.0201,0.363165
+B1,auto,5,0,,,,,0,,,,,,,43.8885,43.8885,37.098,79,0,visible_gt,0.646738,,72,10,,10.1776,18.9836,16.0546,17.5191,0.277644,0.354475,0.31139,17.7797,17.1145,17.4471,0.174446
+B3,auto,5,0,,,,,0,,,,,,,7.88842,37.1172,6.91571,79,7,visible_gt,0.646738,,72,10,,6.06947,3.28726,31.8949,17.5911,0.818811,0.348433,0.488845,4.63323,33.1251,18.8792,0.367344
+proposed,auto,5,0,,,,,0,,,,,,,7.88842,37.1172,6.91571,79,7,visible_gt,0.646738,,72,10,,6.06947,3.28378,31.8933,17.5885,0.818806,0.348519,0.488929,4.63444,33.1248,18.8796,0.367
+abl_quality,auto,5,0,,,,,0,,,,,,,7.88842,37.1172,6.91571,79,7,visible_gt,0.646738,,72,10,,6.08562,3.23491,31.8488,17.5419,0.827649,0.350589,0.49254,4.59136,33.093,18.8422,0.368138
