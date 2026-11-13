@@ -55,6 +55,11 @@ học `e_reproj` (thưa, theo điểm feature) và `σ_depth` (dày, theo pixel)
 | `colmap.mapper.abs_pose_min_inlier_ratio` | 0.05 | `Mapper.abs_pose_min_inlier_ratio` (mặc định 0,25); TẠM |
 | `colmap.mapper.min_num_matches` | 10 | `Mapper.min_num_matches` (mặc định 15); TẠM |
 | `colmap.mapper.abs_pose_max_error` | 16 | `Mapper.abs_pose_max_error`, px (mặc định 12); TẠM |
+| `colmap.stereo_fusion.min_num_pixels` | 2 | `StereoFusion.min_num_pixels` (mặc định COLMAP 5); cấu hình "d3" chuẩn từ M4 đợt 3 (người dùng duyệt 13/11; ĐC không nêu số `stereo_fusion`) |
+| `colmap.stereo_fusion.max_reproj_error` | 8 | `StereoFusion.max_reproj_error`, px (mặc định 2); d3 |
+| `colmap.stereo_fusion.max_depth_error` | 0.05 | `StereoFusion.max_depth_error` (mặc định 0,01); d3 |
+| `colmap.stereo_fusion.max_normal_error` | 30 | `StereoFusion.max_normal_error`, độ (mặc định 10); d3 |
+| `colmap.stereo_fusion.check_num_images` | 100 | `StereoFusion.check_num_images` (mặc định 50); d3 |
 | `colmap.geom_consistency` | true | tạo cả depth photometric và geometric (cần cho `σ_depth`) |
 | `colmap.max_image_size` | null | null = giữ nguyên kích thước ảnh |
 | `colmap.use_gpu` | true | `false` chạy SIFT và ghép cặp bằng CPU (`patch_match_stereo` vẫn bắt buộc CUDA). COLMAP 4.2 ở `../colmap/bin` build CUDA 13 (có kernel sm_110), cần driver NVIDIA ≥ 580; với driver 573.22 (CUDA 12.8) nó báo `num_cuda_devices = 0`. Cách đã dùng: COLMAP 4.0.4 build CUDA 12.9.1 ở `../colmap_4.0.4_cuda12`, đặt `COLMAP_EXE`; SIFT trên GPU và `patch_match_stereo` chạy được [kiểm 27/10] |

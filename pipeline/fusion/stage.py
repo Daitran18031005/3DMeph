@@ -24,6 +24,7 @@ from ..common.schema import read_keyframes_csv
 from ..vggt.infer import original_to_vggt, pad_geometry
 from .fill import fill_points
 from .fusion import clamp_shift, fuse, gate_weight, weights_from_signals
+from .noise import noise_keep_mask
 
 
 def read_vis(path) -> Tuple[np.ndarray, np.ndarray]:
@@ -260,6 +261,7 @@ def run_fuse(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
     x_m = ply[keep] * s_m
     max_shift = cfgmod.get(cfg, "fusion.max_shift_m")
     p_hat, clamped = clamp_shift(p_hat, x_m, None if max_shift is None else float(max_shift))
+    dev_fused = np.linalg.norm(p_hat - x_m, axis=1)
     n_fill = 0
     if bool(cfgmod.get(cfg, "fusion.fill_enabled")):
         v_size, n_min = float(cfgmod.require(cfg, "fusion.fill_voxel_m")), int(cfgmod.require(cfg, "fusion.fill_min_views"))
@@ -270,6 +272,13 @@ def run_fuse(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
         p_hat, w_k, n_views = np.vstack([p_hat, f_xyz]), np.concatenate([w_k, f_conf]), np.concatenate([n_views, np.minimum(f_nv, 255)])
         log(f"[fuse] lấp lỗ bằng VGGT: {len(cx):,} ứng viên (c_model ≥ {c_min}), thêm {n_fill:,} điểm (ô {v_size} m, ≥ {n_min} view)")
 
+    mv, sr = cfgmod.get(cfg, "fusion.filter_min_views"), cfgmod.get(cfg, "fusion.filter_sor_std_ratio")
+    n_noise = 0
+    if mv is not None or sr is not None:
+        keep_f = noise_keep_mask(p_hat, n_views, None if mv is None else int(mv), None if sr is None else float(sr), int(cfgmod.require(cfg, "fusion.filter_sor_k")))
+        n_noise = int((~keep_f).sum())
+        p_hat, w_k, n_views = p_hat[keep_f], w_k[keep_f], n_views[keep_f]
+        log(f"[fuse] lọc nhiễu: bỏ {n_noise:,} điểm (min_views {mv}, std_ratio {sr})")
     out_dir = ensure_dir(layout.fusion)
     write_ply(out_dir / "fused_points.ply", {"x": p_hat[:, 0].astype(np.float32), "y": p_hat[:, 1].astype(np.float32), "z": p_hat[:, 2].astype(np.float32),
                                               "w_k": w_k.astype(np.float32), "n_views": n_views.astype(np.uint8)})
@@ -279,9 +288,8 @@ def run_fuse(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
                         q_texture=pr["q_texture"][ok].astype(np.float32), q_exposure=q_exp[ok].astype(np.float32), w=w[ok].astype(np.float32),
                         w_tilde=wt_flat[ok].astype(np.float32))
     dev_pair = np.linalg.norm(pr["P"][ok] - (ply[kk[ok]] * s_m), axis=1)
-    dev_fused = np.linalg.norm(p_hat[:len(x_m)] - x_m, axis=1)                                  # điểm lấp lỗ (nếu có) nằm sau điểm MVS
     pc = lambda a, q: float(np.percentile(a, q))  # noqa: E731
-    stats = {"n_points_mvs": int(len(counts)), "n_points_fused": int(keep.sum()) + int(n_fill), "n_pairs": int(len(kk)), "n_pairs_valid": int(ok.sum()),
+    stats = {"n_points_mvs": int(len(counts)), "n_points_fused": int(len(p_hat)), "n_points_noise_removed": n_noise, "n_pairs": int(len(kk)), "n_pairs_valid": int(ok.sum()),
              "pairs_dropped": {k: int(v) for k, v in stat.items()}, "s_m": s_m, "use_quality": use_q,
              "w_k_percentiles": {q: round(pc(w_k, q), 4) for q in (5, 25, 50, 75, 95)}, "w_k_mean": float(w_k.mean()),
              "frac_w_k_above_tau_w": float((w_k > float(cfgmod.get(cfg, "plane.tau_w"))).mean()),

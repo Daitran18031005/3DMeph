@@ -56,6 +56,9 @@ bản đồ điểm VGGT (đã sang mét). COLMAP chỉ cho tín hiệu; nhánh 
 | `fusion.fill_min_views` | 3 | hướng A: số view khác nhau có điểm VGGT trong cùng ô |
 | `fusion.fill_min_conf` | 0.5 | hướng A: c_model tối thiểu của điểm VGGT ứng viên |
 | `fusion.fill_stride` | 4 | hướng A: lấy mỗi n pixel trên lưới VGGT |
+| `fusion.filter_min_views` | null | Suy luận (M4 đợt 3, f1): bỏ điểm có ít hơn n view lấy được (`fusion.noise.min_views_mask`); `null` = tắt |
+| `fusion.filter_sor_std_ratio` | null | Suy luận (M4 đợt 3, f2): ngoại lai thống kê (`fusion.noise.statistical_outlier_mask`), bỏ điểm có khoảng cách trung bình tới k láng giềng > trung bình + giá trị × độ lệch chuẩn; `null` = tắt |
+| `fusion.filter_sor_k` | 20 | số láng giềng k của f2 (cố định 20; quét thử 10 và 40) |
 
 ## Cách chạy riêng
 

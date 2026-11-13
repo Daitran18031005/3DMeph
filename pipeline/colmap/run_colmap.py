@@ -245,6 +245,22 @@ def run_sfm(layout: SceneLayout, cfg: Dict, exe, log: Callable[[str], None] = pr
 # ---------------------------------------------------------------------------
 
 
+def stereo_fusion_args(cfg: Dict) -> List:
+    """`--StereoFusion.<khoá> <giá trị>` từ `colmap.stereo_fusion` (khoá nào cũng đi vào lệnh; bỏ trống thì dùng mặc định COLMAP)."""
+    args: List = []
+    for k, v in ((cfg.get("colmap") or {}).get("stereo_fusion") or {}).items():
+        args += [f"--StereoFusion.{k}", v]
+    return args
+
+
+def run_stereo_fusion(layout: SceneLayout, cfg: Dict, exe, log: Callable[[str], None] = print) -> Dict:
+    """Chạy `stereo_fusion` trên depth map có sẵn của `baselines/colmap/mvs` → `fused.ply` + `fused.ply.vis` (không cần GPU)."""
+    mvs = layout.colmap_mvs
+    geom = bool(cfgmod.require(cfg, "colmap.geom_consistency"))
+    return run_cmd(exe, ["stereo_fusion", "--workspace_path", mvs, "--workspace_format", "COLMAP", "--input_type", "geometric" if geom else "photometric",
+                         "--output_path", mvs / "fused.ply", *stereo_fusion_args(cfg)], log, poll_vram=False)
+
+
 def run_mvs(layout: SceneLayout, cfg: Dict, exe, log: Callable[[str], None] = print) -> Dict:
     """Stage `mvs`. Đầu vào: `baselines/colmap/sfm/sparse/0`, keyframes."""
     t0 = time.time()
@@ -264,8 +280,7 @@ def run_mvs(layout: SceneLayout, cfg: Dict, exe, log: Callable[[str], None] = pr
     runs = [run_cmd(exe, ["image_undistorter", "--image_path", layout.keyframes, "--input_path", model, "--output_path", mvs,
                           "--output_type", "COLMAP"], log),
             run_cmd(exe, pm, log),
-            run_cmd(exe, ["stereo_fusion", "--workspace_path", mvs, "--workspace_format", "COLMAP",
-                          "--input_type", "geometric" if geom else "photometric", "--output_path", mvs / "fused.ply"], log)]
+            run_stereo_fusion(layout, cfg, exe, log)]
     fused = mvs / "fused.ply"
     if not fused.is_file() or not (mvs / "fused.ply.vis").is_file():
         raise StageError(E_COLMAP_FAILED, "stereo_fusion không tạo fused.ply / fused.ply.vis")

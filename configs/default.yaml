@@ -53,6 +53,12 @@ colmap:
     abs_pose_min_inlier_ratio: 0.05   # Mapper.abs_pose_min_inlier_ratio (mặc định 0,25)
     min_num_matches: 10       # Mapper.min_num_matches (mặc định 15)
     abs_pose_max_error: 16    # Mapper.abs_pose_max_error, px (mặc định 12)
+  stereo_fusion:              # StereoFusion.* của `stereo_fusion`: cấu hình "d3" làm chuẩn cho mọi biến thể từ M4 đợt 3 (người dùng duyệt 13/11; ĐC không nêu số)
+    min_num_pixels: 2         # StereoFusion.min_num_pixels (mặc định COLMAP 5)
+    max_reproj_error: 8       # StereoFusion.max_reproj_error, px (mặc định 2)
+    max_depth_error: 0.05     # StereoFusion.max_depth_error (mặc định 0,01)
+    max_normal_error: 30      # StereoFusion.max_normal_error, độ (mặc định 10)
+    check_num_images: 100     # StereoFusion.check_num_images (mặc định 50)
   geom_consistency: true      # PatchMatchStereo.geom_consistency, tạo cả depth photometric và geometric
   max_image_size: null        # null = giữ nguyên kích thước ảnh
   use_gpu: true               # false = SIFT và ghép cặp trên CPU (patch_match_stereo vẫn cần CUDA); dùng khi driver quá cũ cho bản COLMAP CUDA 13
@@ -85,6 +91,9 @@ fusion:
   fill_min_views: 3           # số view khác nhau phải có điểm VGGT trong cùng ô (hướng A)
   fill_min_conf: 0.5          # c_model tối thiểu của điểm VGGT ứng viên (hướng A)
   fill_stride: 4              # lấy mỗi n pixel trên lưới VGGT (hướng A)
+  filter_min_views: null      # [Suy luận, M4 đợt 3] f1: bỏ điểm có ít hơn n view lấy được; null = tắt (hành vi cũ)
+  filter_sor_std_ratio: null  # [Suy luận, M4 đợt 3] f2: ngoại lai thống kê, bỏ điểm có khoảng cách TB tới k láng giềng > TB + giá trị × độ lệch chuẩn; null = tắt
+  filter_sor_k: 20            # số láng giềng của f2 (cố định 20, chỉ quét thử 10 và 40)
 
 plane:
   tau_r: 0.05                 # (24): m, ví dụ §17.1; đã khoá 12/11 (M4, 5 Validation, quét 3 giá trị, không giá trị nào qua quy tắc → giữ mặc định)
