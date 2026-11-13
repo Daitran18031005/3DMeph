@@ -22,7 +22,7 @@ def sandbox(tmp_path):
     shutil.copytree(
         REPO, root,
         ignore=shutil.ignore_patterns(".git", "raw", "processed", "self_collected", "scenes",
-                                      "__pycache__", ".pytest_cache", "tests"),
+                                      "__pycache__", ".pytest_cache", "tests", "sweeps"),       # data/sweeps ~3 GB mỗi bản sao × 10 test: không cần cho check_docs
     )
     return root
 

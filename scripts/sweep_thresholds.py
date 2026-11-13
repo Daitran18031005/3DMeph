@@ -91,13 +91,10 @@ def _hash_dir(path: Path) -> Dict[str, str]:
     return {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for d in ("fusion", "plane_refinement") for p in sorted((path / d).glob("*")) if p.is_file()}
 
 
-def run_scene(root: Path, cfg: Dict, scene: str, load_cameras: Callable = load_colmap_cameras, log: Callable[[str], None] = print,
-              done: Optional[set] = None) -> List[Dict]:
-    """Chạy mọi cấu hình của một scene, trả về danh sách dòng CSV (bỏ cấu hình có trong `done`)."""
+def eval_context(root: Path, cfg: Dict, scene: str, load_cameras: Callable = load_colmap_cameras) -> Dict:
+    """Chuẩn bị chấm hình học một scene đúng như stage `eval`: Kabsch cắt tỉa theo camera B0, vùng `visible_gt` dùng chung, tham số ICP."""
     vid = scene.split("/")[-1]
     base = base_layout(scene_layout(root / cfgmod.require(cfg, "paths.data_root"), "arkitscenes", vid))
-    lay = VariantLayout(base.root, "sweep")
-    before = _hash_dir(base.proposed)
     gt = gt_camera_centers(base)
     faro = geo.load_points(base.faro / "faro_scene_frame.ply")
     region = rg.build_region(base, cfg, gt, faro, load_cameras)
@@ -106,6 +103,24 @@ def run_scene(root: Path, cfg: Dict, scene: str, load_cameras: Callable = load_c
     views = sorted(set(cen) & set(gt))
     r, t, _, _ = ln.kabsch_rigid_trimmed(np.array([gt[v] for v in views]), np.array([cen[v] for v in views]), k, iters)   # mô hình = R·GT + t
     voxel, delta, icp = (float(cfgmod.require(cfg, f"eval.{x}")) for x in ("voxel_m", "delta_m", "icp_max_dist_m"))
+    return {"base": base, "region": region, "r": r, "t": t, "voxel": voxel, "delta": delta, "icp": icp}
+
+
+def eval_cloud(ctx: Dict, cloud: np.ndarray) -> Dict:
+    """acc, comp, Chamfer, precision, recall, F của một point cloud mét (đường ICP của `eval`) trong vùng đánh giá của scene."""
+    region = ctx["region"]
+    model_r, _ = region.filter_model((cloud - ctx["t"]) @ ctx["r"])
+    g = geo.evaluate_geometry(model_r, region.faro, region.box, ctx["voxel"], ctx["delta"], ctx["icp"])["icp"]
+    return {k_: g[k_] for k_ in ("acc_cm", "comp_cm", "chamfer_cm", "precision", "recall", "f_score")}
+
+
+def run_scene(root: Path, cfg: Dict, scene: str, load_cameras: Callable = load_colmap_cameras, log: Callable[[str], None] = print,
+              done: Optional[set] = None) -> List[Dict]:
+    """Chạy mọi cấu hình của một scene, trả về danh sách dòng CSV (bỏ cấu hình có trong `done`)."""
+    ctx = eval_context(root, cfg, scene, load_cameras)
+    base, region = ctx["base"], ctx["region"]
+    lay = VariantLayout(base.root, "sweep")
+    before = _hash_dir(base.proposed)
     rows: List[Dict] = []
     fused_key: Optional[Tuple[float, float]] = None
     for param, value in config_list(cfg):
@@ -121,10 +136,7 @@ def run_scene(root: Path, cfg: Dict, scene: str, load_cameras: Callable = load_c
                 fused_key = key
             gate = run_gate(lay, c, log=lambda m: None, load_cameras=load_cameras)
             cloud = geo.load_points(lay.plane_refinement / "refined_points.ply")
-            model_r, _ = region.filter_model((cloud - t) @ r)
-            g = geo.evaluate_geometry(model_r, region.faro, region.box, voxel, delta, icp)["icp"]
-            row.update(n_gate_pass=gate.get("n_gate_pass"), frac_gate_pass=gate.get("frac_gate_pass"), region_gt_kept_frac=region.gt_kept_frac,
-                       **{k_: g[k_] for k_ in ("acc_cm", "comp_cm", "chamfer_cm", "precision", "recall", "f_score")})
+            row.update(n_gate_pass=gate.get("n_gate_pass"), frac_gate_pass=gate.get("frac_gate_pass"), region_gt_kept_frac=region.gt_kept_frac, **eval_cloud(ctx, cloud))
         except Exception as e:                                         # một cấu hình lỗi không làm mất cả scene; lỗi ghi vào CSV
             row["error"] = f"{type(e).__name__}: {e}"
         row["seconds"] = round(time.time() - t0, 1)

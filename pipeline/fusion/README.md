@@ -49,6 +49,13 @@ bản đồ điểm VGGT (đã sang mét). COLMAP chỉ cho tín hiệu; nhánh 
 | `fusion.tau_sigma` | 0.20 | ĐC §16.1: m, "minh họa"; khoá 12/11 trên 5 Validation (M4): quét 3 giá trị, không giá trị nào qua quy tắc, giữ mặc định |
 | `fusion.e_cap_px` | 4.0 | Suy luận (ngưỡng RANSAC 1–4 px, ĐC §14.1) |
 | `fusion.use_quality` | true | `false` là Ablation 1: bỏ `q_blur, q_texture, q_exposure` |
+| `fusion.max_shift_m` | null | Suy luận (M4 đợt 2, hướng B): kẹp độ dịch ‖P̂_k − điểm MVS‖ ≤ giá trị (m) vì P̂_k lấy toạ độ VGGT; `null` = không kẹp, `0` = giữ đúng vị trí MVS (`fusion.clamp_shift`) |
+| `fusion.mvs_cloud` | fused.ply | Suy luận (M4 đợt 2, hướng D): tên PLY MVS trong `baselines/colmap/mvs/` mà `fuse` đọc (kèm `<tên>.vis`); biến thể dày hơn do `scripts/stereo_fusion_variant.py` ghi, mặc định là `fused.ply` |
+| `fusion.fill_enabled` | false | Suy luận (M4 đợt 2, hướng A): `true` = thêm điểm VGGT vào ô voxel MVS không có điểm (`fusion.fill.fill_points`); không thuộc đề cương |
+| `fusion.fill_voxel_m` | 0.10 | hướng A: cạnh ô voxel (m); đặt trước khi chạy |
+| `fusion.fill_min_views` | 3 | hướng A: số view khác nhau có điểm VGGT trong cùng ô |
+| `fusion.fill_min_conf` | 0.5 | hướng A: c_model tối thiểu của điểm VGGT ứng viên |
+| `fusion.fill_stride` | 4 | hướng A: lấy mỗi n pixel trên lưới VGGT |
 
 ## Cách chạy riêng
 

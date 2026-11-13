@@ -78,6 +78,13 @@ fusion:
   tau_sigma: 0.20             # (19): m, "minh họa" §16.1; đã khoá 12/11 (M4, 5 Validation, quét 3 giá trị, không giá trị nào qua quy tắc → giữ mặc định)
   e_cap_px: 4.0               # e_reproj gán cho vùng ngoài nội suy [Suy luận: ngưỡng RANSAC 1–4 px, §14.1]
   use_quality: true           # false = Ablation 1 (bỏ q_blur, q_texture, q_exposure)
+  max_shift_m: null           # [Suy luận, M4 đợt 2 hướng B] m: kẹp ‖P̂_k − điểm MVS‖ ≤ giá trị này; null = không kẹp (hành vi cũ), 0 = giữ đúng vị trí MVS
+  mvs_cloud: fused.ply          # [Suy luận, M4 đợt 2 hướng D] tên PLY MVS trong baselines/colmap/mvs/ mà `fuse` đọc (kèm <tên>.vis); biến thể dày hơn do scripts/stereo_fusion_variant.py ghi
+  fill_enabled: false         # [Suy luận, M4 đợt 2 hướng A] true = thêm điểm VGGT vào ô voxel MVS không có điểm (không thuộc đề cương)
+  fill_voxel_m: 0.10          # m: cạnh ô voxel (hướng A; đặt trước khi chạy, không chỉnh theo kết quả)
+  fill_min_views: 3           # số view khác nhau phải có điểm VGGT trong cùng ô (hướng A)
+  fill_min_conf: 0.5          # c_model tối thiểu của điểm VGGT ứng viên (hướng A)
+  fill_stride: 4              # lấy mỗi n pixel trên lưới VGGT (hướng A)
 
 plane:
   tau_r: 0.05                 # (24): m, ví dụ §17.1; đã khoá 12/11 (M4, 5 Validation, quét 3 giá trị, không giá trị nào qua quy tắc → giữ mặc định)

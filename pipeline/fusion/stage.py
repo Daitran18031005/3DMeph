@@ -22,7 +22,8 @@ from ..common.ply import write_ply
 from ..common.quality import window_gradient_mean
 from ..common.schema import read_keyframes_csv
 from ..vggt.infer import original_to_vggt, pad_geometry
-from .fusion import fuse, gate_weight, weights_from_signals
+from .fill import fill_points
+from .fusion import clamp_shift, fuse, gate_weight, weights_from_signals
 
 
 def read_vis(path) -> Tuple[np.ndarray, np.ndarray]:
@@ -168,6 +169,34 @@ def sample_pairs(layout: SceneLayout, xyz_colmap: np.ndarray, kk: np.ndarray, vi
     return out
 
 
+def vggt_candidates(layout: SceneLayout, chunks: List[Dict], s_m: float, geo: Dict, stride: int, min_conf: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Điểm VGGT ứng viên lấp lỗ (hướng A): mỗi `stride` pixel trong vùng ảnh (bỏ phần đệm), c_model ≥ `min_conf`, đã đổi sang mét như `sample_pairs`.
+    Trả về (xyz (N, 3), view (N,), c_model (N,)); view nằm trong hai chunk thì dùng chunk mà view ở xa biên hơn (như `view_to_chunk`)."""
+    from ..vggt.infer import read_chunk
+
+    v2c = view_to_chunk(chunks)
+    by_chunk = {c["chunk"]: c for c in chunks}
+    r0, r1 = geo["pad_top"], geo["pad_top"] + geo["new_h"]
+    c0, c1 = geo["pad_left"], geo["pad_left"] + geo["new_w"]
+    xyz, view, conf = [], [], []
+    for k in sorted(by_chunk):
+        mine = sorted((j, v) for v, (kk, j) in v2c.items() if kk == k)
+        if not mine:
+            continue
+        _, vout, _ = read_chunk(layout, k)
+        ch = by_chunk[k]
+        for j, v in mine:
+            p = vout["points"][j][r0:r1:stride, c0:c1:stride].reshape(-1, 3)
+            c = vout["c_model"][j][r0:r1:stride, c0:c1:stride].reshape(-1)
+            ok = np.isfinite(p).all(axis=1) & (c >= min_conf)
+            xyz.append(s_m * (ch["s"] * p[ok] @ ch["R"].T + ch["t"]))
+            view.append(np.full(int(ok.sum()), v))
+            conf.append(np.clip(c[ok], 0.0, 1.0))
+    if not xyz:
+        return np.zeros((0, 3)), np.zeros(0, int), np.zeros(0)
+    return np.concatenate(xyz), np.concatenate(view), np.concatenate(conf)
+
+
 def pad_pairs(counts: np.ndarray, values: np.ndarray, fill=0.0) -> np.ndarray:
     """Mảng phẳng theo cặp (Σm, ...) → (K, Vmax, ...) theo từng điểm."""
     vmax = int(counts.max())
@@ -190,7 +219,8 @@ def run_fuse(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
     g_ref = float(cfgmod.require(cfg, "quality.g_ref.vga"))
     scale_path = layout.alignment / "scale.json"
     mvs = layout.colmap_mvs
-    for p in (scale_path, mvs / "fused.ply", mvs / "fused.ply.vis"):
+    mvs_name = str(cfgmod.get(cfg, "fusion.mvs_cloud") or "fused.ply")
+    for p in (scale_path, mvs / mvs_name, mvs / f"{mvs_name}.vis"):
         if not p.is_file():
             raise StageError(E_MISSING_INPUT, f"thiếu {p}: chạy stage trước đó (align, mvs)")
     s_m = float(read_json(scale_path)["s_m"])
@@ -198,10 +228,10 @@ def run_fuse(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
     cams = load_cameras(layout)
     kf = read_keyframes_csv(layout.metadata / "keyframes.csv")
     geo = pad_geometry(int(kf[0]["w"]), int(kf[0]["h"]))
-    ply = read_ply_xyz(mvs / "fused.ply")
-    counts, flat = read_vis(mvs / "fused.ply.vis")
+    ply = read_ply_xyz(mvs / mvs_name)
+    counts, flat = read_vis(mvs / f"{mvs_name}.vis")
     if len(counts) != len(ply):
-        raise StageError(E_MISSING_INPUT, f"fused.ply có {len(ply)} điểm nhưng fused.ply.vis có {len(counts)}")
+        raise StageError(E_MISSING_INPUT, f"{mvs_name} có {len(ply)} điểm nhưng {mvs_name}.vis có {len(counts)}")
     names = read_fusion_image_names(mvs)
     idx_to_view = np.array([int(n.split(".")[0]) for n in names])
     kk = np.repeat(np.arange(len(counts)), counts)
@@ -227,6 +257,18 @@ def run_fuse(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
     p_hat, w_tilde = fuse(p_pad, w_pad, m_pad)
     w_k = gate_weight(w_pad, w_tilde)
     p_hat, w_k, n_views = p_hat[keep], w_k[keep], n_valid_pt[keep]
+    x_m = ply[keep] * s_m
+    max_shift = cfgmod.get(cfg, "fusion.max_shift_m")
+    p_hat, clamped = clamp_shift(p_hat, x_m, None if max_shift is None else float(max_shift))
+    n_fill = 0
+    if bool(cfgmod.get(cfg, "fusion.fill_enabled")):
+        v_size, n_min = float(cfgmod.require(cfg, "fusion.fill_voxel_m")), int(cfgmod.require(cfg, "fusion.fill_min_views"))
+        c_min, stride = float(cfgmod.require(cfg, "fusion.fill_min_conf")), int(cfgmod.require(cfg, "fusion.fill_stride"))
+        cx, cv, cc = vggt_candidates(layout, chunks, s_m, geo, stride, c_min)
+        f_xyz, f_conf, f_nv = fill_points(cx, cv, cc, ply * s_m, v_size, n_min)
+        n_fill = len(f_xyz)
+        p_hat, w_k, n_views = np.vstack([p_hat, f_xyz]), np.concatenate([w_k, f_conf]), np.concatenate([n_views, np.minimum(f_nv, 255)])
+        log(f"[fuse] lấp lỗ bằng VGGT: {len(cx):,} ứng viên (c_model ≥ {c_min}), thêm {n_fill:,} điểm (ô {v_size} m, ≥ {n_min} view)")
 
     out_dir = ensure_dir(layout.fusion)
     write_ply(out_dir / "fused_points.ply", {"x": p_hat[:, 0].astype(np.float32), "y": p_hat[:, 1].astype(np.float32), "z": p_hat[:, 2].astype(np.float32),
@@ -236,17 +278,17 @@ def run_fuse(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
                         e_reproj=pr["e_reproj"][ok].astype(np.float32), sigma_m=pr["sigma_m"][ok].astype(np.float32), q_blur=q_blur[ok].astype(np.float32),
                         q_texture=pr["q_texture"][ok].astype(np.float32), q_exposure=q_exp[ok].astype(np.float32), w=w[ok].astype(np.float32),
                         w_tilde=wt_flat[ok].astype(np.float32))
-    x_m = ply[keep] * s_m
     dev_pair = np.linalg.norm(pr["P"][ok] - (ply[kk[ok]] * s_m), axis=1)
-    dev_fused = np.linalg.norm(p_hat - x_m, axis=1)
+    dev_fused = np.linalg.norm(p_hat[:len(x_m)] - x_m, axis=1)                                  # điểm lấp lỗ (nếu có) nằm sau điểm MVS
     pc = lambda a, q: float(np.percentile(a, q))  # noqa: E731
-    stats = {"n_points_mvs": int(len(counts)), "n_points_fused": int(keep.sum()), "n_pairs": int(len(kk)), "n_pairs_valid": int(ok.sum()),
+    stats = {"n_points_mvs": int(len(counts)), "n_points_fused": int(keep.sum()) + int(n_fill), "n_pairs": int(len(kk)), "n_pairs_valid": int(ok.sum()),
              "pairs_dropped": {k: int(v) for k, v in stat.items()}, "s_m": s_m, "use_quality": use_q,
              "w_k_percentiles": {q: round(pc(w_k, q), 4) for q in (5, 25, 50, 75, 95)}, "w_k_mean": float(w_k.mean()),
              "frac_w_k_above_tau_w": float((w_k > float(cfgmod.get(cfg, "plane.tau_w"))).mean()),
              "signal_medians": {k: round(float(np.nanmedian(pr[k][ok])), 4) for k in ("c_model", "e_reproj", "sigma_m", "q_texture")},
              "sigma_nan_fraction": float(np.isnan(pr["sigma_m"][ok]).mean()),
              "vggt_vs_colmap_pair_cm": {"median": round(pc(dev_pair, 50) * 100, 2), "p90": round(pc(dev_pair, 90) * 100, 2)},
+             "n_points_filled": int(n_fill), "max_shift_m": None if max_shift is None else float(max_shift), "frac_shift_clamped": float(clamped.mean()),
              "fused_vs_colmap_cm": {"median": round(pc(dev_fused, 50) * 100, 2), "p90": round(pc(dev_fused, 90) * 100, 2)},
              "seconds": round(time.time() - t0, 1)}
     write_json(out_dir / "fusion_result.json", stats)

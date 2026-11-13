@@ -78,3 +78,20 @@ def gate_weight(w: np.ndarray, w_tilde: np.ndarray) -> np.ndarray:
     Quyết định của nhóm (đề cương chỉ nói 'trọng số tin cậy từ fusion'). Với một view duy nhất, w_k = w.
     """
     return (np.asarray(w_tilde, dtype=np.float64) * np.asarray(w, dtype=np.float64)).sum(axis=-1)
+
+
+def clamp_shift(p_hat: np.ndarray, x_ref: np.ndarray, max_shift: Optional[float]) -> Tuple[np.ndarray, np.ndarray]:
+    """Kẹp độ dịch ‖P̂_k − x_k‖ ≤ max_shift (m) quanh điểm MVS x_k (đã nhân s_m). Trả về (P̂ đã kẹp, mặt nạ điểm bị kẹp).
+
+    Không thuộc đề cương [Suy luận, M4 đợt 2, hướng B]: P̂_k (22) lấy toạ độ từ VGGT nên mang lệch Sim(3) theo chunk; kẹp giữ điểm gần vị trí MVS.
+    `max_shift = None` giữ nguyên (hành vi cũ); `0` trả đúng vị trí MVS."""
+    p_hat = np.asarray(p_hat, dtype=np.float64)
+    if max_shift is None:
+        return p_hat, np.zeros(len(p_hat), bool)
+    if max_shift < 0:
+        raise ValueError(f"max_shift phải ≥ 0, nhận {max_shift}")
+    d = p_hat - np.asarray(x_ref, dtype=np.float64)
+    n = np.linalg.norm(d, axis=-1)
+    clamped = n > max_shift
+    scale = np.where(clamped, max_shift / np.maximum(n, 1e-12), 1.0)
+    return np.asarray(x_ref, dtype=np.float64) + d * scale[:, None], clamped

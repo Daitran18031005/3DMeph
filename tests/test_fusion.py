@@ -104,3 +104,32 @@ def test_fuse_3d_points():
     assert w_tilde[0] == pytest.approx([0.75, 0.25])
     with pytest.raises(ValueError):
         fuse(np.zeros((1, 2, 3, 3)), w)
+
+
+def test_clamp_shift_giu_nguyen_khi_none_va_kep_dung_khi_co_gioi_han():
+    from pipeline.fusion.fusion import clamp_shift
+    x = np.zeros((3, 3))
+    p = np.array([[0.01, 0, 0], [0, 0.10, 0], [0, 0, -0.30]])
+    out, c = clamp_shift(p, x, None)
+    assert np.array_equal(out, p) and not c.any()
+    out, c = clamp_shift(p, x, 0.05)
+    assert c.tolist() == [False, True, True]
+    assert np.allclose(out, [[0.01, 0, 0], [0, 0.05, 0], [0, 0, -0.05]])      # hướng giữ nguyên, độ dài kẹp về 0,05
+    out0, _ = clamp_shift(p, x, 0.0)
+    assert np.allclose(out0, x)                                                # 0 = đúng vị trí MVS
+    with pytest.raises(ValueError):
+        clamp_shift(p, x, -0.1)
+
+
+def test_fill_points_chi_lay_o_trong_du_view_va_xa_diem_mvs():
+    from pipeline.fusion.fill import fill_points
+    mvs = np.array([[x, y, 0.0] for x in np.arange(0, 1, 0.05) for y in np.arange(0, 1, 0.05)])           # mặt phẳng z = 0 đã có MVS
+    near_mvs = np.array([[0.5, 0.5, 0.12]] * 3)                                                           # sát mặt MVS (≤ 1 ô): bỏ dù đủ view
+    hole3 = np.array([[3.05, 3.05, 3.05]] * 3)                                                            # ô trống, 3 view khác nhau: nhận
+    hole2 = np.array([[5.05, 5.05, 5.05]] * 3)                                                            # ô trống nhưng chỉ 2 view khác nhau: bỏ
+    xyz = np.vstack([near_mvs, hole3, hole2])
+    view = np.array([0, 1, 2, 0, 1, 2, 7, 7, 8])
+    conf = np.full(len(xyz), 0.9)
+    p, c, n = fill_points(xyz, view, conf, mvs, voxel=0.1, min_views=3)
+    assert len(p) == 1 and np.allclose(p[0], [3.05, 3.05, 3.05]) and n[0] == 3 and np.isclose(c[0], 0.9)
+    assert len(fill_points(np.zeros((0, 3)), np.zeros(0, int), np.zeros(0), mvs, 0.1, 3)[0]) == 0
