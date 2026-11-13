@@ -1,0 +1,40 @@
+{
+  "n_points": 839599,
+  "n_planes": 8,
+  "n_struct_planes": 7,
+  "up_refined": true,
+  "up_deviation_deg": 7.072477647411382,
+  "plane_labels": [
+    "floor",
+    "floor",
+    "other",
+    "floor",
+    "floor",
+    "wall",
+    "wall",
+    "floor"
+  ],
+  "plane_inliers": [
+    178072,
+    132003,
+    90981,
+    62114,
+    53840,
+    52756,
+    43394,
+    32238
+  ],
+  "frac_gate_pass": 0.009055513405804438,
+  "n_gate_pass": 7603,
+  "condition_pass_fraction": {
+    "r<tau_r": 0.7175711262162056,
+    "theta<tau_n": 0.17971793677696138,
+    "w_k>tau_w": 0.0611911162352504
+  },
+  "displacement_cm": {
+    "median_of_passed": 0.5,
+    "max": 2.49
+  },
+  "force": false,
+  "seconds": 5.8
+}

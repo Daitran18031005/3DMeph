@@ -1,0 +1,106 @@
+{
+  "variant": "abl_quality",
+  "length_mode": "auto",
+  "cloud": "D:\\Nghien_Cuu\\3D_Metric\\3DMeph\\data\\scenes\\arkitscenes\\42445022\\proposed\\variants\\abl_quality\\plane_refinement\\refined_points.ply",
+  "n_points": 839599,
+  "n_cameras": 78,
+  "kabsch_rms_cm": 2.689640451166302,
+  "kabsch_max_cm": 686.938677787838,
+  "ate_sim3_cm": 2.237879602074758,
+  "trim_k": 3.0,
+  "n_cameras_dropped": 13,
+  "dropped_views": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    45,
+    46,
+    47,
+    48,
+    55,
+    56
+  ],
+  "ate_rigid_all_cm": 103.26704812940815,
+  "R_gt_to_model": [
+    [
+      0.06975256126278763,
+      -0.9975330910775186,
+      -0.00789382053323571
+    ],
+    [
+      -0.7297514901318671,
+      -0.04562952837385189,
+      -0.6821881769649035
+    ],
+    [
+      0.6801450895563383,
+      0.05334489990345618,
+      -0.7311340361429566
+    ]
+  ],
+  "t_gt_to_model": [
+    1.536361010542099,
+    0.7386278138500059,
+    -0.6503915917517743
+  ],
+  "snap_radius_m": 0.02,
+  "snap_auto": {
+    "n_endpoints": 24,
+    "n_unsnapped": 13,
+    "snap_mean_cm": 1.0984362126067138,
+    "nn_median_cm": 2.3723344417994183,
+    "nn_max_cm": 8.257318052505305
+  },
+  "region": {
+    "mode": "visible_gt",
+    "gt_kept_frac": 0.6588854288309329,
+    "model_kept_frac": null,
+    "n_views": 65,
+    "dropped_views": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      45,
+      46,
+      47,
+      48,
+      55,
+      56
+    ],
+    "box": null
+  },
+  "geometry": {
+    "kabsch": {
+      "acc_cm": 5.17580478831757,
+      "comp_cm": 28.478036222725443,
+      "chamfer_cm": 16.826920505521507,
+      "precision": 0.6866084612848193,
+      "recall": 0.5160036892175784,
+      "f_score": 0.5892049218411173
+    },
+    "icp": {
+      "acc_cm": 4.722661525647638,
+      "comp_cm": 28.280441165287463,
+      "chamfer_cm": 16.50155134546755,
+      "precision": 0.7355812653219216,
+      "recall": 0.5275751934277272,
+      "f_score": 0.6144518767186852
+    },
+    "icp_info": {
+      "fitness": 0.8839834845813084,
+      "inlier_rmse_m": 0.037037572729511144,
+      "shift_m": 0.06141358122963074,
+      "rot_deg": 1.9574074391387233
+    },
+    "n_model_voxels": 139506,
+    "n_faro_voxels": 117098
+  }
+}

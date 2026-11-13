@@ -1,0 +1,78 @@
+{
+  "variant": "B3",
+  "length_mode": "auto",
+  "cloud": "D:\\Nghien_Cuu\\3D_Metric\\3DMeph\\data\\scenes\\arkitscenes\\42898849\\proposed\\fusion\\fused_points.ply",
+  "n_points": 650489,
+  "n_cameras": 79,
+  "kabsch_rms_cm": 9.068368789728886,
+  "kabsch_max_cm": 22.738130035115965,
+  "ate_sim3_cm": 8.362664658548258,
+  "trim_k": 3.0,
+  "n_cameras_dropped": 0,
+  "dropped_views": [],
+  "ate_rigid_all_cm": 9.068368789728888,
+  "R_gt_to_model": [
+    [
+      0.04003087853846071,
+      0.9986670848575836,
+      -0.03258193342169438
+    ],
+    [
+      0.15433333324287674,
+      -0.03839652409874132,
+      -0.9872724695783218
+    ],
+    [
+      -0.9872075521457392,
+      0.03449290592558812,
+      -0.15566466659851344
+    ]
+  ],
+  "t_gt_to_model": [
+    -4.338640540609069,
+    0.2746233394242173,
+    0.034588238468868916
+  ],
+  "snap_radius_m": 0.02,
+  "snap_auto": {
+    "n_endpoints": 12,
+    "n_unsnapped": 8,
+    "snap_mean_cm": 1.4641784393209971,
+    "nn_median_cm": 2.908185798556016,
+    "nn_max_cm": 50.87870440145837
+  },
+  "region": {
+    "mode": "visible_gt",
+    "gt_kept_frac": 0.5422520097102169,
+    "model_kept_frac": null,
+    "n_views": 79,
+    "dropped_views": [],
+    "box": null
+  },
+  "geometry": {
+    "kabsch": {
+      "acc_cm": 9.915172984794864,
+      "comp_cm": 20.76999652490223,
+      "chamfer_cm": 15.342584754848549,
+      "precision": 0.36188019095854634,
+      "recall": 0.3447633667905226,
+      "f_score": 0.3531144709139749
+    },
+    "icp": {
+      "acc_cm": 8.651743379320893,
+      "comp_cm": 20.936106435773482,
+      "chamfer_cm": 14.793924907547188,
+      "precision": 0.4845731716988015,
+      "recall": 0.39571520774019203,
+      "f_score": 0.43565944475222734
+    },
+    "icp_info": {
+      "fitness": 0.7263059671902342,
+      "inlier_rmse_m": 0.047700002065893476,
+      "shift_m": 0.11491655149282255,
+      "rot_deg": 0.30449138209603177
+    },
+    "n_model_voxels": 378302,
+    "n_faro_voxels": 663136
+  }
+}

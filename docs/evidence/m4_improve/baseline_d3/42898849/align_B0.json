@@ -1,0 +1,78 @@
+{
+  "variant": "B0",
+  "length_mode": "auto",
+  "cloud": "D:\\Nghien_Cuu\\3D_Metric\\3DMeph\\data\\scenes\\arkitscenes\\42898849\\baselines\\colmap\\metric\\fused_metric.ply",
+  "n_points": 650490,
+  "n_cameras": 79,
+  "kabsch_rms_cm": 9.068368789728886,
+  "kabsch_max_cm": 22.738130035115965,
+  "ate_sim3_cm": 8.362664658548258,
+  "trim_k": 3.0,
+  "n_cameras_dropped": 0,
+  "dropped_views": [],
+  "ate_rigid_all_cm": 9.068368789728888,
+  "R_gt_to_model": [
+    [
+      0.04003087853846071,
+      0.9986670848575836,
+      -0.03258193342169438
+    ],
+    [
+      0.15433333324287674,
+      -0.03839652409874132,
+      -0.9872724695783218
+    ],
+    [
+      -0.9872075521457392,
+      0.03449290592558812,
+      -0.15566466659851344
+    ]
+  ],
+  "t_gt_to_model": [
+    -4.338640540609069,
+    0.2746233394242173,
+    0.034588238468868916
+  ],
+  "snap_radius_m": 0.02,
+  "snap_auto": {
+    "n_endpoints": 12,
+    "n_unsnapped": 7,
+    "snap_mean_cm": 1.076153198072358,
+    "nn_median_cm": 2.37381937251539,
+    "nn_max_cm": 53.167343643319285
+  },
+  "region": {
+    "mode": "visible_gt",
+    "gt_kept_frac": 0.5422520097102169,
+    "model_kept_frac": null,
+    "n_views": 79,
+    "dropped_views": [],
+    "box": null
+  },
+  "geometry": {
+    "kabsch": {
+      "acc_cm": 29.196244968983343,
+      "comp_cm": 26.066031899888305,
+      "chamfer_cm": 27.63113843443582,
+      "precision": 0.5369832930972653,
+      "recall": 0.29984648699512617,
+      "f_score": 0.3848155451459013
+    },
+    "icp": {
+      "acc_cm": 27.282592033781768,
+      "comp_cm": 25.101872984722995,
+      "chamfer_cm": 26.192232509252378,
+      "precision": 0.7749799435832406,
+      "recall": 0.41937702070163585,
+      "f_score": 0.5442406073933866
+    },
+    "icp_info": {
+      "fitness": 0.9065500375249088,
+      "inlier_rmse_m": 0.03432785135088213,
+      "shift_m": 0.10656291818747762,
+      "rot_deg": 0.25913596743723444
+    },
+    "n_model_voxels": 270487,
+    "n_faro_voxels": 663136
+  }
+}

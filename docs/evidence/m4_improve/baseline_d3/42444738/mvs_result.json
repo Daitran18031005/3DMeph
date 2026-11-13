@@ -1,0 +1,19 @@
+{
+  "n_depth_maps": 80,
+  "n_fused_points": 803972,
+  "sigma_depth_valid_fraction_mean": 0.3417,
+  "sigma_depth_median_colmap_units": 0.03895,
+  "fused_ply_mb": 21.7,
+  "peak_vram_mib": 370.0,
+  "baseline_vram_mib": 0.0,
+  "seconds": 727.6,
+  "stereo_fusion": {
+    "min_num_pixels": 2,
+    "max_reproj_error": 8,
+    "max_depth_error": 0.05,
+    "max_normal_error": 30,
+    "check_num_images": 100
+  },
+  "n_fused_points_strict": 112002,
+  "strict_backup": "fused_strict.ply"
+}

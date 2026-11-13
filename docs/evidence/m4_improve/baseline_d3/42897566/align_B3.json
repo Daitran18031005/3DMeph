@@ -1,0 +1,78 @@
+{
+  "variant": "B3",
+  "length_mode": "auto",
+  "cloud": "D:\\Nghien_Cuu\\3D_Metric\\3DMeph\\data\\scenes\\arkitscenes\\42897566\\proposed\\fusion\\fused_points.ply",
+  "n_points": 854469,
+  "n_cameras": 76,
+  "kabsch_rms_cm": 2.1994704185324223,
+  "kabsch_max_cm": 4.937924470726952,
+  "ate_sim3_cm": 2.1131421356426436,
+  "trim_k": 3.0,
+  "n_cameras_dropped": 0,
+  "dropped_views": [],
+  "ate_rigid_all_cm": 2.1994704185324223,
+  "R_gt_to_model": [
+    [
+      0.711437437657598,
+      -0.6876848131173916,
+      0.1447286084604185
+    ],
+    [
+      -0.2271333679469493,
+      -0.419904980951078,
+      -0.878686656401217
+    ],
+    [
+      0.6650317326746648,
+      0.592257887056114,
+      -0.45493229139681923
+    ]
+  ],
+  "t_gt_to_model": [
+    1.2344239959390517,
+    1.4946102541191768,
+    -0.8823532911938982
+  ],
+  "snap_radius_m": 0.02,
+  "snap_auto": {
+    "n_endpoints": 12,
+    "n_unsnapped": 5,
+    "snap_mean_cm": 1.0346122938574651,
+    "nn_median_cm": 1.7580873122699676,
+    "nn_max_cm": 45.89367124691554
+  },
+  "region": {
+    "mode": "visible_gt",
+    "gt_kept_frac": 0.7182110489272611,
+    "model_kept_frac": null,
+    "n_views": 76,
+    "dropped_views": [],
+    "box": null
+  },
+  "geometry": {
+    "kabsch": {
+      "acc_cm": 6.719398106880578,
+      "comp_cm": 27.737578607322856,
+      "chamfer_cm": 17.228488357101718,
+      "precision": 0.47916971432153976,
+      "recall": 0.3612289571063741,
+      "f_score": 0.4119234883778038
+    },
+    "icp": {
+      "acc_cm": 5.048831533376535,
+      "comp_cm": 28.451359463376214,
+      "chamfer_cm": 16.750095498376375,
+      "precision": 0.6562715512737456,
+      "recall": 0.4354979934330536,
+      "f_score": 0.5235627703897311
+    },
+    "icp_info": {
+      "fitness": 0.8649871476040208,
+      "inlier_rmse_m": 0.041694715091372896,
+      "shift_m": 0.07993585904787436,
+      "rot_deg": 1.3441898885093013
+    },
+    "n_model_voxels": 191404,
+    "n_faro_voxels": 191870
+  }
+}

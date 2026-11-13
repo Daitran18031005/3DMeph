@@ -1,0 +1,43 @@
+{
+  "n_points_mvs": 839602,
+  "n_points_fused": 839599,
+  "n_pairs": 2330051,
+  "n_pairs_valid": 2327263,
+  "pairs_dropped": {
+    "no_cam": 0,
+    "no_chunk": 0,
+    "outside": 2788,
+    "sigma_nan": 180542,
+    "e_missing_views": 0
+  },
+  "s_m": 0.28402591501056124,
+  "use_quality": true,
+  "w_k_percentiles": {
+    "5": 0.0055,
+    "25": 0.0529,
+    "50": 0.1702,
+    "75": 0.3172,
+    "95": 0.5176
+  },
+  "w_k_mean": 0.20029110925177407,
+  "frac_w_k_above_tau_w": 0.0611911162352504,
+  "signal_medians": {
+    "c_model": 0.7547,
+    "e_reproj": 1.1589,
+    "sigma_m": 0.0077,
+    "q_texture": 1.0
+  },
+  "sigma_nan_fraction": 0.07757696487247037,
+  "vggt_vs_colmap_pair_cm": {
+    "median": 4.24,
+    "p90": 21.96
+  },
+  "n_points_filled": 0,
+  "max_shift_m": null,
+  "frac_shift_clamped": 0.0,
+  "fused_vs_colmap_cm": {
+    "median": 3.95,
+    "p90": 22.73
+  },
+  "seconds": 13.6
+}
