@@ -1,0 +1,130 @@
+# configs/default.yaml — tham số của pipeline 3DMeph.
+# Mỗi khoá được mô tả trong README của module tương ứng (pipeline/<module>/README.md) và được
+# scripts/check_docs.py đối chiếu hai chiều. `null` = chưa có căn cứ trong đề cương, phải đo/khoá
+# trên 6 scene ARKitScenes Validation (xem configs/README.md). ĐC = đề cương, "(n)" = số công thức.
+
+keyframe:
+  fps: 2                      # ĐC §7: trích 1–2 khung/giây
+  target_min: 40              # ĐC §7: 40–80 keyframe mỗi lượt (đếm trên ảnh đã đăng ký SfM)
+  target_max: 80              # ĐC §7: 40–80 keyframe mỗi lượt; stage sfm chọn từ tập ứng viên dày (M2: SfM trên 80 khung thưa chỉ đăng ký 8–40%)
+  rotate_from_sky: true       # xoay ảnh upright theo sky_direction (quyết định của nhóm)
+  overlap:
+    max: 0.99                 # tập ứng viên cho SfM: chỉ bỏ khung gần như giống hệt [Suy luận; 0,8 làm SfM đứt chuỗi, M2]
+    min: 0.3                  # dưới mức này coi là mất kết nối [Suy luận từ ĐC §6.1; M2 nới từ 0,6]; KHOÁ 07/11 (người dùng): SfM với 0,2/0,3/0,5 cho trung vị đăng ký 95,9/95,9/96,6%, chênh chỉ 1 keyframe ở 2 scene nên giữ 0,3
+  blur:
+    q_drop: 0.35              # loại khung có q_blur dưới ngưỡng; KHOÁ 31/10 (người dùng): quét 0,2/0,35/0,5 trên 6 Validation cho đăng ký trung vị 96,4/95,9/93,7%, chênh không đủ kết luận nên giữ 0,35
+  exposure:
+    q_drop: 0.5               # loại khung có q_exposure dưới ngưỡng (tối/cháy, ĐC §7.2 không nêu số); KHOÁ 07/11: quét 0,3/0,5/0,7 trên 6 Validation đều loại 0 khung (docs/evidence/m2_sfm/after_07-11/)
+
+video:                        # nguồn video điện thoại (dữ liệu tự thu); mọi khoá là [Suy luận], chưa chạy trên video thật
+  source_dir: data/self_collected   # chứa <id>/ với đúng một file mp4/mov/m4v; tương đối so với gốc repo, ngoài git
+  long_edge: 640              # px: hạ ảnh về cạnh dài này trước khi đo blur, để dùng đúng V_ref/G_ref đo trên vga_wide 640×480; không phóng to
+  focal35_mm: 26              # TẠM: tiêu cự tương đương 35 mm khi video không có metadata tiêu cự (camera chính điện thoại thường 24–28); COLMAP tinh chỉnh
+
+quality:
+  v_ref:                    # (3): trung vị qua scene của blur trung bình, đo trên vga_wide của 6 Validation
+    vga: 205.69
+    measured_on: validation   # split = val trong splits.csv, asset vga_wide
+    n_scenes: 6
+    date: "2026-10-18"
+    stride: 10               # lấy mẫu mỗi 10 khung
+  g_ref:                      # (20): trung vị qua scene của gradient cửa sổ 15×15 trung bình
+    vga: 29.01
+    measured_on: validation   # split = val trong splits.csv, asset vga_wide
+    n_scenes: 6
+    date: "2026-10-18"
+    stride: 10               # lấy mẫu mỗi 10 khung
+  window: 15                  # ĐC §16.1: cửa sổ 15×15 px quanh điểm cho q_texture
+  dark_px: 5                  # (20): pixel ≤ 5 là quá tối
+  bright_px: 250              # (20): pixel ≥ 250 là cháy sáng
+
+colmap:
+  camera_model: PINHOLE       # intrinsics lấy từ camera.json
+  matcher: exhaustive         # exhaustive | sequential; M2: sequential đứt chuỗi ở đoạn xoay máy, exhaustive nối được các đoạn
+  matcher_overlap: null       # số cặp láng giềng của sequential_matcher (chỉ khi matcher: sequential); chưa có căn cứ (mặc định COLMAP)
+  sift:                       # tham số trích đặc trưng; TẠM, đo trên 3 scene ở M2 (47204552, 42898849, 42444738)
+    peak_threshold: 0.004     # SiftExtraction.peak_threshold (mặc định COLMAP 0,00667): thêm đặc trưng ở vùng ít hoạ tiết
+    estimate_affine_shape: true   # SiftExtraction.estimate_affine_shape
+    domain_size_pooling: true     # SiftExtraction.domain_size_pooling
+  mapper:                     # nới ngưỡng mapper cho video quay tay ít thị sai; TẠM, đo trên 3 scene ở M2
+    init_min_tri_angle: 2     # Mapper.init_min_tri_angle (mặc định 16)
+    init_min_num_inliers: 30  # Mapper.init_min_num_inliers (mặc định 100)
+    abs_pose_min_num_inliers: 10   # Mapper.abs_pose_min_num_inliers (mặc định 30)
+    abs_pose_min_inlier_ratio: 0.05   # Mapper.abs_pose_min_inlier_ratio (mặc định 0,25)
+    min_num_matches: 10       # Mapper.min_num_matches (mặc định 15)
+    abs_pose_max_error: 16    # Mapper.abs_pose_max_error, px (mặc định 12)
+  geom_consistency: true      # PatchMatchStereo.geom_consistency, tạo cả depth photometric và geometric
+  max_image_size: null        # null = giữ nguyên kích thước ảnh
+  use_gpu: true               # false = SIFT và ghép cặp trên CPU (patch_match_stereo vẫn cần CUDA); dùng khi driver quá cũ cho bản COLMAP CUDA 13
+
+vggt:
+  chunk: 12                   # (2): c = 8–16 ảnh mỗi chunk (GPU 8 GB)
+  overlap: 2                  # (2): o = 2 ảnh gối
+  dtype: bf16
+  vram_fraction: 0.95   # trần VRAM của PyTorch (tỉ lệ dung lượng GPU); trên Windows (WDDM) không có trần thì cấp phát tràn sang RAM hệ thống và chậm gấp ~2 lần; 0 = không đặt trần
+  weights_dir: ../vggt_weights/VGGT-1B   # thư mục chứa config.json và model.safetensors (facebook/VGGT-1B, cc-by-nc-4.0); tương đối so với gốc repo, ngoài git
+  c_model_map: one_minus_inv  # c = 1 − 1/conf (conf = 1+exp(x) ∈ [1,∞)); [Suy luận, đã xác nhận]
+
+align:
+  method: orientation_depth   # centers = ĐC §15.1 (tâm camera, RANSAC + Umeyama); orientation_depth = LỆCH ĐC: xoay từ hướng camera, scale từ khoảng cách điểm MVS, tịnh tiến từ tâm camera
+  scale_from: points          # chỉ cho orientation_depth. points = scale khớp điểm VGGT–MVS (giữ khoảng cách giữa hai điểm); distances = trung vị tỉ lệ khoảng cách camera→điểm (cách cũ, thấp hơn 4–19% trên dev). LỆCH ĐC, WORKING_LOG 05/11
+  min_pairs: 3                # §15.1: n ≥ 3 cặp tâm camera
+  ransac:
+    max_error_ratio: 1.5      # ngưỡng inlier / khoảng cách camera trung vị; TẠM cho M1 (chọn trên dev 42444738 bằng CV và nhất quán ảnh gối, xem WORKING_LOG), khoá lại ở M2 trên Validation
+  anchor_file: ground_truth/scale_anchor.json   # mốc scale 1–2 m, §8.1
+
+fusion:
+  tau_e: 2.0                  # (19): px, "minh họa" §16.1; đã khoá 12/11 (M4, 5 Validation, quét 3 giá trị, không giá trị nào qua quy tắc → giữ mặc định)
+  tau_sigma: 0.20             # (19): m, "minh họa" §16.1; đã khoá 12/11 (M4, 5 Validation, quét 3 giá trị, không giá trị nào qua quy tắc → giữ mặc định)
+  e_cap_px: 4.0               # e_reproj gán cho vùng ngoài nội suy [Suy luận: ngưỡng RANSAC 1–4 px, §14.1]
+  use_quality: true           # false = Ablation 1 (bỏ q_blur, q_texture, q_exposure)
+
+plane:
+  tau_r: 0.05                 # (24): m, ví dụ §17.1; đã khoá 12/11 (M4, 5 Validation, quét 3 giá trị, không giá trị nào qua quy tắc → giữ mặc định)
+  tau_n_deg: 15               # (24): độ, ví dụ §17.1; đã khoá 12/11 (M4, 5 Validation, quét 3 giá trị, không giá trị nào qua quy tắc → giữ mặc định)
+  tau_w: 0.5                  # (24): ví dụ §17.1; đã khoá 12/11 (M4, 5 Validation, quét 3 giá trị, không giá trị nào qua quy tắc → giữ mặc định)
+  alpha: 0.5                  # (25): ví dụ §17.2 (khác loss.alpha_r); đã khoá 12/11 (M4, 5 Validation, quét 3 giá trị, không giá trị nào qua quy tắc → giữ mặc định)
+  up_refine_deg: 20           # tinh chỉnh hướng lên trong 20° quanh (0,−1,0) camera (quyết định của nhóm)
+  force: false                # true = Ablation 2: kéo mọi điểm về mặt phẳng, không cổng
+  max_planes: 8               # RANSAC tuần tự: tối đa số mặt phẳng; TẠM cho M1 [Suy luận]
+  min_inlier_fraction: 0.02   # mỗi mặt phẳng phải có ≥ tỉ lệ này số điểm; TẠM cho M1 [Suy luận]
+  normal_knn: 30              # số láng giềng của PCA pháp tuyến cục bộ (θ_k, Poisson); TẠM cho M1 [Suy luận]
+
+export:
+  poisson_depth: 9            # Open3D Poisson; [Suy luận] 8–9
+  up_axis: y                  # glTF dùng +Y là lên
+  density_quantile: 0.05      # cắt các đỉnh Poisson có mật độ dưới phân vị này; TẠM cho M1 [Suy luận]
+
+measure:                      # scripts/pick_endpoints.py: chọn đầu mút trên mô hình, GT thước dây, so sai số
+  tape_readings: 3            # ĐC §8.3: đo thước dây 3 lần, lấy trung vị
+  anchor_min_m: 1.0           # ĐC §8.1: mốc scale dài 1–2 m
+  anchor_max_m: 2.0           # ĐC §8.1
+  under_cm: 5.0               # %<ngưỡng: tỉ lệ đoạn sai số dưới ngưỡng này (mục tiêu ĐC §21: median < 5 cm)
+
+eval:
+  snap_radius_m: 0.02         # bán kính snap đầu mút vào point cloud mô hình (quyết định của nhóm, 2 cm)
+  mode: manual                # manual (chọn trực tiếp trên point cloud) | auto (căn cứng, scale cố định)
+  delta_m: 0.05               # δ của Prec/Rec/F-score (35) [ĐC (35)]
+  b1:
+    stride: 4                 # bước lấy mẫu pixel khi dựng point cloud B1 [Suy luận, TẠM]
+    c_min: 0.5                # chỉ giữ điểm VGGT có c_model ≥ c_min (nối chunk và B1) [Suy luận, TẠM]
+  align:
+    trim_k: 3.0               # Kabsch cắt tỉa tâm camera: bỏ camera có residual > trim_k × trung vị rồi căn lại; KHOÁ 09/11 (người dùng), không chỉnh theo kết quả
+    trim_max_iters: 5         # số lượt cắt tỉa tối đa (dừng sớm khi tập giữ lại không đổi); KHOÁ 09/11 (người dùng 'lặp tới hội tụ')
+  region:                     # vùng đánh giá Chamfer/F (lệch #46); KHOÁ 09/11, không chỉnh theo kết quả
+    mode: visible_gt          # MẶC ĐỊNH visible_gt từ 09/11 (người dùng duyệt). box (hộp quỹ đạo GT, đối chiếu số cũ) | visible_gt (Faro được keyframe thấy) | visible_both (thêm: mô hình thấy và gần Faro)
+    z_range_m: [0.5, 4.5]     # độ sâu camera → điểm được coi là thấy (mặc định của point_visibility)
+    occl_m: 0.12              # dung sai z-buffer che khuất (m)
+    margin_px: 20             # điểm cách mép ảnh < margin_px coi là không thấy
+    gt_support_m: 0.10        # visible_both: bỏ điểm mô hình nếu trong bán kính này không có điểm Faro
+  crop_margin_m: 1.0         # lề quanh hộp quỹ đạo camera GT khi cắt Faro và mô hình cho Chamfer/F [Suy luận, TẠM]
+  voxel_m: 0.02               # voxel hoá trước khi tính Chamfer/F [Suy luận, TẠM]
+  icp_max_dist_m: 0.10        # khoảng ghép tối đa của ICP cứng scale = 1 [Suy luận, TẠM]
+
+loss:
+  alpha_r: null               # (29): hệ số phạt L_reg; mốc train head, chưa dùng
+
+paths:
+  colmap_exe: ${COLMAP_EXE}   # biến môi trường; mặc định ../colmap/bin/colmap.exe so với repo
+  data_root: data/scenes      # cây thư mục Mục 9 (ĐC §9)
+  splits: data/splits.csv     # danh sách train/val/heldout

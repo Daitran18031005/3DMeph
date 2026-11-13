@@ -1,0 +1,98 @@
+{
+  "variant": "B3",
+  "length_mode": "auto",
+  "cloud": "D:\\Nghien_Cuu\\3D_Metric\\3DMeph\\data\\scenes\\arkitscenes\\42897599\\proposed\\fusion\\fused_points.ply",
+  "n_points": 30216,
+  "n_cameras": 79,
+  "kabsch_rms_cm": 6.093016615202195,
+  "kabsch_max_cm": 540.8112135534593,
+  "ate_sim3_cm": 2.928187875863612,
+  "trim_k": 3.0,
+  "n_cameras_dropped": 9,
+  "dropped_views": [
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    47,
+    49
+  ],
+  "ate_rigid_all_cm": 141.69105364955644,
+  "R_gt_to_model": [
+    [
+      0.9986518174037509,
+      -0.011577741448805771,
+      0.050601417955721234
+    ],
+    [
+      -0.006336740849000154,
+      -0.9947094684007399,
+      -0.10253252746972563
+    ],
+    [
+      0.05152080464819617,
+      0.10207364682846419,
+      -0.9934417835542958
+    ]
+  ],
+  "t_gt_to_model": [
+    -1.135090435208271,
+    2.6791889051723032,
+    0.6110592502700373
+  ],
+  "snap_radius_m": 0.02,
+  "snap_auto": {
+    "n_endpoints": 10,
+    "n_unsnapped": 10,
+    "snap_mean_cm": null,
+    "nn_median_cm": 6.867897219572086,
+    "nn_max_cm": 41.98899038417922
+  },
+  "region": {
+    "mode": "visible_gt",
+    "gt_kept_frac": 0.6240576369018803,
+    "model_kept_frac": null,
+    "n_views": 70,
+    "dropped_views": [
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      47,
+      49
+    ],
+    "box": null
+  },
+  "geometry": {
+    "kabsch": {
+      "acc_cm": 5.723756902065752,
+      "comp_cm": 72.96066814492083,
+      "chamfer_cm": 39.342212523493295,
+      "precision": 0.5792736417334347,
+      "recall": 0.04280314153015182,
+      "f_score": 0.07971598471083476
+    },
+    "icp": {
+      "acc_cm": 4.462383368728763,
+      "comp_cm": 74.63115696201214,
+      "chamfer_cm": 39.546770165370454,
+      "precision": 0.7258904029475408,
+      "recall": 0.05390561347929841,
+      "f_score": 0.10035846981860919
+    },
+    "icp_info": {
+      "fitness": 0.9146148897596351,
+      "inlier_rmse_m": 0.03991469561805922,
+      "shift_m": 0.1844234698006916,
+      "rot_deg": 2.723448929549808
+    },
+    "n_model_voxels": 17099,
+    "n_faro_voxels": 483586
+  }
+}

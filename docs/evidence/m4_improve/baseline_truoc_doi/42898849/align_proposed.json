@@ -1,0 +1,78 @@
+{
+  "variant": "proposed",
+  "length_mode": "auto",
+  "cloud": "D:\\Nghien_Cuu\\3D_Metric\\3DMeph\\data\\scenes\\arkitscenes\\42898849\\proposed\\plane_refinement\\refined_points.ply",
+  "n_points": 82429,
+  "n_cameras": 79,
+  "kabsch_rms_cm": 9.068368789728886,
+  "kabsch_max_cm": 22.738130035115965,
+  "ate_sim3_cm": 8.362664658548258,
+  "trim_k": 3.0,
+  "n_cameras_dropped": 0,
+  "dropped_views": [],
+  "ate_rigid_all_cm": 9.068368789728888,
+  "R_gt_to_model": [
+    [
+      0.04003087853846071,
+      0.9986670848575836,
+      -0.03258193342169438
+    ],
+    [
+      0.15433333324287674,
+      -0.03839652409874132,
+      -0.9872724695783218
+    ],
+    [
+      -0.9872075521457392,
+      0.03449290592558812,
+      -0.15566466659851344
+    ]
+  ],
+  "t_gt_to_model": [
+    -4.338640540609069,
+    0.2746233394242173,
+    0.034588238468868916
+  ],
+  "snap_radius_m": 0.02,
+  "snap_auto": {
+    "n_endpoints": 12,
+    "n_unsnapped": 9,
+    "snap_mean_cm": 0.8283770614165652,
+    "nn_median_cm": 5.5983044210369926,
+    "nn_max_cm": 105.62953082114565
+  },
+  "region": {
+    "mode": "visible_gt",
+    "gt_kept_frac": 0.5422520097102169,
+    "model_kept_frac": null,
+    "n_views": 79,
+    "dropped_views": [],
+    "box": null
+  },
+  "geometry": {
+    "kabsch": {
+      "acc_cm": 7.914021052016211,
+      "comp_cm": 39.94668739579962,
+      "chamfer_cm": 23.93035422390792,
+      "precision": 0.41569675998741745,
+      "recall": 0.14845823481156203,
+      "f_score": 0.21878245437358024
+    },
+    "icp": {
+      "acc_cm": 6.335422513496054,
+      "comp_cm": 40.0028498649511,
+      "chamfer_cm": 23.169136189223575,
+      "precision": 0.6036775429666276,
+      "recall": 0.19459959947883992,
+      "f_score": 0.2943223645757863
+    },
+    "icp_info": {
+      "fitness": 0.8058995109954531,
+      "inlier_rmse_m": 0.04264086551062707,
+      "shift_m": 0.12784462669511773,
+      "rot_deg": 0.27189309785462046
+    },
+    "n_model_voxels": 69938,
+    "n_faro_voxels": 663136
+  }
+}

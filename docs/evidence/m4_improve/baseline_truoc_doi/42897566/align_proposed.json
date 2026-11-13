@@ -1,0 +1,78 @@
+{
+  "variant": "proposed",
+  "length_mode": "auto",
+  "cloud": "D:\\Nghien_Cuu\\3D_Metric\\3DMeph\\data\\scenes\\arkitscenes\\42897566\\proposed\\plane_refinement\\refined_points.ply",
+  "n_points": 234183,
+  "n_cameras": 76,
+  "kabsch_rms_cm": 2.1994704185324223,
+  "kabsch_max_cm": 4.937924470726952,
+  "ate_sim3_cm": 2.1131421356426436,
+  "trim_k": 3.0,
+  "n_cameras_dropped": 0,
+  "dropped_views": [],
+  "ate_rigid_all_cm": 2.1994704185324223,
+  "R_gt_to_model": [
+    [
+      0.711437437657598,
+      -0.6876848131173916,
+      0.1447286084604185
+    ],
+    [
+      -0.2271333679469493,
+      -0.419904980951078,
+      -0.878686656401217
+    ],
+    [
+      0.6650317326746648,
+      0.592257887056114,
+      -0.45493229139681923
+    ]
+  ],
+  "t_gt_to_model": [
+    1.2344239959390517,
+    1.4946102541191768,
+    -0.8823532911938982
+  ],
+  "snap_radius_m": 0.02,
+  "snap_auto": {
+    "n_endpoints": 12,
+    "n_unsnapped": 9,
+    "snap_mean_cm": 1.092251512311932,
+    "nn_median_cm": 4.008916542161597,
+    "nn_max_cm": 52.0798671025356
+  },
+  "region": {
+    "mode": "visible_gt",
+    "gt_kept_frac": 0.7182110489272611,
+    "model_kept_frac": null,
+    "n_views": 76,
+    "dropped_views": [],
+    "box": null
+  },
+  "geometry": {
+    "kabsch": {
+      "acc_cm": 5.972081987387144,
+      "comp_cm": 39.74930036507786,
+      "chamfer_cm": 22.8606911762325,
+      "precision": 0.5311321148679686,
+      "recall": 0.23683744201803306,
+      "f_score": 0.32759624474966137
+    },
+    "icp": {
+      "acc_cm": 4.0075801847093375,
+      "comp_cm": 40.4956301091784,
+      "chamfer_cm": 22.251605146943866,
+      "precision": 0.7537549242055152,
+      "recall": 0.3147964767811539,
+      "f_score": 0.4441141423374581
+    },
+    "icp_info": {
+      "fitness": 0.9094781386155153,
+      "inlier_rmse_m": 0.03667736227713248,
+      "shift_m": 0.07748419943935106,
+      "rot_deg": 1.0301141968069079
+    },
+    "n_model_voxels": 71839,
+    "n_faro_voxels": 191870
+  }
+}

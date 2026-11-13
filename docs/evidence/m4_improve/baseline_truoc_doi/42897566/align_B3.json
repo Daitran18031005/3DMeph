@@ -1,0 +1,78 @@
+{
+  "variant": "B3",
+  "length_mode": "auto",
+  "cloud": "D:\\Nghien_Cuu\\3D_Metric\\3DMeph\\data\\scenes\\arkitscenes\\42897566\\proposed\\fusion\\fused_points.ply",
+  "n_points": 234183,
+  "n_cameras": 76,
+  "kabsch_rms_cm": 2.1994704185324223,
+  "kabsch_max_cm": 4.937924470726952,
+  "ate_sim3_cm": 2.1131421356426436,
+  "trim_k": 3.0,
+  "n_cameras_dropped": 0,
+  "dropped_views": [],
+  "ate_rigid_all_cm": 2.1994704185324223,
+  "R_gt_to_model": [
+    [
+      0.711437437657598,
+      -0.6876848131173916,
+      0.1447286084604185
+    ],
+    [
+      -0.2271333679469493,
+      -0.419904980951078,
+      -0.878686656401217
+    ],
+    [
+      0.6650317326746648,
+      0.592257887056114,
+      -0.45493229139681923
+    ]
+  ],
+  "t_gt_to_model": [
+    1.2344239959390517,
+    1.4946102541191768,
+    -0.8823532911938982
+  ],
+  "snap_radius_m": 0.02,
+  "snap_auto": {
+    "n_endpoints": 12,
+    "n_unsnapped": 9,
+    "snap_mean_cm": 1.092251512311932,
+    "nn_median_cm": 4.008916542161597,
+    "nn_max_cm": 52.0798671025356
+  },
+  "region": {
+    "mode": "visible_gt",
+    "gt_kept_frac": 0.7182110489272611,
+    "model_kept_frac": null,
+    "n_views": 76,
+    "dropped_views": [],
+    "box": null
+  },
+  "geometry": {
+    "kabsch": {
+      "acc_cm": 5.9764338423773955,
+      "comp_cm": 39.74867461999377,
+      "chamfer_cm": 22.86255423118558,
+      "precision": 0.5308935029392463,
+      "recall": 0.2374315943086465,
+      "f_score": 0.32811863431892613
+    },
+    "icp": {
+      "acc_cm": 4.016236936249597,
+      "comp_cm": 40.513224553731334,
+      "chamfer_cm": 22.264730744990466,
+      "precision": 0.7525447868522837,
+      "recall": 0.31423359566373066,
+      "f_score": 0.4433439187488203
+    },
+    "icp_info": {
+      "fitness": 0.9094069843752182,
+      "inlier_rmse_m": 0.036746211750830024,
+      "shift_m": 0.07805259687205153,
+      "rot_deg": 1.0087399041461191
+    },
+    "n_model_voxels": 71617,
+    "n_faro_voxels": 191870
+  }
+}
