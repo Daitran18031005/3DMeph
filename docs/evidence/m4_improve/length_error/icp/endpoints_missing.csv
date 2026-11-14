@@ -1,0 +1,105 @@
+scene,segment,anchor,endpoint,nn_cm,n_views_geometric,mvs_nn_cm,mvs_nn_n_views,n_mvs_within_10cm,n_mvs_within_20cm,best_view,best_depth_m,gradient_mean,geometric_valid_frac,photometric_valid_frac,cause
+42897599,S01,False,a,B0=0.9;B1=;B3=6.4;proposed=6.4,8,3.477995933755639,2,96,271,4,0.7952130126555471,27.410329818725586,0.0,0.6811421772754312,depth bị lọc nhất quán hình học (có depth photometric nhưng không nhất quán giữa các ảnh)
+42897599,S01,False,b,B0=0.5;B1=;B3=1.4;proposed=1.4,,,,,,,,,,,
+42897599,S02,False,a,B0=1.0;B1=;B3=2.4;proposed=2.4,,,,,,,,,,,
+42897599,S02,False,b,B0=2.2;B1=;B3=1.9;proposed=1.9,,,,,,,,,,,
+42897599,S03,False,a,B0=0.4;B1=;B3=4.2;proposed=4.2,,,,,,,,,,,
+42897599,S03,False,b,B0=1.3;B1=;B3=2.5;proposed=2.5,,,,,,,,,,,
+42897599,S04,False,a,B0=0.7;B1=;B3=1.9;proposed=1.9,,,,,,,,,,,
+42897599,S04,False,b,B0=1.5;B1=;B3=1.8;proposed=1.8,,,,,,,,,,,
+42897599,S05,False,a,B0=5.8;B1=;B3=2.3;proposed=2.3,,,,,,,,,,,
+42897599,S05,False,b,B0=14.8;B1=;B3=23.5;proposed=23.5,9,17.789916877291464,2,0,1,15,1.9318307838153366,55.70859146118164,0.6389054134443783,0.9155264723378941,"có hoạ tiết và depth nhưng không có điểm hợp nhất: đầu mút ở mép/vật mảnh, hoặc điểm MVS bị lọc ở bước stereo_fusion"
+42897599,S06,True,a,B0=1.0;B1=;B3=1.4;proposed=1.4,,,,,,,,,,,
+42897599,S06,True,b,B0=1.2;B1=;B3=3.4;proposed=3.4,,,,,,,,,,,
+42898849,S01,False,a,B0=58.9;B1=;B3=60.3;proposed=60.3,6,60.73528504103973,2,0,0,51,4.787571483910689,45.388755798339844,0.007733491969066032,1.0,depth bị lọc nhất quán hình học (có depth photometric nhưng không nhất quán giữa các ảnh)
+42898849,S01,False,b,B0=0.6;B1=;B3=11.7;proposed=11.7,10,1.3589659350463195,3,278,739,75,3.056663789251517,16.687854766845703,0.47531231409875074,1.0,"có hoạ tiết và depth nhưng không có điểm hợp nhất: đầu mút ở mép/vật mảnh, hoặc điểm MVS bị lọc ở bước stereo_fusion"
+42898849,S02,False,a,B0=1.3;B1=;B3=1.1;proposed=1.1,,,,,,,,,,,
+42898849,S02,False,b,B0=0.4;B1=;B3=1.0;proposed=1.0,,,,,,,,,,,
+42898849,S03,False,a,B0=1.5;B1=;B3=1.7;proposed=1.7,,,,,,,,,,,
+42898849,S03,False,b,B0=12.9;B1=;B3=5.7;proposed=5.7,13,12.305349068089935,2,0,29,32,4.190413688471079,61.06060791015625,0.17906008328375966,1.0,depth bị lọc nhất quán hình học (có depth photometric nhưng không nhất quán giữa các ảnh)
+42898849,S04,False,a,B0=0.7;B1=;B3=6.0;proposed=6.0,12,0.9268759603686052,3,120,298,34,4.165814416941849,44.038238525390625,0.6740035693039858,1.0,"có hoạ tiết và depth nhưng không có điểm hợp nhất: đầu mút ở mép/vật mảnh, hoặc điểm MVS bị lọc ở bước stereo_fusion"
+42898849,S04,False,b,B0=1.7;B1=;B3=2.0;proposed=2.0,,,,,,,,,,,
+42898849,S05,False,a,B0=0.8;B1=;B3=4.6;proposed=4.6,,,,,,,,,,,
+42898849,S05,False,b,B0=0.8;B1=;B3=6.8;proposed=6.8,11,0.8440692888878847,3,185,736,68,4.0292876162635265,43.514793395996094,0.7198096371207614,1.0,"có hoạ tiết và depth nhưng không có điểm hợp nhất: đầu mút ở mép/vật mảnh, hoặc điểm MVS bị lọc ở bước stereo_fusion"
+42898849,S06,False,a,B0=1.5;B1=;B3=3.8;proposed=3.8,,,,,,,,,,,
+42898849,S06,False,b,B0=0.4;B1=;B3=2.7;proposed=2.7,,,,,,,,,,,
+42898849,S07,True,a,B0=1.7;B1=;B3=1.4;proposed=1.4,,,,,,,,,,,
+42898849,S07,True,b,B0=0.9;B1=;B3=1.2;proposed=1.2,,,,,,,,,,,
+42897566,S01,True,a,B0=0.6;B1=2.8;B3=1.7;proposed=1.7,,,,,,,,,,,
+42897566,S01,True,b,B0=0.8;B1=0.9;B3=3.9;proposed=3.9,,,,,,,,,,,
+42897566,S02,False,a,B0=0.8;B1=3.5;B3=2.1;proposed=2.1,,,,,,,,,,,
+42897566,S02,False,b,B0=0.5;B1=0.8;B3=0.2;proposed=0.1,,,,,,,,,,,
+42897566,S04,False,a,B0=0.7;B1=8.6;B3=2.4;proposed=2.4,,,,,,,,,,,
+42897566,S04,False,b,B0=0.7;B1=2.9;B3=3.6;proposed=3.6,,,,,,,,,,,
+42897566,S05,False,a,B0=4.9;B1=5.2;B3=7.8;proposed=7.8,12,5.937143191266025,2,57,782,56,1.7742771044150711,47.96172332763672,0.000594883997620464,1.0,depth bị lọc nhất quán hình học (có depth photometric nhưng không nhất quán giữa các ảnh)
+42897566,S05,False,b,B0=0.5;B1=1.1;B3=0.5;proposed=0.6,,,,,,,,,,,
+42897566,S06,False,a,B0=3.9;B1=1.7;B3=3.7;proposed=3.7,,,,,,,,,,,
+42897566,S06,False,b,B0=48.6;B1=17.0;B3=50.6;proposed=50.7,3,50.87129128694211,2,0,0,58,1.668255867767658,20.979351043701172,0.0,1.0,ít view nhìn thấy (3)
+42897566,S07,False,a,B0=0.2;B1=1.6;B3=2.7;proposed=2.7,,,,,,,,,,,
+42897566,S07,False,b,B0=1.5;B1=0.8;B3=2.8;proposed=2.9,,,,,,,,,,,
+42897566,S08,False,a,B0=0.7;B1=1.3;B3=2.6;proposed=2.6,,,,,,,,,,,
+42897566,S08,False,b,B0=0.8;B1=0.9;B3=2.4;proposed=2.4,,,,,,,,,,,
+45662981,S01,True,a,B0=1.5;B1=3.5;B3=5.8;proposed=5.8,12,0.9987915691596547,2,263,836,78,2.7327072401579806,33.223968505859375,0.6906603212373588,1.0,"có hoạ tiết và depth nhưng không có điểm hợp nhất: đầu mút ở mép/vật mảnh, hoặc điểm MVS bị lọc ở bước stereo_fusion"
+45662981,S01,True,b,B0=5.2;B1=11.9;B3=5.9;proposed=5.9,8,5.090181323917182,4,231,819,77,1.9278743923845683,28.296749114990234,0.8970850684116597,1.0,"có hoạ tiết và depth nhưng không có điểm hợp nhất: đầu mút ở mép/vật mảnh, hoặc điểm MVS bị lọc ở bước stereo_fusion"
+45662981,S02,False,a,B0=3.2;B1=19.3;B3=8.4;proposed=8.5,7,3.1353113497436316,2,181,798,3,1.8841251132059875,29.38943099975586,0.0,1.0,depth bị lọc nhất quán hình học (có depth photometric nhưng không nhất quán giữa các ảnh)
+45662981,S02,False,b,B0=4.1;B1=1.5;B3=1.5;proposed=1.6,,,,,,,,,,,
+45662981,S03,False,a,B0=0.8;B1=0.7;B3=3.4;proposed=3.3,,,,,,,,,,,
+45662981,S03,False,b,B0=1.0;B1=26.4;B3=0.5;proposed=0.5,,,,,,,,,,,
+45662981,S04,False,a,B0=3.9;B1=9.6;B3=7.4;proposed=7.4,11,4.8406805106668,2,234,517,11,4.14379777807485,42.597469329833984,0.6133254015466983,1.0,"có hoạ tiết và depth nhưng không có điểm hợp nhất: đầu mút ở mép/vật mảnh, hoặc điểm MVS bị lọc ở bước stereo_fusion"
+45662981,S04,False,b,B0=4.1;B1=8.9;B3=4.5;proposed=4.5,,,,,,,,,,,
+45662981,S05,False,a,B0=6.7;B1=16.6;B3=6.1;proposed=6.1,6,5.538834346131148,2,7,104,3,4.0677308039807025,35.882423400878906,0.3456276026174896,1.0,"có hoạ tiết và depth nhưng không có điểm hợp nhất: đầu mút ở mép/vật mảnh, hoặc điểm MVS bị lọc ở bước stereo_fusion"
+45662981,S05,False,b,B0=4.3;B1=25.7;B3=3.4;proposed=3.4,,,,,,,,,,,
+45662981,S06,False,a,B0=3.4;B1=2.1;B3=2.8;proposed=2.9,,,,,,,,,,,
+45662981,S06,False,b,B0=4.1;B1=6.8;B3=3.2;proposed=3.3,,,,,,,,,,,
+42445022,S01,True,a,B0=2.5;B1=9.7;B3=0.8;proposed=0.8,,,,,,,,,,,
+42445022,S01,True,b,B0=1.0;B1=0.8;B3=0.8;proposed=0.8,,,,,,,,,,,
+42445022,S02,False,a,B0=0.9;B1=0.2;B3=0.3;proposed=0.2,,,,,,,,,,,
+42445022,S02,False,b,B0=3.6;B1=3.6;B3=0.8;proposed=0.8,,,,,,,,,,,
+42445022,S03,False,a,B0=0.3;B1=1.0;B3=1.0;proposed=1.0,,,,,,,,,,,
+42445022,S03,False,b,B0=1.5;B1=12.8;B3=1.2;proposed=1.2,,,,,,,,,,,
+42445022,S04,False,a,B0=1.3;B1=3.4;B3=0.4;proposed=0.4,,,,,,,,,,,
+42445022,S04,False,b,B0=1.5;B1=8.8;B3=0.2;proposed=0.2,,,,,,,,,,,
+42445022,S05,False,a,B0=1.7;B1=13.7;B3=7.1;proposed=7.1,12,1.691574025874711,3,1172,4687,78,2.113195218975417,12.170650482177734,0.8822129684711482,1.0,"bề mặt trơn, ít hoạ tiết (gradient thấp)"
+42445022,S05,False,b,B0=1.9;B1=8.9;B3=3.9;proposed=3.9,,,,,,,,,,,
+42445022,S06,False,a,B0=2.8;B1=9.8;B3=2.2;proposed=2.1,,,,,,,,,,,
+42445022,S06,False,b,B0=1.4;B1=13.7;B3=0.5;proposed=0.5,,,,,,,,,,,
+42445022,S07,False,a,B0=0.2;B1=3.2;B3=0.8;proposed=0.8,,,,,,,,,,,
+42445022,S07,False,b,B0=0.5;B1=6.6;B3=2.4;proposed=2.4,,,,,,,,,,,
+42445022,S08,False,a,B0=1.8;B1=21.1;B3=3.4;proposed=3.4,,,,,,,,,,,
+42445022,S08,False,b,B0=1.4;B1=21.1;B3=2.5;proposed=2.5,,,,,,,,,,,
+42445022,S09,False,a,B0=1.2;B1=1.0;B3=0.7;proposed=0.7,,,,,,,,,,,
+42445022,S09,False,b,B0=1.2;B1=1.8;B3=0.6;proposed=0.6,,,,,,,,,,,
+42445022,S10,False,a,B0=0.5;B1=0.6;B3=0.7;proposed=0.7,,,,,,,,,,,
+42445022,S10,False,b,B0=0.7;B1=3.7;B3=0.8;proposed=0.8,,,,,,,,,,,
+42445022,S11,False,a,B0=9.3;B1=21.0;B3=0.7;proposed=0.7,,,,,,,,,,,
+42445022,S11,False,b,B0=0.5;B1=1.9;B3=0.8;proposed=0.8,,,,,,,,,,,
+42445022,S12,False,a,B0=7.2;B1=4.9;B3=7.2;proposed=7.3,12,7.892151953257684,2,3,294,3,3.2434820713828314,30.307931900024414,0.024985127900059488,0.966686496133254,depth bị lọc nhất quán hình học (có depth photometric nhưng không nhất quán giữa các ảnh)
+42445022,S12,False,b,B0=2.5;B1=4.6;B3=2.1;proposed=2.1,,,,,,,,,,,
+42445022,S13,False,a,B0=0.8;B1=3.9;B3=0.3;proposed=0.3,,,,,,,,,,,
+42445022,S13,False,b,B0=1.8;B1=1.1;B3=1.8;proposed=1.8,,,,,,,,,,,
+42444738,S01,False,a,B0=1.4;B1=14.1;B3=0.4;proposed=0.4,,,,,,,,,,,
+42444738,S01,False,b,B0=1.5;B1=13.3;B3=1.1;proposed=1.1,,,,,,,,,,,
+42444738,S02,False,a,B0=0.8;B1=15.6;B3=0.5;proposed=0.5,,,,,,,,,,,
+42444738,S02,False,b,B0=0.6;B1=1.8;B3=1.4;proposed=1.4,,,,,,,,,,,
+42444738,S03,False,a,B0=2.4;B1=7.7;B3=6.5;proposed=6.5,7,1.4342699966456536,3,394,1217,62,1.5701450506926578,24.298063278198242,0.19036287923854847,1.0,depth bị lọc nhất quán hình học (có depth photometric nhưng không nhất quán giữa các ảnh)
+42444738,S03,False,b,B0=2.8;B1=7.7;B3=11.4;proposed=11.4,5,3.0925298833708657,3,231,654,55,1.6383890502410186,20.62828826904297,0.14931588340273647,1.0,depth bị lọc nhất quán hình học (có depth photometric nhưng không nhất quán giữa các ảnh)
+42444738,S04,False,a,B0=1.5;B1=5.0;B3=0.6;proposed=0.6,,,,,,,,,,,
+42444738,S04,False,b,B0=0.4;B1=0.8;B3=1.6;proposed=1.6,,,,,,,,,,,
+42444738,S05,False,a,B0=29.1;B1=22.4;B3=16.4;proposed=16.4,4,28.801251800871952,2,0,0,9,1.82756446296391,25.78647804260254,0.22605591909577633,1.0,depth bị lọc nhất quán hình học (có depth photometric nhưng không nhất quán giữa các ảnh)
+42444738,S05,False,b,B0=15.6;B1=5.2;B3=15.6;proposed=15.6,2,13.822137875273754,2,0,347,10,1.7745504464770503,28.72516441345215,0.12314098750743604,1.0,ít view nhìn thấy (2)
+42444738,S06,True,a,B0=0.5;B1=1.1;B3=0.8;proposed=0.8,,,,,,,,,,,
+42444738,S06,True,b,B0=0.9;B1=3.8;B3=7.2;proposed=7.2,12,2.07617848833897,2,220,1531,43,2.5508300316238,59.5389404296875,0.9452706722189174,1.0,"có hoạ tiết và depth nhưng không có điểm hợp nhất: đầu mút ở mép/vật mảnh, hoặc điểm MVS bị lọc ở bước stereo_fusion"
+42444738,S07,False,a,B0=96.6;B1=48.3;B3=83.1;proposed=83.1,0,96.61533989107174,2,0,0,,,,,,không có ảnh nhìn rõ (ít view / ở rìa ảnh)
+42444738,S07,False,b,B0=5.9;B1=2.6;B3=9.1;proposed=9.1,5,6.228740218655907,2,14,37,44,2.7290850662408617,7.8529744148254395,0.06900654372397383,1.0,depth bị lọc nhất quán hình học (có depth photometric nhưng không nhất quán giữa các ảnh)
+42444738,S08,False,a,B0=3.3;B1=3.2;B3=3.9;proposed=3.9,,,,,,,,,,,
+42444738,S08,False,b,B0=3.0;B1=1.0;B3=0.5;proposed=0.5,,,,,,,,,,,
+42444738,S09,False,a,B0=1.1;B1=0.9;B3=1.4;proposed=1.4,,,,,,,,,,,
+42444738,S09,False,b,B0=9.9;B1=18.9;B3=1.8;proposed=1.8,,,,,,,,,,,
+42444738,S10,False,a,B0=10.6;B1=15.5;B3=20.9;proposed=20.9,6,13.817912549823804,2,0,7,38,3.357110743177079,31.582977294921875,0.32540154669839383,1.0,"có hoạ tiết và depth nhưng không có điểm hợp nhất: đầu mút ở mép/vật mảnh, hoặc điểm MVS bị lọc ở bước stereo_fusion"
+42444738,S10,False,b,B0=11.5;B1=21.2;B3=20.8;proposed=20.7,8,9.080417242747622,4,9,533,33,2.918789822350592,21.932405471801758,0.7138607971445569,1.0,"có hoạ tiết và depth nhưng không có điểm hợp nhất: đầu mút ở mép/vật mảnh, hoặc điểm MVS bị lọc ở bước stereo_fusion"
+42444738,S11,False,a,B0=95.9;B1=47.5;B3=82.7;proposed=82.7,0,96.81847106184493,2,0,0,,,,,,không có ảnh nhìn rõ (ít view / ở rìa ảnh)
+42444738,S11,False,b,B0=13.3;B1=8.4;B3=17.2;proposed=17.2,4,14.511040695935929,2,0,1,32,3.135219176353261,8.342636108398438,0.0,1.0,depth bị lọc nhất quán hình học (có depth photometric nhưng không nhất quán giữa các ảnh)
+42444738,S12,False,a,B0=3.7;B1=0.7;B3=4.2;proposed=4.2,,,,,,,,,,,
+42444738,S12,False,b,B0=37.6;B1=14.8;B3=34.7;proposed=34.7,18,41.86557356700552,2,0,0,69,4.290572496709079,2.7896840572357178,0.03390838786436645,1.0,depth bị lọc nhất quán hình học (có depth photometric nhưng không nhất quán giữa các ảnh)
+42444738,S13,False,a,B0=4.9;B1=1.0;B3=11.6;proposed=11.6,5,7.920286456319438,2,7,36,44,2.7412831192880893,7.812978744506836,0.07019631171921475,1.0,depth bị lọc nhất quán hình học (có depth photometric nhưng không nhất quán giữa các ảnh)
+42444738,S13,False,b,B0=17.9;B1=8.5;B3=18.5;proposed=18.6,4,18.33519462225182,2,0,1,32,3.1866543822154854,8.260504722595215,0.0,1.0,depth bị lọc nhất quán hình học (có depth photometric nhưng không nhất quán giữa các ảnh)
