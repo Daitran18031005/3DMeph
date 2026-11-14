@@ -112,3 +112,12 @@ Hạ τ_w xuống 0,2–0,3 và nới θ làm tỉ lệ qua cổng tăng 3–10 
 4. Nhãn "sàn/tường" cần sửa: sàn = mặt phẳng ngang thấp nhất; mặt ngang khác (bàn, ghế) nhãn khác; bảo đảm tìm được tường.
 5. Dev: cổng làm xấu: cần điều tra riêng.
 6. Chọn lại ngưỡng bằng quy trình đặt trước theo chỉ số của chính cổng (chính xác của điểm qua, sai số trước/sau, leave-one-scene-out), vì F-score không nhạy; kiểm chứng cuối bằng P2Plane và plane recall trên Replica (M5).
+
+## H. Điều tra tiếp (dev xấu đi; mặt phẳng "sàn" cao; phép căn Faro) — chỉ đọc, không đổi pipeline
+
+Phân tích từng mặt phẳng trên dev 42444738 và 42445022 (mã tạm, chưa vào repo): inlier mỗi mặt phẳng (r < 5 cm), khoảng cách tới Faro, tỉ lệ ô 20 cm nằm trên sàn thấp nhất.
+
+**Dev xấu đi vì đâu.** Gần hết điểm qua cổng nằm trên sàn chính (mặt 0: 2.827/5.316 điểm). Các điểm này vốn đã sát Faro (0,89 cm) nhưng bị kéo về mặt RANSAC (độ dày 5 cm) nên thành 1,58 cm. Mặt phẳng RANSAC lệch khoảng 0,7 cm so với sàn Faro, tức không đúng hơn chính các điểm. Cải thiện chỉ xảy ra khi điểm xa mặt phẳng thật (tường 3: 7,07 → 7,45 cm vẫn xấu). Ở 42445022 sàn chính chuẩn hơn nên cổng giúp (1,12 → 0,77 cm). Biên độ chỉ ~0,3–0,7 cm, dưới δ = 5 cm của F-score.
+**Sàn bị tách đôi.** Dev có mặt "sàn" cao hơn sàn thấp nhất 0,08 m với 81 nghìn điểm, trải 5,9×5,4 m (cả căn phòng), chỉ 34% inlier cách Faro ≤ 3 cm, sai số trung vị 6,7 cm. Đó là phần còn lại của sàn bị cong/nghiêng, không phải đồ vật.
+**"Mặt cao hơn là bàn, ghế" chưa được ủng hộ.** Các mặt "sàn" cao 0,4–0,94 m có 35–118 nghìn inlier, trải 4,7–6,8 m mỗi chiều (lớn như cả phòng) và chỉ 31–65% ô của chúng nằm trên sàn. Mặt bàn ghế không to như vậy; đây giống mặt RANSAC dày 5 cm cắt qua nhiều điểm lẫn lộn. Chưa xem ảnh từng mặt, nên kết luận này chưa chắc chắn.
+**Phép căn Faro.** `eval` và chẩn đoán dùng Kabsch cắt tỉa rồi ICP cứng. Trên dev ICP dịch thêm 17,4 cm và xoay 3,28° (42445022: 6,1 cm, 1,94°); sai số trung vị toàn cloud 3,13 cm với ICP so với 5,60 cm chỉ Kabsch. Vì ICP khớp thẳng cloud vào Faro nên các số "chính xác" tuyệt đối lạc quan. Kết luận về cổng không đổi khi bỏ ICP: dev xấu đi (12,22 → 12,63 cm), 42445022 tốt lên (2,28 → 1,90 cm).

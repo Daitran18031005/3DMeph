@@ -105,6 +105,11 @@ plane:
   max_planes: 8               # RANSAC tuần tự: tối đa số mặt phẳng; TẠM cho M1 [Suy luận]
   min_inlier_fraction: 0.02   # mỗi mặt phẳng phải có ≥ tỉ lệ này số điểm; TẠM cho M1 [Suy luận]
   normal_knn: 30              # số láng giềng của PCA pháp tuyến cục bộ (θ_k, Poisson); TẠM cho M1 [Suy luận]
+  gate_normal_knn: 300        # k của pháp tuyến cho cổng; khoá ngày 15/11 (M4 đợt 3d: k = 100 không đạt, 300 đạt); null = dùng normal_knn (cũ). Khoá riêng vì normal_knn còn dùng cho Poisson ở export
+  floor_rule: lowest          # khoá ngày 15/11 (M4 đợt 3d) [Suy luận]: lowest = chỉ mặt ngang thấp nhất (± floor_band_m) là sàn, cao nhất là trần, còn lại horizontal_other; any = mọi mặt ngang dưới camera là sàn (cũ)
+  floor_band_m: 0.0           # m: mặt ngang cách mặt thấp nhất (hoặc cao nhất) không quá giá trị này vẫn là sàn (hoặc trần); chỉ dùng khi floor_rule = lowest. 0 vì gate_A (band 0) đạt; thử 0,10 cũng đạt nhưng không cần
+  min_walls: 1                # khoá ngày 15/11 [Suy luận]: số tường tối thiểu, thiếu thì chạy thêm lượt RANSAC mặt đứng; 0 = tắt (cũ)
+  extra_wall_passes: 4        # số lượt RANSAC mặt đứng thêm tối đa khi thiếu tường (chỉ dùng khi min_walls > 0)
 
 export:
   poisson_depth: 9            # Open3D Poisson; [Suy luận] 8–9

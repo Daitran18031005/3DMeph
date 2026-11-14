@@ -3,7 +3,9 @@
 - Hướng lên `u`: trung bình −y của camera (ảnh đã upright) đổi sang hệ thế giới, tinh chỉnh bằng mặt phẳng ngang lớn nhất trong `plane.up_refine_deg`.
 - Mặt phẳng: RANSAC tuần tự (Open3D `segment_plane`, độ dày `plane.tau_r`), tối đa `plane.max_planes`, mỗi mặt phẳng ≥ `plane.min_inlier_fraction` số điểm [Suy luận].
   Nhãn: pháp tuyến lệch `u` dưới `plane.tau_n_deg` → sàn (thấp hơn camera) hoặc trần (cao hơn camera); lệch trục ngang dưới `tau_n_deg` → tường; còn lại `other` (không thuộc S_struct).
-- Mỗi điểm gắn với mặt phẳng gần nhất (theo r_k); θ_k từ pháp tuyến PCA của k láng giềng (`plane.normal_knn`). Điểm KHÔNG qua cổng được giữ nguyên (ĐC Hình 20).
+  `plane.floor_rule: lowest` (M4 đợt 3d): chỉ mặt ngang thấp nhất (± `plane.floor_band_m`) là sàn, cao nhất là trần, mặt ngang khác `horizontal_other` (không thuộc S_struct);
+  `plane.min_walls`/`extra_wall_passes`: thêm lượt RANSAC mặt đứng nếu chưa đủ tường.
+- Mỗi điểm gắn với mặt phẳng gần nhất (theo r_k); θ_k từ pháp tuyến PCA của k láng giềng (`plane.gate_normal_knn`, mặc định bằng `plane.normal_knn`). Điểm KHÔNG qua cổng được giữ nguyên (ĐC Hình 20).
 """
 
 from __future__ import annotations
@@ -80,8 +82,32 @@ def label_plane(n: np.ndarray, d: float, u: np.ndarray, cam_heights: np.ndarray,
     return "other", a, float("nan")
 
 
-def find_planes(points: np.ndarray, u: np.ndarray, cam_heights: np.ndarray, tau_r: float, tau_n_deg: float, max_planes: int, min_frac: float) -> List[Dict]:
-    """RANSAC tuần tự: mỗi vòng lấy mặt phẳng nhiều inlier nhất trong số điểm còn lại, loại inlier, dừng khi dưới `min_frac` hoặc đủ `max_planes`."""
+def restrict_horizontal(planes: List[Dict], rule: str, band: float) -> List[Dict]:
+    """Quy tắc nhãn mặt ngang (M4 đợt 3d [Suy luận]). `any` (cũ): mọi mặt ngang dưới camera là sàn, trên camera là trần.
+    `lowest`: chỉ mặt ngang THẤP NHẤT (và mặt cách nó ≤ `band` m, vì sàn có thể bị cong/tách đôi) là sàn, chỉ mặt CAO NHẤT (cùng band) là trần;
+    mặt ngang khác nhãn `horizontal_other`, KHÔNG thuộc S_struct."""
+    if rule == "any":
+        return planes
+    if rule != "lowest":
+        raise ValueError(f"plane.floor_rule phải là any hoặc lowest, nhận {rule!r}")
+    for lab, pick in (("floor", min), ("ceiling", max)):
+        grp = [p for p in planes if p["label"] == lab]
+        if not grp:
+            continue
+        ref = pick(p["height_m"] for p in grp)
+        for p in grp:
+            if abs(p["height_m"] - ref) > band + 1e-9:
+                p["label"] = "horizontal_other"
+    return planes
+
+
+def find_planes(points: np.ndarray, u: np.ndarray, cam_heights: np.ndarray, tau_r: float, tau_n_deg: float, max_planes: int, min_frac: float,
+                normals: Optional[np.ndarray] = None, floor_rule: str = "any", floor_band: float = 0.0, min_walls: int = 0,
+                wall_passes: int = 0, wall_cand_deg: float = 60.0) -> List[Dict]:
+    """RANSAC tuần tự: mỗi vòng lấy mặt phẳng nhiều inlier nhất trong số điểm còn lại, loại inlier, dừng khi dưới `min_frac` hoặc đủ `max_planes`.
+
+    M4 đợt 3d [Suy luận], mặc định giữ hành vi cũ: nếu số tường < `min_walls`, chạy thêm tối đa `wall_passes` lượt RANSAC chỉ trên điểm có pháp tuyến cục bộ
+    lệch hướng lên ≥ `wall_cand_deg` và cách mọi tường đã có hơn `tau_r` (cần `normals`); rồi áp quy tắc nhãn mặt ngang (`restrict_horizontal`)."""
     remaining = np.arange(len(points))
     planes: List[Dict] = []
     for _ in range(int(max_planes)):
@@ -95,7 +121,27 @@ def find_planes(points: np.ndarray, u: np.ndarray, cam_heights: np.ndarray, tau_
         planes.append({"id": len(planes), "n": n.tolist(), "d": d, "label": label, "angle_to_up_deg": a, "height_m": None if np.isnan(h) else h,
                        "n_inliers": int(len(inl))})
         remaining = np.delete(remaining, inl)
-    return planes
+    if min_walls > 0 and wall_passes > 0:
+        if normals is None:
+            raise ValueError("min_walls > 0 cần pháp tuyến cục bộ (normals)")
+        cand = np.nonzero(angle_to_plane_deg(normals, u) >= wall_cand_deg)[0]
+        for p in planes:
+            if p["label"] == "wall" and len(cand):
+                cand = cand[residual(points[cand], np.array(p["n"]), p["d"]) > tau_r]
+        for _ in range(int(wall_passes)):
+            if sum(p["label"] == "wall" for p in planes) >= min_walls or len(cand) < max(3, min_frac * len(points)):
+                break
+            seg = segment_plane(points[cand], tau_r)
+            if seg is None:
+                break
+            n, d, inl = seg
+            cand_next = np.delete(cand, inl)
+            label, a, h = label_plane(n, d, u, cam_heights, tau_n_deg)
+            if label == "wall" and len(inl) >= min_frac * len(points):
+                planes.append({"id": len(planes), "n": n.tolist(), "d": d, "label": label, "angle_to_up_deg": a, "height_m": None, "n_inliers": int(len(inl)),
+                               "source": "extra_wall_pass"})
+            cand = cand_next
+    return restrict_horizontal(planes, floor_rule, floor_band)
 
 
 def run_gate(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
@@ -106,6 +152,10 @@ def run_gate(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
     alpha, up_deg = float(cfgmod.require(cfg, "plane.alpha")), float(cfgmod.require(cfg, "plane.up_refine_deg"))
     max_planes, min_frac = int(cfgmod.require(cfg, "plane.max_planes")), float(cfgmod.require(cfg, "plane.min_inlier_fraction"))
     knn, force = int(cfgmod.require(cfg, "plane.normal_knn")), bool(cfgmod.require(cfg, "plane.force"))
+    gate_knn = cfgmod.get(cfg, "plane.gate_normal_knn")
+    knn = knn if gate_knn is None else int(gate_knn)                       # khoá riêng cho cổng: `plane.normal_knn` còn dùng cho Poisson ở export
+    floor_rule, floor_band = str(cfgmod.require(cfg, "plane.floor_rule")), float(cfgmod.require(cfg, "plane.floor_band_m"))
+    min_walls, wall_passes = int(cfgmod.require(cfg, "plane.min_walls")), int(cfgmod.require(cfg, "plane.extra_wall_passes"))
     src = layout.fusion / "fused_points.ply"
     if not src.is_file():
         raise StageError(E_MISSING_INPUT, f"thiếu {src}: chạy stage fuse trước")
@@ -120,7 +170,7 @@ def run_gate(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
     u0 = camera_up(cams)
     u, up_info = refine_up(pts, normals, u0, up_deg, tau_r)
     cam_heights = centers @ u
-    planes = find_planes(pts, u, cam_heights, tau_r, tau_n, max_planes, min_frac)
+    planes = find_planes(pts, u, cam_heights, tau_r, tau_n, max_planes, min_frac, normals, floor_rule, floor_band, min_walls, wall_passes)
     log(f"[gate] {len(pts):,} điểm; hướng lên: lệch u0 {up_info.get('deviation_deg', float('nan')):.1f}° ({'đã tinh chỉnh' if up_info['refined'] else 'giữ u0'}); "
         f"{len(planes)} mặt phẳng: " + ", ".join(f"{p['label']}({p['n_inliers']:,})" for p in planes))
     struct = [p for p in planes if p["label"] in ("floor", "ceiling", "wall")]
@@ -150,7 +200,8 @@ def run_gate(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
     write_ply(out_dir / "refined_points.ply", {"x": refined[:, 0].astype(np.float32), "y": refined[:, 1].astype(np.float32), "z": refined[:, 2].astype(np.float32),
                                                 "w_k": w_k.astype(np.float32), "g": g.astype(np.uint8), "plane_id": np.array([struct[i]["id"] for i in nearest], dtype=np.int32)})
     write_json(out_dir / "planes.json", {"up": u.tolist(), "up_info": up_info, "camera_height_median_m": float(np.median(cam_heights)), "planes": planes,
-                                         "structural_plane_ids": [p["id"] for p in struct], "params": {"tau_r": tau_r, "tau_n_deg": tau_n, "tau_w": tau_w, "alpha": alpha, "force": force}})
+                                         "structural_plane_ids": [p["id"] for p in struct], "params": {"tau_r": tau_r, "tau_n_deg": tau_n, "tau_w": tau_w, "alpha": alpha, "force": force, "normal_knn": knn,
+                                                                                  "floor_rule": floor_rule, "floor_band_m": floor_band, "min_walls": min_walls}})
     labels = np.array([struct[i]["label"] for i in nearest])
     with open(out_dir / "gate_log.csv", "w", encoding="utf-8", newline="") as fh:
         fh.write("point,plane_id,label,r_m,theta_deg,w_k,g,displacement_m\n")

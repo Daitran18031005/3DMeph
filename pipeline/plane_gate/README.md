@@ -46,6 +46,11 @@ dataflow ("chỉ điểm qua gate mới vào GLB") khác đề cương; mặc đ
 | `plane.max_planes` | 8 | TẠM cho M1 [Suy luận]: số mặt phẳng RANSAC tuần tự tối đa |
 | `plane.min_inlier_fraction` | 0.02 | TẠM cho M1 [Suy luận]: mặt phẳng phải có ≥ tỉ lệ này số điểm |
 | `plane.normal_knn` | 30 | TẠM cho M1 [Suy luận]: số láng giềng của PCA pháp tuyến cục bộ (`θ_k`, và Poisson ở export) |
+| `plane.gate_normal_knn` | 300 | khoá 15/11 (M4 đợt 3d): số láng giềng của pháp tuyến cho cổng và tinh chỉnh hướng lên (k = 100 không đạt quy tắc, 300 đạt); `null` = dùng `plane.normal_knn` (cũ). Khoá riêng vì `normal_knn` còn dùng cho Poisson ở export |
+| `plane.floor_rule` | lowest | khoá 15/11, Suy luận (M4 đợt 3d): `lowest` = chỉ mặt ngang thấp nhất là sàn (cao nhất là trần), mặt ngang khác nhãn `horizontal_other`, không thuộc S_struct (`stage.restrict_horizontal`); `any` = mọi mặt ngang dưới camera là sàn (cũ) |
+| `plane.floor_band_m` | 0.0 | Suy luận (M4 đợt 3d): mặt ngang cách mặt thấp nhất (hoặc cao nhất) ≤ giá trị này (m) vẫn là sàn (trần), vì sàn có thể bị cong/tách đôi (dev: mặt cao hơn 0,08 m, 81 nghìn điểm); chỉ khi `floor_rule: lowest`. 0 vì `gate_A` (band 0) đạt quy tắc, 0,10 cũng đạt nhưng không cần |
+| `plane.min_walls` | 1 | khoá 15/11, Suy luận (M4 đợt 3d): số tường tối thiểu; thiếu thì chạy thêm lượt RANSAC mặt đứng trên điểm có pháp tuyến lệch hướng lên ≥ 60°; 0 = tắt (cũ) |
+| `plane.extra_wall_passes` | 4 | Suy luận (M4 đợt 3d): số lượt RANSAC mặt đứng thêm tối đa (chỉ khi `min_walls` > 0) |
 
 ## Cách chạy riêng
 
