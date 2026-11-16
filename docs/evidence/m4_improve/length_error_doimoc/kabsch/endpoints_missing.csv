@@ -1,0 +1,137 @@
+scene,segment,anchor,endpoint,nn_cm,cause
+42897599,S01,False,a,B0=0.9;B1=;B3=1.8;proposed=1.8,
+42897599,S01,False,b,B0=1.3;B1=;B3=2.2;proposed=2.2,
+42897599,S02,False,a,B0=0.6;B1=;B3=1.1;proposed=1.1,
+42897599,S02,False,b,B0=1.9;B1=;B3=1.3;proposed=1.3,
+42897599,S03,False,a,B0=2.6;B1=;B3=3.3;proposed=3.3,
+42897599,S03,False,b,B0=2.2;B1=;B3=1.5;proposed=1.5,
+42897599,S04,False,a,B0=2.1;B1=;B3=2.4;proposed=2.4,
+42897599,S04,False,b,B0=0.8;B1=;B3=1.3;proposed=1.3,
+42897599,S05,False,a,B0=3.4;B1=;B3=4.4;proposed=4.4,
+42897599,S05,False,b,B0=17.6;B1=;B3=15.4;proposed=15.4,(không vẽ: quá giới hạn --max-maps)
+42897599,S06,True,a,B0=1.8;B1=;B3=0.9;proposed=0.9,
+42897599,S06,True,b,B0=3.4;B1=;B3=1.7;proposed=1.7,
+42897599,S07,False,a,B0=1.9;B1=;B3=3.6;proposed=3.6,
+42897599,S07,False,b,B0=2.3;B1=;B3=2.7;proposed=2.7,
+42897599,S08,False,a,B0=2.1;B1=;B3=3.3;proposed=3.3,
+42897599,S08,False,b,B0=2.0;B1=;B3=2.5;proposed=2.5,
+42897599,S09,False,a,B0=2.3;B1=;B3=1.5;proposed=1.5,
+42897599,S09,False,b,B0=7.7;B1=;B3=8.0;proposed=8.0,(không vẽ: quá giới hạn --max-maps)
+42898849,S01,True,a,B0=53.3;B1=;B3=51.3;proposed=51.3,(không vẽ: quá giới hạn --max-maps)
+42898849,S01,True,b,B0=1.4;B1=;B3=5.8;proposed=5.8,(không vẽ: quá giới hạn --max-maps)
+42898849,S02,False,a,B0=7.2;B1=;B3=0.6;proposed=0.6,
+42898849,S02,False,b,B0=1.1;B1=;B3=4.0;proposed=4.0,
+42898849,S03,False,a,B0=0.8;B1=;B3=1.9;proposed=1.9,
+42898849,S03,False,b,B0=9.8;B1=;B3=3.1;proposed=3.1,
+42898849,S04,False,a,B0=7.5;B1=;B3=6.4;proposed=6.4,(không vẽ: quá giới hạn --max-maps)
+42898849,S04,False,b,B0=1.2;B1=;B3=1.5;proposed=1.5,
+42898849,S05,False,a,B0=3.1;B1=;B3=1.9;proposed=1.9,
+42898849,S05,False,b,B0=4.3;B1=;B3=1.0;proposed=1.0,
+42898849,S06,False,a,B0=1.1;B1=;B3=0.8;proposed=0.8,
+42898849,S06,False,b,B0=0.4;B1=;B3=2.2;proposed=2.2,
+42898849,S07,False,a,B0=6.0;B1=;B3=3.1;proposed=3.1,
+42898849,S07,False,b,B0=2.6;B1=;B3=1.4;proposed=1.4,
+42898849,S08,False,a,B0=1.9;B1=;B3=3.7;proposed=3.7,
+42898849,S08,False,b,B0=2.7;B1=;B3=2.5;proposed=2.5,
+42897566,S01,False,a,B0=0.6;B1=1.1;B3=2.3;proposed=2.3,
+42897566,S01,False,b,B0=2.8;B1=0.9;B3=0.7;proposed=0.7,
+42897566,S02,False,a,B0=3.7;B1=5.2;B3=0.5;proposed=0.5,
+42897566,S02,False,b,B0=1.8;B1=4.8;B3=1.1;proposed=1.1,
+42897566,S04,False,a,B0=2.5;B1=3.8;B3=0.9;proposed=0.9,
+42897566,S04,False,b,B0=0.8;B1=3.3;B3=0.5;proposed=0.5,
+42897566,S05,False,a,B0=7.7;B1=10.3;B3=9.2;proposed=9.2,(không vẽ: quá giới hạn --max-maps)
+42897566,S05,False,b,B0=1.0;B1=6.6;B3=1.8;proposed=1.8,
+42897566,S06,False,a,B0=3.2;B1=9.9;B3=3.8;proposed=3.8,
+42897566,S06,False,b,B0=46.0;B1=23.7;B3=45.9;proposed=45.9,(không vẽ: quá giới hạn --max-maps)
+42897566,S07,False,a,B0=4.4;B1=0.6;B3=2.1;proposed=2.1,
+42897566,S07,False,b,B0=1.3;B1=1.8;B3=0.4;proposed=0.3,
+42897566,S08,False,a,B0=2.6;B1=0.7;B3=0.9;proposed=0.9,
+42897566,S08,False,b,B0=6.3;B1=13.2;B3=4.6;proposed=4.6,
+42897566,S09,False,a,B0=3.4;B1=2.1;B3=1.4;proposed=1.4,
+42897566,S09,False,b,B0=4.1;B1=2.1;B3=4.0;proposed=4.0,
+42897566,S10,False,a,B0=2.7;B1=10.6;B3=6.0;proposed=6.0,(không vẽ: quá giới hạn --max-maps)
+42897566,S10,False,b,B0=4.3;B1=5.4;B3=4.5;proposed=4.5,
+42897566,S11,True,a,B0=4.0;B1=4.6;B3=4.2;proposed=4.2,
+42897566,S11,True,b,B0=6.2;B1=1.4;B3=4.6;proposed=4.7,
+45662981,S01,True,a,B0=0.7;B1=5.2;B3=2.9;proposed=2.9,
+45662981,S01,True,b,B0=3.9;B1=8.5;B3=7.8;proposed=7.8,(không vẽ: quá giới hạn --max-maps)
+45662981,S02,False,a,B0=6.0;B1=16.7;B3=8.1;proposed=8.1,(không vẽ: quá giới hạn --max-maps)
+45662981,S02,False,b,B0=2.6;B1=2.2;B3=0.7;proposed=0.7,
+45662981,S03,False,a,B0=1.6;B1=7.4;B3=6.2;proposed=6.2,(không vẽ: quá giới hạn --max-maps)
+45662981,S03,False,b,B0=2.0;B1=15.1;B3=2.0;proposed=2.0,
+45662981,S04,False,a,B0=3.6;B1=10.1;B3=15.4;proposed=15.4,(không vẽ: quá giới hạn --max-maps)
+45662981,S04,False,b,B0=3.4;B1=10.2;B3=1.9;proposed=1.9,
+45662981,S05,False,a,B0=2.9;B1=13.3;B3=7.2;proposed=7.2,(không vẽ: quá giới hạn --max-maps)
+45662981,S05,False,b,B0=5.4;B1=20.0;B3=3.8;proposed=3.8,
+45662981,S06,False,a,B0=0.6;B1=6.3;B3=1.8;proposed=1.8,
+45662981,S06,False,b,B0=1.4;B1=9.3;B3=1.0;proposed=1.0,
+45662981,S07,False,a,B0=3.3;B1=10.7;B3=1.7;proposed=1.7,
+45662981,S07,False,b,B0=6.8;B1=6.5;B3=2.8;proposed=2.8,
+45662981,S08,False,a,B0=2.8;B1=28.8;B3=1.8;proposed=1.8,
+45662981,S08,False,b,B0=1.8;B1=3.1;B3=2.0;proposed=2.0,
+45662981,S09,False,a,B0=6.9;B1=16.9;B3=2.8;proposed=2.8,
+45662981,S09,False,b,B0=3.2;B1=2.1;B3=0.4;proposed=0.4,
+42445022,S01,True,a,B0=2.5;B1=18.4;B3=2.9;proposed=2.9,
+42445022,S01,True,b,B0=1.6;B1=0.6;B3=0.9;proposed=0.9,
+42445022,S02,False,a,B0=1.9;B1=0.7;B3=0.9;proposed=0.9,
+42445022,S02,False,b,B0=5.4;B1=2.6;B3=1.3;proposed=1.3,
+42445022,S03,False,a,B0=1.3;B1=11.8;B3=3.5;proposed=3.5,
+42445022,S03,False,b,B0=3.9;B1=4.5;B3=3.3;proposed=3.3,
+42445022,S04,False,a,B0=2.6;B1=6.7;B3=2.4;proposed=2.4,
+42445022,S04,False,b,B0=1.8;B1=12.0;B3=1.9;proposed=1.9,
+42445022,S05,False,a,B0=0.4;B1=9.7;B3=8.3;proposed=8.3,(không vẽ: quá giới hạn --max-maps)
+42445022,S05,False,b,B0=1.9;B1=2.0;B3=1.5;proposed=1.5,
+42445022,S06,False,a,B0=1.7;B1=0.3;B3=1.4;proposed=1.4,
+42445022,S06,False,b,B0=1.4;B1=26.0;B3=0.7;proposed=0.7,
+42445022,S07,False,a,B0=1.1;B1=14.3;B3=2.4;proposed=2.4,
+42445022,S07,False,b,B0=3.8;B1=0.2;B3=5.2;proposed=5.2,(không vẽ: quá giới hạn --max-maps)
+42445022,S08,False,a,B0=1.3;B1=17.0;B3=5.2;proposed=5.2,(không vẽ: quá giới hạn --max-maps)
+42445022,S08,False,b,B0=0.9;B1=40.8;B3=0.8;proposed=0.8,
+42445022,S09,False,a,B0=1.3;B1=19.8;B3=0.1;proposed=0.1,
+42445022,S09,False,b,B0=1.3;B1=26.3;B3=0.5;proposed=0.5,
+42445022,S10,False,a,B0=2.6;B1=10.4;B3=2.1;proposed=2.1,
+42445022,S10,False,b,B0=2.5;B1=9.5;B3=2.4;proposed=2.4,
+42445022,S11,False,a,B0=13.5;B1=34.1;B3=5.1;proposed=5.1,(không vẽ: quá giới hạn --max-maps)
+42445022,S11,False,b,B0=1.7;B1=8.3;B3=2.9;proposed=2.9,
+42445022,S12,False,a,B0=4.0;B1=4.1;B3=5.7;proposed=5.7,(không vẽ: quá giới hạn --max-maps)
+42445022,S12,False,b,B0=3.8;B1=0.2;B3=3.4;proposed=3.4,
+42445022,S13,False,a,B0=2.4;B1=9.8;B3=2.5;proposed=2.5,
+42445022,S13,False,b,B0=1.0;B1=11.7;B3=0.8;proposed=0.8,
+42445022,S14,False,a,B0=0.5;B1=1.2;B3=0.7;proposed=0.7,
+42445022,S14,False,b,B0=0.4;B1=7.8;B3=1.5;proposed=1.5,
+42445022,S15,False,a,B0=0.4;B1=21.9;B3=3.3;proposed=3.3,
+42445022,S15,False,b,B0=1.0;B1=7.0;B3=1.1;proposed=1.1,
+42444738,S01,False,a,B0=2.1;B1=17.0;B3=1.0;proposed=1.0,
+42444738,S01,False,b,B0=2.2;B1=11.2;B3=2.6;proposed=2.6,
+42444738,S02,False,a,B0=2.4;B1=18.7;B3=0.4;proposed=0.4,
+42444738,S02,False,b,B0=0.7;B1=1.0;B3=1.4;proposed=1.4,
+42444738,S03,False,a,B0=4.0;B1=30.4;B3=2.7;proposed=2.7,
+42444738,S03,False,b,B0=8.5;B1=28.6;B3=11.6;proposed=11.6,(không vẽ: quá giới hạn --max-maps)
+42444738,S04,False,a,B0=0.4;B1=8.8;B3=2.9;proposed=2.9,
+42444738,S04,False,b,B0=1.3;B1=9.0;B3=1.6;proposed=1.6,
+42444738,S05,False,a,B0=35.2;B1=9.9;B3=11.1;proposed=11.1,(không vẽ: quá giới hạn --max-maps)
+42444738,S05,False,b,B0=4.1;B1=7.0;B3=5.2;proposed=5.2,(không vẽ: quá giới hạn --max-maps)
+42444738,S06,True,a,B0=6.3;B1=16.2;B3=4.6;proposed=4.6,
+42444738,S06,True,b,B0=8.4;B1=17.5;B3=12.2;proposed=12.2,(không vẽ: quá giới hạn --max-maps)
+42444738,S07,False,a,B0=81.5;B1=67.7;B3=73.3;proposed=73.3,(không vẽ: quá giới hạn --max-maps)
+42444738,S07,False,b,B0=8.0;B1=20.6;B3=6.9;proposed=6.9,(không vẽ: quá giới hạn --max-maps)
+42444738,S08,False,a,B0=1.8;B1=1.1;B3=1.2;proposed=1.2,
+42444738,S08,False,b,B0=0.7;B1=12.6;B3=2.9;proposed=2.9,
+42444738,S09,False,a,B0=12.9;B1=7.3;B3=10.5;proposed=10.5,(không vẽ: quá giới hạn --max-maps)
+42444738,S09,False,b,B0=6.6;B1=7.4;B3=5.8;proposed=5.8,(không vẽ: quá giới hạn --max-maps)
+42444738,S10,False,a,B0=17.8;B1=5.5;B3=19.9;proposed=19.9,(không vẽ: quá giới hạn --max-maps)
+42444738,S10,False,b,B0=9.7;B1=0.3;B3=21.8;proposed=21.8,(không vẽ: quá giới hạn --max-maps)
+42444738,S11,False,a,B0=81.5;B1=67.3;B3=74.1;proposed=74.1,(không vẽ: quá giới hạn --max-maps)
+42444738,S11,False,b,B0=11.1;B1=21.2;B3=15.7;proposed=15.7,(không vẽ: quá giới hạn --max-maps)
+42444738,S12,False,a,B0=19.4;B1=6.2;B3=11.0;proposed=11.0,(không vẽ: quá giới hạn --max-maps)
+42444738,S12,False,b,B0=55.4;B1=15.9;B3=48.7;proposed=48.7,(không vẽ: quá giới hạn --max-maps)
+42444738,S13,False,a,B0=10.6;B1=21.6;B3=8.1;proposed=8.1,(không vẽ: quá giới hạn --max-maps)
+42444738,S13,False,b,B0=15.1;B1=21.4;B3=18.2;proposed=18.2,(không vẽ: quá giới hạn --max-maps)
+42444738,S14,False,a,B0=11.0;B1=7.8;B3=10.8;proposed=10.8,(không vẽ: quá giới hạn --max-maps)
+42444738,S14,False,b,B0=23.9;B1=8.7;B3=32.9;proposed=32.9,(không vẽ: quá giới hạn --max-maps)
+42444738,S15,False,a,B0=8.9;B1=2.0;B3=6.6;proposed=6.6,(không vẽ: quá giới hạn --max-maps)
+42444738,S15,False,b,B0=27.9;B1=17.7;B3=28.2;proposed=28.2,(không vẽ: quá giới hạn --max-maps)
+42444738,S16,False,a,B0=4.2;B1=2.4;B3=2.7;proposed=2.7,
+42444738,S16,False,b,B0=6.6;B1=16.3;B3=5.9;proposed=5.9,(không vẽ: quá giới hạn --max-maps)
+42444738,S17,False,a,B0=2.7;B1=11.7;B3=5.9;proposed=5.9,(không vẽ: quá giới hạn --max-maps)
+42444738,S17,False,b,B0=6.7;B1=5.1;B3=5.3;proposed=5.3,(không vẽ: quá giới hạn --max-maps)

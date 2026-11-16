@@ -13,6 +13,15 @@ le = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(le)
 
 
+def test_model_to_colmap_metric_la_nghich_dao_cua_export():
+    rng = np.random.default_rng(1)
+    q, _ = np.linalg.qr(rng.normal(size=(3, 3)))
+    frame = {"rotation_from_colmap_metric": q.tolist(), "translation": [0.0, 1.4, 0.0]}
+    x = rng.normal(size=(10, 3))
+    y = x @ q.T + np.array(frame["translation"])                            # đúng công thức của export/mesh.py
+    assert np.allclose(le.model_to_colmap_metric(y, frame), x)
+
+
 def test_robust_scale_ratio_bo_camera_lech_va_tra_s_m_chia_s():
     rng = np.random.default_rng(0)
     pts = rng.uniform(0, 4, (30, 3))

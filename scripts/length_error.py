@@ -64,23 +64,45 @@ def robust_scale_ratio(cams: Dict, gt: Dict, s_m: float) -> Optional[float]:
     return float(s_m / s)
 
 
-def variant_rows(layout, cfg, name: str, segs: List[Dict], gt: Dict, radius: float, align: str = "kabsch", faro: Optional[np.ndarray] = None):
+def model_to_colmap_metric(v: np.ndarray, frame: Dict) -> np.ndarray:
+    """Đổi đỉnh hệ model (glTF, sàn y = 0) về hệ COLMAP × s_m: x = Rᵀ (y − t), nghịch đảo của `x_model = R · x + t` (`export/mesh.py`)."""
+    r, t = np.array(frame["rotation_from_colmap_metric"]), np.array(frame["translation"])
+    return (v - t) @ r
+
+
+def mesh_cloud(layout, spacing: float = 0.005) -> Optional[np.ndarray]:
+    """Mẫu đều trên mặt `proposed/export/model.glb`, hệ COLMAP × s_m. None nếu chưa export.
+    shortcut: lấy mẫu thay cho điểm gần nhất chính xác trên tam giác, sai ≤ ~spacing; đổi sang trimesh.proximity nếu cần dưới 0,5 cm."""
+    import trimesh
+    glb, info = layout.export / "model.glb", layout.export / "measurements.json"
+    if not glb.is_file() or not info.is_file():
+        return None
+    mesh = trimesh.load(glb, force="mesh")
+    pts, _ = trimesh.sample.sample_surface(mesh, int(mesh.area / spacing ** 2), seed=0)
+    return model_to_colmap_metric(np.asarray(pts), read_json(info)["frame"])
+
+
+def variant_rows(layout, cfg, name: str, segs: List[Dict], gt: Dict, radius: float, align: str = "kabsch", faro: Optional[np.ndarray] = None, target: str = "points"):
     """(rows, R, t, cloud) của biến thể `name`: đầu mút Faro → hệ biến thể → snap ≤ radius. None nếu không có đám điểm.
     `align = kabsch`: đúng phép căn của `eval` (Kabsch cắt tỉa trên tâm camera, scale = 1).
     `align = icp`: như trên rồi tinh chỉnh bằng ICP cứng (scale = 1) của đám điểm vào Faro (cùng thủ tục ICP của chỉ số hình học). Chỉ dịch/xoay, KHÔNG đổi scale."""
     path = cloud_path(layout, name)
-    if not path.is_file():
+    if not path.is_file() or (target == "mesh" and name != "proposed"):        # chỉ proposed có export
         return None
     cams = camera_centers(layout, name, load_colmap_cameras)
     views = sorted(set(cams) & set(gt))
     r, t, _, _ = ln.kabsch_rigid_trimmed(np.array([gt[v] for v in views]), np.array([cams[v] for v in views]),
                                          float(cfgmod.require(cfg, "eval.align.trim_k")), int(cfgmod.require(cfg, "eval.align.trim_max_iters")))
     cloud = geo.load_points(path)
-    if align == "icp":
+    if align == "icp":                                                         # ICP căn trên điểm thật, rồi mới đổi sang mặt mesh
         vox = float(cfgmod.require(cfg, "eval.voxel_m"))
         tm, _ = geo.icp_rigid(geo.voxel_downsample((cloud - t) @ r, vox), geo.voxel_downsample(faro, vox), float(cfgmod.require(cfg, "eval.icp_max_dist_m")))
-        r_i, t_i = tm[:3, :3].T, -tm[:3, :3].T @ tm[:3, 3]                     # nghịch đảo: Faro → hệ scene của mô hình
+        r_i, t_i = tm[:3, :3].T, -tm[:3, :3].T @ tm[:3, 3]
         r, t = r @ r_i, r @ t_i + t
+    if target == "mesh":
+        cloud = mesh_cloud(base_layout(layout))
+        if cloud is None:
+            return None
     return ln.measure_auto(segs, r, t, cloud, radius), r, t, cloud
 
 
@@ -180,6 +202,7 @@ def main(argv=None) -> int:
     ap.add_argument("--scenes", nargs="+", default=SCENES)
     ap.add_argument("--radius", type=float, default=0.05, help="bán kính snap/hợp lệ (m)")
     ap.add_argument("--align", choices=["kabsch", "icp"], default="kabsch", help="phép căn Faro → mô hình: kabsch (đúng `eval`) hoặc icp (Kabsch rồi ICP cứng, scale = 1); ra thư mục con cùng tên")
+    ap.add_argument("--target", choices=["points", "mesh"], default="points", help="snap vào đám điểm (mặc định) hay mặt model.glb (chỉ proposed)")
     ap.add_argument("--out", default="docs/evidence/m4_improve/length_error")
     ap.add_argument("--max-maps", type=int, default=40, help="số đầu mút thiếu điểm tối đa vẽ ảnh chiếu mỗi scene")
     a = ap.parse_args(argv)
@@ -206,7 +229,7 @@ def main(argv=None) -> int:
         s_m = float(read_json(lay.alignment / "scale.json")["s_m"])
         ratios[sc] = robust_scale_ratio(cams_cm, gt, s_m)
         faro = geo.load_points(lay.faro / "faro_scene_frame.ply")
-        res = {v: variant_rows(lay, cfg, v, segs, gt, a.radius, a.align, faro) for v in VARIANTS}
+        res = {v: variant_rows(lay, cfg, v, segs, gt, a.radius, a.align, faro, a.target) for v in VARIANTS}
         by_id = {s["id"]: s for s in segs}
         for v, rr in res.items():
             if rr is None:

@@ -1,0 +1,64 @@
+[
+ {
+  "scene": "42897566",
+  "anchor": "S01",
+  "L_anchor": 1.1745,
+  "candidates": [
+   {
+    "id": "S11",
+    "L": 1.997,
+    "label": "Chiều dài từ chân ghế góc gương đến chân ghế đối diện",
+    "n_a": 15,
+    "n_b": 17,
+    "ang_a": 129.8141548997223,
+    "ang_b": 108.13054795851409,
+    "min_view": 15,
+    "min_ang": 108.13054795851409,
+    "ok_R4": true
+   },
+   {
+    "id": "S09",
+    "L": 1.9549,
+    "label": "Chiều dài từ bờ tường đến ghế đối diện (Lấy ngay góc tường, cách chân ghê một đoạn)",
+    "n_a": 12,
+    "n_b": 15,
+    "ang_a": 60.65070585965299,
+    "ang_b": 71.01820905753625,
+    "min_view": 12,
+    "min_ang": 60.65070585965299,
+    "ok_R4": true
+   },
+   {
+    "id": "S10",
+    "L": 2.4225,
+    "label": "Chiều dài từ kệ dưới gương đến chân tường dối diện",
+    "n_a": 7,
+    "n_b": 7,
+    "ang_a": 76.65398129390405,
+    "ang_b": 77.33365353005613,
+    "min_view": 7,
+    "min_ang": 76.65398129390405,
+    "ok_R4": true
+   }
+  ]
+ },
+ {
+  "scene": "42898849",
+  "anchor": "S07",
+  "L_anchor": 1.3934,
+  "candidates": [
+   {
+    "id": "S01",
+    "L": 1.9491,
+    "label": "cao cửa chính, cửa bên phải",
+    "n_a": 5,
+    "n_b": 7,
+    "ang_a": 259.15291671503564,
+    "ang_b": 157.86760556845675,
+    "min_view": 5,
+    "min_ang": 157.86760556845675,
+    "ok_R4": true
+   }
+  ]
+ }
+]

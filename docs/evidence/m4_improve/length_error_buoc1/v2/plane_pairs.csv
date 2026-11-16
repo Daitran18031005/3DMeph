@@ -1,0 +1,7 @@
+scene,pair,n_floor,n_ceiling,n_wall,plane_a,plane_b,model_dist_m,faro_dist_m,err_cm,rel_err_pct,angle_model_deg,angle_faro_deg,n_inl_a,n_inl_b,n_faro_a,n_faro_b
+42897599,không có cặp,1,0,3,,,,,,,,,,,,
+42898849,không có cặp,1,0,1,,,,,,,,,,,,
+42897566,không có cặp,1,0,2,,,,,,,,,,,,
+45662981,tường–tường,1,0,3,2,4,5.926772966123927,5.848575606518788,7.819735960513885,1.3370325505919858,2.4774232644412804,1.5656539939407748,93529,60721,63592,49509
+42445022,không có cặp,1,0,2,,,,,,,,,,,,
+42444738,không có cặp,1,0,3,,,,,,,,,,,,
