@@ -7,7 +7,7 @@ và đặt sàn (mặt phẳng sàn nhiều inlier nhất, nếu có) ở y = 0.
 from __future__ import annotations
 
 import time
-from typing import Callable, Dict, Tuple
+from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
 
@@ -42,8 +42,10 @@ def orient_towards_cameras(points: np.ndarray, normals: np.ndarray, centers: np.
     return out
 
 
-def poisson_mesh(points: np.ndarray, normals: np.ndarray, depth: int, density_quantile: float) -> Tuple[np.ndarray, np.ndarray, int]:
-    """Poisson (Open3D) rồi bỏ đỉnh có mật độ dưới phân vị `density_quantile`. Trả về (đỉnh, mặt, số đỉnh bị bỏ)."""
+def poisson_mesh(points: np.ndarray, normals: np.ndarray, depth: int, density_quantile: float,
+                 smooth_iters: int = 0) -> Tuple[np.ndarray, np.ndarray, int]:
+    """Poisson (Open3D) rồi bỏ đỉnh có mật độ dưới phân vị `density_quantile`, rồi làm mịn Taubin `smooth_iters` vòng
+    (Taubin không co mesh như Laplacian thuần). Trả về (đỉnh, mặt, số đỉnh bị bỏ)."""
     import open3d as o3d
     pcd = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(points))
     pcd.normals = o3d.utility.Vector3dVector(normals)
@@ -51,7 +53,47 @@ def poisson_mesh(points: np.ndarray, normals: np.ndarray, depth: int, density_qu
     dens = np.asarray(dens)
     drop = dens < np.quantile(dens, density_quantile)
     mesh.remove_vertices_by_mask(drop)
+    mesh.remove_degenerate_triangles()
+    mesh.remove_unreferenced_vertices()
+    if smooth_iters > 0:
+        before = np.asarray(mesh.vertices).copy()
+        mesh = mesh.filter_smooth_taubin(number_of_iterations=int(smooth_iters))
+        v = np.asarray(mesh.vertices)
+        bad = ~np.isfinite(v).all(axis=1)                     # đỉnh suy biến cho NaN: giữ vị trí trước khi làm mịn
+        v[bad] = before[bad]
+        mesh.vertices = o3d.utility.Vector3dVector(v)
     return np.asarray(mesh.vertices), np.asarray(mesh.triangles), int(drop.sum())
+
+
+def flatten_to_planes(pts: np.ndarray, plane_id: np.ndarray, planes, max_dist: float) -> np.ndarray:
+    """Chỉ cho mesh để xem: điểm thuộc mặt sàn/tường/trần (`plane_id` của stage gate) và cách mặt ≤ `max_dist` m được chiếu lên mặt phẳng,
+    để tường và sàn phẳng thay vì gợn theo nhiễu MVS. `max_dist` = 0 thì không đổi. Chỉ số eval tính trên điểm gốc, không qua bước này."""
+    out = pts.copy()
+    if max_dist <= 0:
+        return out
+    for p in planes:
+        if p["label"] not in ("floor", "wall", "ceiling"):
+            continue
+        n = np.asarray(p["n"], dtype=np.float64)
+        sel = plane_id == p["id"]
+        dist = out[sel] @ n + p["d"]
+        near = np.abs(dist) <= max_dist
+        idx = np.flatnonzero(sel)[near]
+        out[idx] -= np.outer(dist[near], n)
+    return out
+
+
+def vertex_colors(verts: np.ndarray, color_cloud) -> Optional[np.ndarray]:
+    """Màu mỗi đỉnh = màu điểm gần nhất của đám điểm có màu (MVS B0, cùng hệ COLMAP × s_m). None nếu không có file hoặc không có màu."""
+    import open3d as o3d
+    from scipy.spatial import cKDTree
+    if not color_cloud.is_file():
+        return None
+    pcd = o3d.io.read_point_cloud(str(color_cloud))
+    if not pcd.has_colors():
+        return None
+    _, j = cKDTree(np.asarray(pcd.points)).query(verts)
+    return (np.asarray(pcd.colors)[j] * 255).round().astype(np.uint8)
 
 
 def run_export(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
@@ -75,8 +117,11 @@ def run_export(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = prin
     s_m = float(read_json(layout.alignment / "scale.json")["s_m"])
     centers = np.array([c["center"] for c in load_cameras(layout).values()]) * s_m
 
+    if "plane_id" in f:                                    # refined_points cũ (trước khi gate ghi plane_id) thì bỏ qua làm phẳng
+        pts = flatten_to_planes(pts, np.asarray(f["plane_id"]), pl["planes"], float(cfgmod.require(cfg, "export.flatten_planes_m")))
     normals = orient_towards_cameras(pts, estimate_normals(pts, knn), centers)
-    verts, faces, n_drop = poisson_mesh(pts, normals, depth, dq)
+    verts, faces, n_drop = poisson_mesh(pts, normals, depth, dq, int(cfgmod.require(cfg, "export.smooth_iters")))
+    colors = vertex_colors(verts, layout.colmap_metric / "fused_metric.ply")
     if len(faces) == 0:
         raise StageError(E_MISSING_INPUT, "Poisson không tạo được mặt nào (quá ít điểm hoặc pháp tuyến hỏng)")
     rot = rotation_up_to_y(u)
@@ -85,7 +130,7 @@ def run_export(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = prin
     shift = np.array([0.0, -y_floor, 0.0])
     v_up, p_up = verts @ rot.T + shift, pts @ rot.T + shift
     out_dir = ensure_dir(layout.export)
-    mesh = trimesh.Trimesh(vertices=v_up, faces=faces, process=False)
+    mesh = trimesh.Trimesh(vertices=v_up, faces=faces, vertex_colors=colors, process=False)
     mesh.export(out_dir / "model.glb")
     write_ply(out_dir / "model_points.ply", {"x": p_up[:, 0].astype(np.float32), "y": p_up[:, 1].astype(np.float32), "z": p_up[:, 2].astype(np.float32),
                                               "w_k": f["w_k"], "g": f["g"]})

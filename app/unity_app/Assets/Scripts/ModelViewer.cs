@@ -6,6 +6,7 @@ public class ModelViewer : MonoBehaviour
 {
     public Camera viewCamera;
     public Material modelMaterial;
+    public Material markerMaterial;                         // Unlit/Color: điểm và đoạn đo nổi trên mô hình
     public bool MeasureMode;
     public string Result { get; private set; } = "";
 
@@ -36,7 +37,7 @@ public class ModelViewer : MonoBehaviour
             bounds.Encapsulate(mesh.bounds);
         }
         center = bounds.center;
-        dist = Mathf.Max(bounds.extents.magnitude * 2.2f, 1f);
+        dist = Mathf.Max(bounds.extents.magnitude * 1.6f, 1f);
         UpdateCamera();
         return true;
     }
@@ -80,7 +81,7 @@ public class ModelViewer : MonoBehaviour
         viewCamera.transform.SetPositionAndRotation(center + rot * new Vector3(0, 0, -dist), rot);
     }
 
-    void Pick(Vector2 screen)
+    public void Pick(Vector2 screen)
     {
         if (!Physics.Raycast(viewCamera.ScreenPointToRay(screen), out var hit, 100f)) return;
         int i = pts[0] == null ? 0 : (pts[1] == null ? 1 : -1);
@@ -89,14 +90,15 @@ public class ModelViewer : MonoBehaviour
         markers[i] = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         Destroy(markers[i].GetComponent<Collider>());
         markers[i].transform.position = hit.point;
-        markers[i].transform.localScale = Vector3.one * 0.03f;
+        markers[i].transform.localScale = Vector3.one * 0.06f;
+        markers[i].GetComponent<Renderer>().sharedMaterial = markerMaterial;
         if (i == 1)
         {
             line = new GameObject("Line").AddComponent<LineRenderer>();
             line.positionCount = 2;
             line.SetPositions(new[] { pts[0].Value, pts[1].Value });
-            line.widthMultiplier = 0.01f;
-            line.material = modelMaterial;
+            line.widthMultiplier = 0.02f;
+            line.material = markerMaterial;
             Result = $"Khoảng cách: {Vector3.Distance(pts[0].Value, pts[1].Value) * 100f:0.0} cm";
         }
         else Result = "Chạm điểm thứ hai";

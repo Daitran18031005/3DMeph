@@ -40,6 +40,33 @@ public class AppMain : MonoBehaviour
         font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         BuildUi();
         ShowCapture();
+        StartCoroutine(PreviewFromArgs());
+    }
+
+    /// Chỉ để chụp ảnh giao diện trên PC: `-preview-glb <file>` mở thẳng màn hình xem; `-shot <file.png>` chụp sau 3 s rồi thoát.
+    IEnumerator PreviewFromArgs()
+    {
+        var args = System.Environment.GetCommandLineArgs();
+        string Arg(string k) { int i = System.Array.IndexOf(args, k); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; }
+        string glb = Arg("-preview-glb"), shot = Arg("-shot");
+        if (glb != null)
+        {
+            ShowViewer();
+            status.text = viewer.Load(File.ReadAllBytes(glb)) ? "Kéo để xoay · chụm để zoom · bấm Đo khoảng cách" : "Không đọc được model.glb";
+        }
+        if (shot == null) yield break;
+        yield return new WaitForSeconds(1f);
+        if (System.Array.IndexOf(args, "-preview-measure") >= 0)          // minh hoạ trạng thái đo
+        {
+            ToggleMeasure();
+            yield return null;
+            viewer.Pick(new Vector2(Screen.width * 0.44f, Screen.height * 0.40f));
+            viewer.Pick(new Vector2(Screen.width * 0.58f, Screen.height * 0.58f));
+        }
+        yield return new WaitForSeconds(2f);
+        ScreenCapture.CaptureScreenshot(shot);
+        yield return new WaitForSeconds(1f);
+        Application.Quit();
     }
 
     // ------------------------------------------------------------------ UI
@@ -53,22 +80,42 @@ public class AppMain : MonoBehaviour
         if (!FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>())
             new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.EventSystems.StandaloneInputModule));
         var t = canvas.transform;
-        status = MakeText(t, new Vector2(0, 1), new Vector2(30, -30), new Vector2(1400, 120), 40);
-        warn = MakeText(t, new Vector2(0.5f, 0.5f), new Vector2(-500, 60), new Vector2(1000, 90), 52);
-        warn.color = new Color(1f, 0.35f, 0.2f);
-        warn.alignment = TextAnchor.MiddleCenter;
-        serverField = MakeInput(t, new Vector2(1, 1), new Vector2(-640, -30), new Vector2(610, 90), PlayerPrefs.GetString("server", "http://192.168.1.10:8000"));
-        lengthField = MakeInput(t, new Vector2(1, 1), new Vector2(-640, -140), new Vector2(610, 90), "");
+        var bar = MakePanel(t, new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -120), Vector2.zero, Glass);      // thanh trên mờ
+        status = MakeText(bar.transform, new Vector2(0, 0.5f), new Vector2(40, 0), new Vector2(1250, 90), 38);
+        status.alignment = TextAnchor.MiddleLeft;
+        status.GetComponent<Outline>().enabled = false;
+        serverField = MakeInput(bar.transform, new Vector2(1, 0.5f), new Vector2(-560, 38), new Vector2(520, 76), PlayerPrefs.GetString("server", "http://192.168.1.10:8000"));
+        lengthField = MakeInput(t, new Vector2(1, 1), new Vector2(-560, -140), new Vector2(520, 76), "");
         lengthField.placeholder.GetComponent<Text>().text = "Thước dây (cm)";
         lengthField.contentType = InputField.ContentType.DecimalNumber;
-        float y = 30;
-        recBtn = MakeButton(t, new Vector2(30, y), "Ghi", ToggleRecord);
-        modeBtn = MakeButton(t, new Vector2(340, y), "Scale: AR", ToggleMode);
-        clearAnchorBtn = MakeButton(t, new Vector2(650, y), "Xoá mốc", ClearAnchor);
-        sendBtn = MakeButton(t, new Vector2(960, y), "Gửi", () => StartCoroutine(Send()));
-        viewBtn = MakeButton(t, new Vector2(1270, y), "Xem mô hình", () => StartCoroutine(DownloadAndView()));
-        measureBtn = MakeButton(t, new Vector2(30, y), "Đo: tắt", ToggleMeasure);
-        newBtn = MakeButton(t, new Vector2(340, y), "Quay mới", ShowCapture);
+        hint = MakeText(t, new Vector2(0.5f, 0.5f), new Vector2(0, 0), new Vector2(1400, 120), 46);
+        hint.alignment = TextAnchor.MiddleCenter;
+        warn = MakeText(t, new Vector2(0.5f, 0.5f), new Vector2(0, 160), new Vector2(1200, 100), 50);
+        warn.color = new Color(1f, 0.78f, 0.2f);
+        warn.alignment = TextAnchor.MiddleCenter;
+        Vector2 bl = Vector2.zero, bc = new Vector2(0.5f, 0), br = new Vector2(1, 0);
+        recBtn = MakeButton(t, bc, new Vector2(0, 40), new Vector2(170, 170), "●", Accent, circle, ToggleRecord, 80);
+        modeBtn = MakeButton(t, bl, new Vector2(40, 70), new Vector2(330, 100), "Scale: AR", Glass, roundRect, ToggleMode);
+        clearAnchorBtn = MakeButton(t, bl, new Vector2(390, 70), new Vector2(260, 100), "Xoá mốc", Glass, roundRect, ClearAnchor);
+        sendBtn = MakeButton(t, br, new Vector2(-40, 70), new Vector2(300, 100), "Gửi  ➜", Primary, roundRect, () => StartCoroutine(Send()));
+        viewBtn = MakeButton(t, br, new Vector2(-40, 70), new Vector2(360, 100), "Xem mô hình", Success, roundRect, () => StartCoroutine(DownloadAndView()));
+        measureBtn = MakeButton(t, bc, new Vector2(0, 60), new Vector2(460, 110), "Đo khoảng cách", Glass, roundRect, ToggleMeasure);
+        newBtn = MakeButton(t, bl, new Vector2(40, 70), new Vector2(300, 100), "◀  Quét mới", Glass, roundRect, ShowCapture);
+    }
+
+    public Sprite roundRect, circle;                       // sprite UI có sẵn của Unity (gán trong BuildApp)
+    Text hint;
+    static readonly Color Glass = new Color(0f, 0f, 0f, 0.55f), Primary = new Color(0.16f, 0.47f, 1f, 0.95f),
+                          Accent = new Color(0.93f, 0.22f, 0.25f, 1f), Success = new Color(0.12f, 0.68f, 0.38f, 0.95f);
+
+    GameObject MakePanel(Transform parent, Vector2 aMin, Vector2 aMax, Vector2 offMin, Vector2 offMax, Color c)
+    {
+        var go = new GameObject("Panel", typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(parent, false);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = aMin; rt.anchorMax = aMax; rt.offsetMin = offMin; rt.offsetMax = offMax;
+        go.GetComponent<Image>().color = c;
+        return go;
     }
 
     Text MakeText(Transform parent, Vector2 anchorPt, Vector2 pos, Vector2 size, int fontSize)
@@ -88,18 +135,24 @@ public class AppMain : MonoBehaviour
         return txt;
     }
 
-    Button MakeButton(Transform parent, Vector2 pos, string label, UnityEngine.Events.UnityAction onClick)
+    Button MakeButton(Transform parent, Vector2 anchorPt, Vector2 pos, Vector2 size, string label, Color color, Sprite sprite,
+                      UnityEngine.Events.UnityAction onClick, int fontSize = 38)
     {
         var go = new GameObject(label, typeof(RectTransform), typeof(Image), typeof(Button));
         go.transform.SetParent(parent, false);
         var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = rt.anchorMax = rt.pivot = Vector2.zero;
+        rt.anchorMin = rt.anchorMax = rt.pivot = anchorPt;
         rt.anchoredPosition = pos;
-        rt.sizeDelta = new Vector2(290, 110);
-        go.GetComponent<Image>().color = new Color(0.1f, 0.45f, 0.85f, 0.9f);
+        rt.sizeDelta = size;
+        var img = go.GetComponent<Image>();
+        img.sprite = sprite;
+        img.type = sprite == roundRect ? Image.Type.Sliced : Image.Type.Simple;
+        img.pixelsPerUnitMultiplier = 0.35f;                  // góc bo to hơn với sprite 9-slice mặc định
+        img.color = color;
         go.GetComponent<Button>().onClick.AddListener(onClick);
-        var txt = MakeText(go.transform, new Vector2(0.5f, 0.5f), Vector2.zero, rt.sizeDelta, 40);
+        var txt = MakeText(go.transform, new Vector2(0.5f, 0.5f), Vector2.zero, size, fontSize);
         txt.alignment = TextAnchor.MiddleCenter;
+        txt.GetComponent<Outline>().enabled = false;
         txt.text = label;
         return go.GetComponent<Button>();
     }
@@ -113,7 +166,11 @@ public class AppMain : MonoBehaviour
         rt.pivot = new Vector2(0, 1);
         rt.anchoredPosition = pos;
         rt.sizeDelta = size;
-        go.GetComponent<Image>().color = new Color(1, 1, 1, 0.85f);
+        var bg = go.GetComponent<Image>();
+        bg.sprite = roundRect;
+        bg.type = Image.Type.Sliced;
+        bg.pixelsPerUnitMultiplier = 0.5f;
+        bg.color = new Color(1, 1, 1, 0.9f);
         var field = go.GetComponent<InputField>();
         var text = MakeText(go.transform, new Vector2(0.5f, 0.5f), Vector2.zero, size - new Vector2(20, 10), 36);
         text.color = Color.black;
@@ -122,6 +179,7 @@ public class AppMain : MonoBehaviour
         ph.color = new Color(0, 0, 0, 0.4f);
         ph.GetComponent<Outline>().enabled = false;
         text.rectTransform.pivot = ph.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        text.alignment = ph.alignment = TextAnchor.MiddleLeft;
         field.textComponent = text;
         field.placeholder = ph;
         field.text = value;
@@ -141,7 +199,7 @@ public class AppMain : MonoBehaviour
         foreach (var b in new[] { viewBtn, measureBtn, newBtn }) b.gameObject.SetActive(false);
         serverField.gameObject.SetActive(true);
         UpdateModeUi();
-        status.text = "Quét phòng: bấm Ghi, đi chậm quanh phòng, quay cả góc tường và sàn.";
+        status.text = "Quét phòng";
     }
 
     void ShowViewer()
@@ -174,14 +232,17 @@ public class AppMain : MonoBehaviour
 
     void ToggleRecord()
     {
-        if (recorder.Recording) { recorder.End(); SetLabel(recBtn, "Ghi"); }
-        else { recorder.Begin(); SetLabel(recBtn, "Dừng"); }
+        if (recorder.Recording) recorder.End(); else recorder.Begin();
+        SetLabel(recBtn, recorder.Recording ? "■" : "●");             // nút ghi: chấm đỏ → ô vuông khi đang ghi
+        recBtn.GetComponent<Image>().color = recorder.Recording ? Color.white : Accent;
+        recBtn.GetComponentInChildren<Text>().color = recorder.Recording ? Accent : Color.white;
     }
 
     void ToggleMeasure()
     {
         viewer.MeasureMode = !viewer.MeasureMode;
-        SetLabel(measureBtn, viewer.MeasureMode ? "Đo: bật" : "Đo: tắt");
+        SetLabel(measureBtn, viewer.MeasureMode ? "Đang đo: chạm 2 điểm" : "Đo khoảng cách");
+        measureBtn.GetComponent<Image>().color = viewer.MeasureMode ? Primary : Glass;
         if (!viewer.MeasureMode) viewer.ClearMeasure();
     }
 
@@ -200,13 +261,15 @@ public class AppMain : MonoBehaviour
             if (scaleMode == "tape") s += $" | Mốc: {(anchor[0] == null ? "chạm điểm A" : anchor[1] == null ? "chạm điểm B" : $"đã đặt ({Vector3.Distance(anchor[0].Value, anchor[1].Value) * 100f:0} cm theo AR)")}";
             if (jobId == null) status.text = s;
             warn.text = recorder.Recording ? recorder.Warning : "";
+            hint.text = recorder.Recording || recorder.Count > 0 || jobId != null ? ""
+                      : "Bấm ● rồi đi chậm quanh phòng\nquay cả góc tường, sàn và đồ vật";
             if (scaleMode == "tape" && Input.touchCount == 1 && Input.GetTouch(0).phase == TouchPhase.Ended
                 && !UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject(Input.GetTouch(0).fingerId))
                 PlaceAnchor(Input.GetTouch(0).position);
         }
         else
         {
-            warn.text = "";
+            warn.text = hint.text = "";
             if (viewer.Result != "") status.text = viewer.Result;
         }
     }
@@ -276,7 +339,7 @@ public class AppMain : MonoBehaviour
             yield return req.SendWebRequest();
             if (req.result != UnityWebRequest.Result.Success) { status.text = $"Tải lỗi: {req.error}"; yield break; }
             ShowViewer();
-            status.text = viewer.Load(req.downloadHandler.data) ? "Bật Đo rồi chạm 2 điểm trên mô hình" : "Không đọc được model.glb";
+            status.text = viewer.Load(req.downloadHandler.data) ? "Kéo để xoay · chụm để zoom · bấm Đo khoảng cách" : "Không đọc được model.glb";
             jobId = null;
         }
     }

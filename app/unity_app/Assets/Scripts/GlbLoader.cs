@@ -10,7 +10,7 @@ public static class GlbLoader
 {
     [Serializable] class Accessor { public int bufferView; public int byteOffset; public int componentType; public int count; public string type; }
     [Serializable] class BufferView { public int byteOffset; public int byteLength; public int byteStride; }
-    [Serializable] class Attributes { public int POSITION = -1; }
+    [Serializable] class Attributes { public int POSITION = -1; public int COLOR_0 = -1; }
     [Serializable] class Primitive { public Attributes attributes; public int indices = -1; public int mode = 4; }
     [Serializable] class MeshDef { public Primitive[] primitives; }
     [Serializable] class Gltf { public Accessor[] accessors; public BufferView[] bufferViews; public MeshDef[] meshes; }
@@ -46,10 +46,41 @@ public static class GlbLoader
                 var mesh = new Mesh { indexFormat = verts.Length > 65535 ? IndexFormat.UInt32 : IndexFormat.UInt16 };
                 mesh.vertices = verts;
                 mesh.triangles = idx;
+                mesh.colors = p.attributes.COLOR_0 >= 0 ? ReadColors(glb, bin, g, g.accessors[p.attributes.COLOR_0]) : HeightColors(verts);
                 mesh.RecalculateNormals();
                 mesh.RecalculateBounds();
                 meshes.Add(mesh);
             }
         return meshes.ToArray();
+    }
+
+    /// COLOR_0: VEC3/VEC4, uint8 chuẩn hoá (5121), uint16 (5123) hoặc float (5126).
+    static Color[] ReadColors(byte[] glb, int bin, Gltf g, Accessor a)
+    {
+        var view = g.bufferViews[a.bufferView];
+        int n = a.type == "VEC4" ? 4 : 3, size = a.componentType == 5126 ? 4 : a.componentType == 5123 ? 2 : 1;
+        int stride = view.byteStride > 0 ? view.byteStride : n * size, start = bin + view.byteOffset + a.byteOffset;
+        float Read(int o) => a.componentType == 5126 ? BitConverter.ToSingle(glb, o) : a.componentType == 5123 ? BitConverter.ToUInt16(glb, o) / 65535f : glb[o] / 255f;
+        var c = new Color[a.count];
+        for (int i = 0; i < a.count; i++)
+        {
+            int o = start + i * stride;
+            c[i] = new Color(Read(o), Read(o + size), Read(o + 2 * size), 1f);
+        }
+        return c;
+    }
+
+    static readonly Color Floor = new Color(0.93f, 0.76f, 0.55f), Mid = new Color(0.85f, 0.87f, 0.9f), Top = new Color(0.45f, 0.65f, 0.95f);
+
+    /// Màu theo độ cao (GLB có sàn y = 0): sàn ấm → tường sáng → cao xanh, để thấy hình khối khi mesh chưa có màu thật.
+    static Color[] HeightColors(Vector3[] v)
+    {
+        var c = new Color[v.Length];
+        for (int i = 0; i < v.Length; i++)
+        {
+            float h = Mathf.Clamp01(v[i].y / 2.4f);
+            c[i] = h < 0.5f ? Color.Lerp(Floor, Mid, h * 2f) : Color.Lerp(Mid, Top, h * 2f - 1f);
+        }
+        return c;
     }
 }

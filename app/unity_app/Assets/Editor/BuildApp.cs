@@ -31,6 +31,16 @@ public static class BuildApp
         EditorApplication.Exit(report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded ? 0 : 1);
     }
 
+    /// Bản Windows chỉ để chụp ảnh giao diện (không có ARCore: nền camera đen). Ra Build/Preview/Room3D.exe.
+    public static void BuildWindowsPreview()
+    {
+        EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Standalone, BuildTarget.StandaloneWindows64);
+        CreateScene();
+        var report = BuildPipeline.BuildPlayer(new[] { ScenePath }, "Build/Preview/Room3D.exe", BuildTarget.StandaloneWindows64, BuildOptions.None);
+        Debug.Log($"[BuildApp] preview {report.summary.result}");
+        EditorApplication.Exit(report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded ? 0 : 1);
+    }
+
     static void ConfigurePlayer()
     {
         var android = NamedBuildTarget.Android;
@@ -100,8 +110,10 @@ public static class BuildApp
         RenderSettings.ambientLight = new Color(0.55f, 0.55f, 0.55f);
 
         Directory.CreateDirectory("Assets/Materials");
-        var mat = new Material(Shader.Find("Standard")) { color = new Color(0.85f, 0.82f, 0.75f) };
+        var mat = new Material(Shader.Find("Room3D/VertexColorLit"));
         AssetDatabase.CreateAsset(mat, "Assets/Materials/Model.mat");
+        var marker = new Material(Shader.Find("Unlit/Color")) { color = new Color(1f, 0.85f, 0.1f) };
+        AssetDatabase.CreateAsset(marker, "Assets/Materials/Marker.mat");
 
         var app = new GameObject("App", typeof(AppMain), typeof(CaptureRecorder), typeof(ModelViewer));
         var rec = app.GetComponent<CaptureRecorder>();
@@ -110,6 +122,7 @@ public static class BuildApp
         var viewer = app.GetComponent<ModelViewer>();
         viewer.viewCamera = viewCam;
         viewer.modelMaterial = mat;
+        viewer.markerMaterial = marker;
         var main = app.GetComponent<AppMain>();
         main.arSession = session;
         main.arCamera = arCam;
@@ -117,6 +130,8 @@ public static class BuildApp
         main.recorder = rec;
         main.viewer = viewer;
         main.viewCamera = viewCam;
+        main.roundRect = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+        main.circle = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
 
         EditorSceneManager.SaveScene(scene, ScenePath);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
