@@ -31,11 +31,11 @@ import pipeline  # noqa: E402,F401  (import torch trước cv2/open3d/pycolmap)
 import numpy as np  # noqa: E402
 from scipy.spatial import cKDTree  # noqa: E402
 
+from pipeline.alignment.ar_metric import robust_trajectory_scale  # noqa: E402
 from pipeline.alignment.stage import load_colmap_cameras  # noqa: E402
 from pipeline.colmap import depth_io  # noqa: E402
 from pipeline.common import config as cfgmod  # noqa: E402
 from pipeline.common import splits as sp  # noqa: E402
-from pipeline.common.geometry import umeyama_sim3  # noqa: E402
 from pipeline.common.io import read_json, scene_layout  # noqa: E402
 from pipeline.common.schema import read_keyframes_csv  # noqa: E402
 from pipeline.eval import geometry as geo  # noqa: E402
@@ -54,13 +54,10 @@ def robust_scale_ratio(cams: Dict, gt: Dict, s_m: float) -> Optional[float]:
     views = sorted(set(cams) & set(gt))
     if len(views) < 5:
         return None
-    src, dst = np.array([cams[v]["center"] for v in views]), np.array([gt[v] for v in views])
-    keep = np.ones(len(views), bool)
-    for _ in range(4):
-        s, r, t = umeyama_sim3(src[keep], dst[keep])[:3]
-        res = np.linalg.norm(s * (src @ r.T) + t - dst, axis=1)
-        keep = res < max(0.25, 3 * float(np.median(res[keep])))
-    s = umeyama_sim3(src[keep], dst[keep])[0]
+    try:
+        s = robust_trajectory_scale(np.array([cams[v]["center"] for v in views]), np.array([gt[v] for v in views]))[0]
+    except ValueError:
+        return None
     return float(s_m / s)
 
 

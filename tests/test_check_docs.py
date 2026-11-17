@@ -22,7 +22,9 @@ def sandbox(tmp_path):
     shutil.copytree(
         REPO, root,
         ignore=shutil.ignore_patterns(".git", "raw", "processed", "self_collected", "scenes",
-                                      "__pycache__", ".pytest_cache", "tests", "sweeps"),       # data/sweeps ~3 GB mỗi bản sao × 10 test: không cần cho check_docs
+                                      "__pycache__", ".pytest_cache", "tests", "sweeps",        # data/sweeps ~3 GB mỗi bản sao × 10 test: không cần cho check_docs
+                                      "Library", "Temp", "Build", ".utmp", "Logs", "obj", "UserSettings",
+                                      "*.png", "*.jpg", "*.pptx", "*.pdf"),          # ảnh bằng chứng trong docs/ (~67 MB): check_docs không đọc   # cache Unity (app/unity_app) vài GB: từng làm đầy ổ C
     )
     return root
 

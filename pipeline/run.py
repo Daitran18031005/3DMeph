@@ -37,6 +37,11 @@ def resolve_scene(root: Path, scene: str, cfg: Dict, allow_heldout: bool = False
     """`arkitscenes/<video_id>` → thông tin từ `data/splits.csv` (kiểm `splits.lock`). Scene held-out bị chặn trừ khi `allow_heldout`."""
     if scene.startswith("self_collected/"):
         return resolve_video_scene(root, scene, cfg)
+    if scene.startswith("app/"):                          # gói quay của app (M6): raw/capture/ nằm sẵn trong thư mục scene
+        vid = scene.split("/", 1)[1]
+        layout = scene_layout(root / cfgmod.require(cfg, "paths.data_root"), "app", vid)
+        return {"dataset": "app", "video_id": vid, "split": "app", "visit_id": "", "sky_direction": "capture",
+                "raw_dir": layout.raw / "capture", "capture_dir": layout.raw / "capture", "layout": layout}
     try:
         dataset, vid = scene.split("/", 1)
     except ValueError:
@@ -111,6 +116,9 @@ def update_run_meta(layout: SceneLayout, scene: str, cfg: Dict, stage: str, entr
 
 
 def _stage_keyframe(ctx: Dict, log) -> Dict:
+    if ctx["info"].get("capture_dir"):                    # gói quay của app: ảnh + intrinsics + pose AR
+        from .keyframe.extract import extract_capture_keyframes
+        return extract_capture_keyframes(ctx["info"]["capture_dir"], ctx["info"]["layout"], ctx["cfg"], log=log)
     if ctx["info"].get("video_path"):                     # dữ liệu tự thu: nguồn là video điện thoại
         from .keyframe.extract import extract_video_keyframes
         info = ctx["info"]

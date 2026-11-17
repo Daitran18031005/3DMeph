@@ -18,10 +18,11 @@ from typing import Callable, Dict, List, Optional, Tuple
 import numpy as np
 
 from ..common import config as cfgmod
-from ..common.errors import E_ANCHOR_STALE, E_MISSING_INPUT, StageError
+from ..common.errors import E_ANCHOR_STALE, E_AR_SCALE, E_MISSING_INPUT, StageError
 from ..common.geometry import camera_center, umeyama_sim3
 from ..common.io import SceneLayout, ensure_dir, read_json, write_json
 from ..vggt.infer import read_chunk
+from . import ar_metric
 from .ransac import metric_scale, ransac_sim3, reference_distance, threshold_from_ratio
 
 
@@ -199,6 +200,11 @@ def collect_point_pairs(layout: SceneLayout, cams: Dict[int, Dict], log: Callabl
 def apply_scale(layout: SceneLayout, cfg: Dict, log: Callable[[str], None]) -> Dict:
     """`s_m` từ `scale_anchor.json` (cần `L_model`) rồi ghi `scale.json` và B0 mét (`fused.ply` × s_m)."""
     path = layout.root / str(cfgmod.require(cfg, "align.anchor_file"))
+    capture = ar_metric.load_capture(layout)
+    if capture is not None and capture.get("scale_mode") == "ar":
+        return _write_scale(layout, _ar_scale(layout, capture, log), log)
+    if capture is not None and capture.get("scale_mode") == "tape":
+        _tape_anchor(layout, capture, path, log)
     anchor = read_json(path) if path.is_file() else {}
     if "L_model" not in anchor:
         raise StageError(E_MISSING_INPUT, f"{path} chưa có L_model: chạy `python scripts/click_anchor_2d.py --scene ...` để click mốc {anchor.get('id', '?')}")
@@ -210,7 +216,48 @@ def apply_scale(layout: SceneLayout, cfg: Dict, log: Callable[[str], None]) -> D
                                          "chạy lại `python scripts/click_anchor_2d.py --scene ... --overwrite`")
     s_m = metric_scale(float(anchor["L_real"]), float(anchor["L_model"]))
     scale = {"s_m": s_m, "L_real": anchor["L_real"], "L_model": anchor["L_model"], "anchor_id": anchor.get("id"),
-             "L_real_source": anchor.get("source"), "endpoint_uncertainty_m": anchor.get("endpoint_uncertainty_m")}
+             "L_real_source": anchor.get("source"), "endpoint_uncertainty_m": anchor.get("endpoint_uncertainty_m"), "metric_from": "anchor"}
+    log(f"[align] mốc {scale['anchor_id']}: L_real {scale['L_real']} m, L_model {scale['L_model']:.5f} đv COLMAP → s_m = {s_m:.4f} m/đv")
+    return _write_scale(layout, scale, log)
+
+
+def _ar_scale(layout: SceneLayout, capture: Dict, log: Callable[[str], None]) -> Dict:
+    """Chế độ `ar` của app: s_m từ quỹ đạo AR (xem `ar_metric`)."""
+    cams, ar = load_colmap_cameras(layout), ar_metric.ar_cameras(layout, capture)
+    views = sorted(set(cams) & set(ar))
+    try:
+        s_m, n, res = ar_metric.robust_trajectory_scale(np.array([cams[v]["center"] for v in views]), np.array([ar[v]["center"] for v in views]))
+    except ValueError as e:
+        raise StageError(E_AR_SCALE, str(e)) from e
+    log(f"[align] scale từ quỹ đạo AR: {n}/{len(views)} camera, residual trung vị {res * 100:.1f} cm → s_m = {s_m:.4f} m/đv")
+    return {"s_m": s_m, "metric_from": "ar_trajectory", "n_cameras": n, "n_common": len(views), "residual_median_m": res}
+
+
+def _tape_anchor(layout: SceneLayout, capture: Dict, path, log: Callable[[str], None]) -> None:
+    """Chế độ `tape` của app: chiếu A, B (hệ AR) vào keyframe → tam giác hoá bằng camera COLMAP → ghi `scale_anchor.json` (L_real từ thước dây)."""
+    from .anchor import anchor_from_clicks
+    anc = capture.get("anchor") or {}
+    if not all(k in anc for k in ("L_real", "A", "B")):
+        raise StageError(E_AR_SCALE, "scale_mode=tape cần anchor {L_real, A, B} trong capture.json")
+    cams = load_colmap_cameras(layout)
+    obs = ar_metric.project_anchor(ar_metric.ar_cameras(layout, capture), set(cams), anc["A"], anc["B"])
+    try:
+        res = anchor_from_clicks(cams, obs)
+    except ValueError as e:
+        raise StageError(E_AR_SCALE, f"mốc thước dây: {e}") from e
+    ensure_dir(path.parent)
+    write_json(path, {"id": anc.get("id", "A1"), "label": anc.get("label", "mốc thước dây (app)"), "L_real": float(anc["L_real"]), "used_as_anchor": 1,
+                      "source": "tape", "endpoint_uncertainty_m": 0.01, "L_model": res["L_model"], "observations_2d": obs,
+                      "reproj_px": {"a": res["a"]["reproj_px"], "b": res["b"]["reproj_px"]},
+                      "max_ray_angle_deg": {"a": res["a"]["max_ray_angle_deg"], "b": res["b"]["max_ray_angle_deg"]},
+                      "colmap_model_sha256": model_fingerprint(layout), "note": "đầu mút định vị bằng AR của app, tam giác hoá bằng camera COLMAP"})
+    log(f"[align] mốc thước dây: {len(res['a']['views'])}/{len(res['b']['views'])} view, reproj lớn nhất "
+        f"{max(res['a']['reproj_px'] + res['b']['reproj_px']):.1f} px, L_model {res['L_model']:.5f}")
+
+
+def _write_scale(layout: SceneLayout, scale: Dict, log: Callable[[str], None]) -> Dict:
+    """Ghi `scale.json` và B0 mét (`fused.ply` × s_m)."""
+    s_m = scale["s_m"]
     write_json(layout.alignment / "scale.json", scale)
     fused = layout.colmap_mvs / "fused.ply"
     if fused.is_file():
@@ -220,8 +267,7 @@ def apply_scale(layout: SceneLayout, cfg: Dict, log: Callable[[str], None]) -> D
         ensure_dir(layout.colmap_metric)
         o3d.io.write_point_cloud(str(layout.colmap_metric / "fused_metric.ply"), pcd)
         scale["b0_points"] = len(pcd.points)
-    log(f"[align] mốc {scale['anchor_id']}: L_real {scale['L_real']} m, L_model {scale['L_model']:.5f} đv COLMAP → s_m = {s_m:.4f} m/đv"
-        + (f"; B0 mét {scale['b0_points']:,} điểm" if "b0_points" in scale else "; chưa có fused.ply nên chưa ghi B0 mét"))
+    log(f"[align] B0 mét {scale['b0_points']:,} điểm" if "b0_points" in scale else "[align] chưa có fused.ply nên chưa ghi B0 mét")
     return scale
 
 

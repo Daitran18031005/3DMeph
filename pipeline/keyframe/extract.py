@@ -135,6 +135,37 @@ def _densify(layout: SceneLayout, cfg: Dict, ts: Sequence[float], cand: Sequence
     return stats
 
 
+def extract_capture_keyframes(capture_dir: Path, layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print) -> Dict:
+    """Stage `keyframe` cho gói quay của app (M6): `capture.json` + `frames/*.jpg` (ảnh đúng hướng intrinsics, không xoay) → cùng hợp đồng đầu ra.
+    Ảnh lớn hơn `video.long_edge` được hạ cạnh (K nhân theo tỉ lệ) để dùng đúng `V_ref`. Pose AR không dùng ở đây (chỉ ở `align`)."""
+    t0 = time.time()
+    capture_dir = Path(capture_dir)
+    meta_path = capture_dir / "capture.json"
+    if not meta_path.is_file():
+        raise StageError(E_MISSING_INPUT, f"thiếu {meta_path}")
+    frames = sorted(read_json(meta_path)["frames"], key=lambda f: f["t"])
+    if not frames:
+        raise StageError(E_TOO_FEW_KEYFRAMES, "gói quay không có khung nào")
+    long_edge = int(cfgmod.require(cfg, "video.long_edge"))
+    ts = [float(f["t"]) for f in frames]
+    cand = select_candidates(ts, float(cfgmod.require(cfg, "keyframe.fps")))
+
+    def frame_at(i):
+        f = frames[i]
+        img = cv2.imread(str(capture_dir / "frames" / f["name"]))
+        if img is None:
+            raise StageError(E_MISSING_INPUT, f"không đọc được khung {f['name']}")
+        s = min(1.0, long_edge / max(img.shape[:2]))           # chỉ hạ, không phóng to
+        if s < 1.0:
+            img = cv2.resize(img, (round(img.shape[1] * s), round(img.shape[0] * s)), interpolation=cv2.INTER_AREA)
+        return img, (f["fx"] * s, f["fy"] * s, f["cx"] * s, f["cy"] * s), "none", f["name"]
+
+    stats = _densify(layout, cfg, ts, cand, lambda i: cv2.cvtColor(frame_at(i)[0], cv2.COLOR_BGR2GRAY), frame_at, "capture", t0, log,
+                     camera_extra={"intrinsics_source": "ar_capture"})
+    write_json(layout.raw / "source.json", {"dataset": "app", "capture_dir": str(capture_dir), "n_frames": len(frames), "stats": stats})
+    return stats
+
+
 def extract_keyframes(raw_dir: Path, layout: SceneLayout, cfg: Dict, sky_direction: str, source_info: Optional[Dict] = None,
                       log: Callable[[str], None] = print) -> Dict:
     """Chạy stage `keyframe` cho một scene. `raw_dir` chứa `vga_wide.zip` và `vga_wide_intrinsics.zip`. Trả về thống kê."""
