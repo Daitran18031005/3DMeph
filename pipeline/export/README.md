@@ -56,7 +56,7 @@ Poisson (Open3D) + trimesh là quyết định của nhóm. Chỉ số hình h�
 | `export.up_axis` | y | glTF dùng +Y là lên |
 | `export.density_quantile` | 0.05 | TẠM cho M1 [Suy luận]: bỏ đỉnh Poisson có mật độ dưới phân vị này |
 | `export.smooth_iters` | 50 | [Suy luận] số vòng làm mịn Taubin sau Poisson (0 = tắt); mesh có màu đỉnh lấy từ điểm MVS gần nhất (`fused_metric.ply`). Chỉ đổi mesh để xem, chỉ số eval tính trên điểm |
-| `export.flatten_planes_m` | 0.05 | [Suy luận] chỉ mesh để xem: điểm của sàn/tường/trần (`plane_id` từ gate) cách mặt ≤ ngưỡng được chiếu lên mặt phẳng trước Poisson; 0 = tắt |
+| `export.flatten_planes_m` | 0.08 | [Suy luận] chỉ mesh để xem: điểm cách mặt sàn/tường/trần gần nhất ≤ ngưỡng được chiếu lên mặt đó trước Poisson; giả thiết phòng vuông góc (tường thẳng đứng, sàn/trần nằm ngang); 0 = tắt |
 | `measure.tape_readings` | 3 | ĐC §8.3: đo thước dây 3 lần, lấy trung vị |
 | `measure.anchor_min_m` | 1.0 | ĐC §8.1: mốc scale dài 1–2 m |
 | `measure.anchor_max_m` | 2.0 | ĐC §8.1 |

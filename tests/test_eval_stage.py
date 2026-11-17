@@ -100,12 +100,12 @@ def test_eval_manual_dung_file_endpoints_va_roi_ve_auto(scene, cfg):
 def test_eval_mac_dinh_bo_qua_bien_the_thieu_va_loi_khi_chi_dinh(scene, cfg):
     layout, cams = scene
     stats = es.run_eval(layout, cfg, log=lambda m: None, load_cameras=lambda lay: cams)
-    assert stats["variants"] == ["B0", "B3"] and set(stats["skipped"]) == {"B1", "proposed", "abl_quality"}
+    assert stats["variants"] == ["B0", "B3"] and set(stats["skipped"]) == {"B1", "proposed", "abl_quality", "abl_gate"}
     with pytest.raises(StageError) as e:
         es.run_eval(layout, cfg, log=lambda m: None, variants=["proposed"], load_cameras=lambda lay: cams)
     assert e.value.code == E_MISSING_INPUT
-    with pytest.raises(ValueError, match="M5"):
-        es.run_eval(layout, cfg, log=lambda m: None, variants=["abl_gate"], load_cameras=lambda lay: cams)
+    with pytest.raises(ValueError, match="B2"):                                       # B2 (UniDepthV2) là mục tiêu mở rộng, chưa có
+        es.run_eval(layout, cfg, log=lambda m: None, variants=["B2"], load_cameras=lambda lay: cams)
 
 
 def test_variant_layout_khong_ghi_de_proposed(scene):

@@ -116,7 +116,7 @@ export:
   up_axis: y                  # glTF dùng +Y là lên
   density_quantile: 0.05      # cắt các đỉnh Poisson có mật độ dưới phân vị này; TẠM cho M1 [Suy luận]
   smooth_iters: 50            # làm mịn Taubin sau Poisson (0 = tắt); chỉ đổi mesh để xem, chỉ số eval tính trên điểm [Suy luận]
-  flatten_planes_m: 0.05      # chỉ mesh để xem: chiếu điểm của sàn/tường/trần (plane_id) cách mặt ≤ ngưỡng lên mặt phẳng; 0 = tắt [Suy luận]
+  flatten_planes_m: 0.08      # chỉ mesh để xem: chiếu điểm lên mặt sàn/tường/trần gần nhất (tường thẳng đứng, sàn ngang) nếu cách ≤ ngưỡng; 0 = tắt [Suy luận]
 
 measure:                      # scripts/pick_endpoints.py: chọn đầu mút trên mô hình, GT thước dây, so sai số
   tape_readings: 3            # ĐC §8.3: đo thước dây 3 lần, lấy trung vị
@@ -128,6 +128,12 @@ eval:
   snap_radius_m: 0.02         # bán kính snap đầu mút vào point cloud mô hình (quyết định của nhóm, 2 cm)
   mode: manual                # manual (chọn trực tiếp trên point cloud) | auto (căn cứng, scale cố định)
   delta_m: 0.05               # δ của Prec/Rec/F-score (35) [ĐC (35)]
+  plane:                      # Replica (M5): P2Plane, PlaneRecall (36) theo preseg; đặt trước khi chấm [Suy luận]
+    min_area_m2: 0.5          # segment `plane` nhỏ hơn thì không là mặt GT
+    assign_m: 0.10            # điểm mô hình gán cho mẫu GT gần nhất nếu cách ≤ ngưỡng
+    min_points: 200           # mặt GT cần ≥ số điểm gán để được chấm
+    max_angle_deg: 10         # "tìm thấy": lệch pháp tuyến ≤ ngưỡng
+    max_offset_m: 0.05        # "tìm thấy": lệch vị trí tại tâm ≤ ngưỡng
   b1:
     stride: 4                 # bước lấy mẫu pixel khi dựng point cloud B1 [Suy luận, TẠM]
     c_min: 0.5                # chỉ giữ điểm VGGT có c_model ≥ c_min (nối chunk và B1) [Suy luận, TẠM]

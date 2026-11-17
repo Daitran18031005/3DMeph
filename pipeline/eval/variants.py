@@ -1,6 +1,6 @@
 """Các biến thể được chấm (ĐC §20 Hình 26) và vị trí đầu ra của chúng.
 
-B0 COLMAP mét · B1 VGGT thuần mét (`b1.py`) · B3 fusion không gate · proposed (+ gate) · abl_quality (Ablation 1: bỏ q_*, fuse + gate).
+B0 COLMAP mét · B1 VGGT thuần mét (`b1.py`) · B3 fusion không gate · proposed (+ gate) · abl_quality (Ablation 1: bỏ q_*, fuse + gate) · abl_gate (Ablation 2: ép mọi điểm về mặt phẳng, không cổng; fuse chạy lại với tham số như proposed).
 Ablation 2 (ép plane không cổng) và plane metrics chuyển sang Replica (M5): không có ở đây.
 """
 
@@ -14,7 +14,7 @@ import numpy as np
 
 from ..common.io import SceneLayout, read_json
 
-VARIANTS = ["B0", "B1", "B3", "proposed", "abl_quality"]
+VARIANTS = ["B0", "B1", "B3", "proposed", "abl_quality", "abl_gate"]
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,7 @@ def base_layout(layout: SceneLayout) -> SceneLayout:
 
 
 def variant_layout(layout: SceneLayout, variant: str) -> SceneLayout:
-    return VariantLayout(layout.root, variant) if variant == "abl_quality" else base_layout(layout)
+    return VariantLayout(layout.root, variant) if variant in ("abl_quality", "abl_gate") else base_layout(layout)
 
 
 def cloud_path(layout: SceneLayout, variant: str) -> Path:
@@ -53,7 +53,7 @@ def cloud_path(layout: SceneLayout, variant: str) -> Path:
         return base.fusion / "fused_points.ply"
     if variant == "proposed":
         return base.plane_refinement / "refined_points.ply"
-    if variant == "abl_quality":
+    if variant in ("abl_quality", "abl_gate"):
         return variant_layout(base, variant).plane_refinement / "refined_points.ply"
     raise ValueError(f"biến thể không có: {variant!r} (có: {VARIANTS})")
 

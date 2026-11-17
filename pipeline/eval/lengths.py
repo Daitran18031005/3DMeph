@@ -165,11 +165,11 @@ def length_metrics(rows: Sequence[Dict], ids: Optional[Sequence[str]] = None) ->
 
 def snap_summary(rows: Sequence[Dict]) -> Dict:
     """Chỉ cho chế độ auto: số đầu mút không snap, khoảng snap (khoảng tới điểm gần nhất khi đã snap), khoảng tới điểm gần nhất của mọi đầu mút."""
-    nn = np.array([r[k] for r in rows for k in ("nn_a_m", "nn_b_m")])
-    sn = np.array([r[k] for r in rows for k in ("snapped_a", "snapped_b")])
+    nn = np.array([r[k] for r in rows for k in ("nn_a_m", "nn_b_m")], dtype=float)
+    sn = np.array([r[k] for r in rows for k in ("snapped_a", "snapped_b")], dtype=bool)   # rỗng (scene không có đoạn test, vd. Replica) vẫn là bool
     return {"n_endpoints": int(len(nn)), "n_unsnapped": int((~sn).sum()),
             "snap_mean_cm": float(nn[sn].mean() * 100) if sn.any() else None,
-            "nn_median_cm": float(np.median(nn) * 100), "nn_max_cm": float(nn.max() * 100)}
+            "nn_median_cm": float(np.median(nn) * 100) if len(nn) else None, "nn_max_cm": float(nn.max() * 100) if len(nn) else None}
 
 
 def write_lengths_csv(path, rows: Sequence[Dict]) -> None:

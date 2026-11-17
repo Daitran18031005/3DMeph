@@ -42,7 +42,7 @@ def test_resolve_scene_train_val_va_chan_heldout(root, cfg):
     with pytest.raises(ValueError):
         pr.resolve_scene(root, "arkitscenes/999", cfg)
     with pytest.raises(ValueError):
-        pr.resolve_scene(root, "replica/room0", cfg)
+        pr.resolve_scene(root, "scannet/scene0000", cfg)
     with pytest.raises(ValueError):
         pr.resolve_scene(root, "khong-co-gach-cheo", cfg)
 

@@ -37,10 +37,10 @@ def resolve_scene(root: Path, scene: str, cfg: Dict, allow_heldout: bool = False
     """`arkitscenes/<video_id>` → thông tin từ `data/splits.csv` (kiểm `splits.lock`). Scene held-out bị chặn trừ khi `allow_heldout`."""
     if scene.startswith("self_collected/"):
         return resolve_video_scene(root, scene, cfg)
-    if scene.startswith("app/"):                          # gói quay của app (M6): raw/capture/ nằm sẵn trong thư mục scene
-        vid = scene.split("/", 1)[1]
-        layout = scene_layout(root / cfgmod.require(cfg, "paths.data_root"), "app", vid)
-        return {"dataset": "app", "video_id": vid, "split": "app", "visit_id": "", "sky_direction": "capture",
+    if scene.startswith(("app/", "replica/")):            # gói quay (app M6, hoặc Replica render M5): raw/capture/ nằm sẵn trong thư mục scene
+        dataset, vid = scene.split("/", 1)
+        layout = scene_layout(root / cfgmod.require(cfg, "paths.data_root"), dataset, vid)
+        return {"dataset": dataset, "video_id": vid, "split": dataset, "visit_id": "", "sky_direction": "capture",
                 "raw_dir": layout.raw / "capture", "capture_dir": layout.raw / "capture", "layout": layout}
     try:
         dataset, vid = scene.split("/", 1)
@@ -214,7 +214,7 @@ def main(argv=None) -> int:
     ap.add_argument("--root", default=str(REPO))
     ap.add_argument("--from-stage", choices=STAGES, default=STAGES[0])
     ap.add_argument("--to-stage", choices=STAGES, default="export", help="mặc định export: stage eval hoãn sang M3 (NOT_IMPLEMENTED)")
-    ap.add_argument("--variant", default=None, choices=["proposed", "B0", "B1", "B3", "abl_quality"],
+    ap.add_argument("--variant", default=None, choices=["proposed", "B0", "B1", "B3", "abl_quality", "abl_gate"],
                     help="mặc định (không ghi): fuse/gate/export chạy proposed, eval chấm mọi biến thể có đầu ra; B0/B1/B3 chỉ cho eval; abl_quality cho fuse, gate, eval")
     ap.add_argument("--allow-heldout", action="store_true", help="cho phép scene held-out (chỉ M4, đúng một lần)")
     args = ap.parse_args(argv)
@@ -236,16 +236,19 @@ def main(argv=None) -> int:
     if args.variant in ("B0", "B1", "B3") and todo != ["eval"]:
         print(f"[LỖI] --variant {args.variant} chỉ dùng với --from-stage eval --to-stage eval (B0/B1/B3 do các stage proposed và eval dựng)")
         return 1
-    if args.variant == "abl_quality":
+    if args.variant in ("abl_quality", "abl_gate"):
         if not set(todo) <= {"fuse", "gate", "eval"} or ("eval" in todo and len(todo) > 1):
-            print("[LỖI] --variant abl_quality chỉ chạy --from-stage fuse --to-stage gate, hoặc riêng stage eval")
+            print(f"[LỖI] --variant {args.variant} chỉ chạy --from-stage fuse --to-stage gate, hoặc riêng stage eval")
             return 1
         import copy
 
         from .eval.variants import VariantLayout
-        ctx["info"] = {**info, "layout": VariantLayout(info["layout"].root, "abl_quality")}
+        ctx["info"] = {**info, "layout": VariantLayout(info["layout"].root, args.variant)}
         ctx["cfg"] = copy.deepcopy(cfg)
-        ctx["cfg"]["fusion"]["use_quality"] = False
+        if args.variant == "abl_quality":
+            ctx["cfg"]["fusion"]["use_quality"] = False       # Ablation 1: bỏ q_*
+        else:
+            ctx["cfg"]["plane"]["force"] = True               # Ablation 2: ép mọi điểm về mặt phẳng, không cổng
     print(f"[run] {args.scene} ({info['split']}, sky {info['sky_direction']}); stage {args.from_stage} → {args.to_stage}; config_hash "
           f"{cfgmod.config_hash(cfg)[:12]}")
     t0 = time.time()

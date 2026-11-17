@@ -65,22 +65,58 @@ def poisson_mesh(points: np.ndarray, normals: np.ndarray, depth: int, density_qu
     return np.asarray(mesh.vertices), np.asarray(mesh.triangles), int(drop.sum())
 
 
-def flatten_to_planes(pts: np.ndarray, plane_id: np.ndarray, planes, max_dist: float) -> np.ndarray:
-    """Chỉ cho mesh để xem: điểm thuộc mặt sàn/tường/trần (`plane_id` của stage gate) và cách mặt ≤ `max_dist` m được chiếu lên mặt phẳng,
-    để tường và sàn phẳng thay vì gợn theo nhiễu MVS. `max_dist` = 0 thì không đổi. Chỉ số eval tính trên điểm gốc, không qua bước này."""
+def flatten_to_planes(pts: np.ndarray, planes, up: np.ndarray, max_dist: float) -> np.ndarray:
+    """Chỉ cho mesh để xem: chiếu điểm lên mặt sàn/tường/trần gần nhất (cách ≤ `max_dist` m) để tường và sàn phẳng thay vì gợn theo nhiễu MVS.
+    Giả thiết phòng vuông góc [Suy luận]: tường thẳng đứng (pháp tuyến ⟂ `up`), sàn/trần nằm ngang (pháp tuyến ∥ `up`); vị trí mặt khớp lại bằng
+    trung vị các điểm gần. `max_dist` = 0 thì không đổi. Chỉ số eval tính trên điểm gốc, không qua bước này."""
     out = pts.copy()
     if max_dist <= 0:
         return out
+    up = np.asarray(up, dtype=np.float64) / np.linalg.norm(up)
+    fixed = []
     for p in planes:
         if p["label"] not in ("floor", "wall", "ceiling"):
             continue
         n = np.asarray(p["n"], dtype=np.float64)
-        sel = plane_id == p["id"]
-        dist = out[sel] @ n + p["d"]
-        near = np.abs(dist) <= max_dist
-        idx = np.flatnonzero(sel)[near]
-        out[idx] -= np.outer(dist[near], n)
+        n = n - (n @ up) * up if p["label"] == "wall" else np.sign(n @ up) * up
+        n /= np.linalg.norm(n)
+        near = np.abs(pts @ np.asarray(p["n"]) + p["d"]) <= max_dist
+        if near.sum() < 100:
+            continue
+        fixed.append((n, -float(np.median(pts[near] @ n))))
+    fixed += extra_walls(pts, fixed, up, max_dist)
+    if not fixed:
+        return out
+    dist = np.stack([pts @ n + d for n, d in fixed], axis=1)                 # (N, số mặt), có dấu
+    k = np.argmin(np.abs(dist), axis=1)
+    dk = dist[np.arange(len(pts)), k]
+    sel = np.abs(dk) <= max_dist
+    normals = np.stack([n for n, _ in fixed])
+    out[sel] -= dk[sel, None] * normals[k[sel]]
     return out
+
+
+def extra_walls(pts: np.ndarray, fixed, up: np.ndarray, max_dist: float, rounds: int = 6, min_frac: float = 0.03):
+    """Tường gate bỏ sót: RANSAC trên các điểm chưa gần mặt nào, giữ mặt gần thẳng đứng (pháp tuyến lệch ⟂ `up` ≤ 15°) có ≥ `min_frac` số điểm."""
+    import open3d as o3d
+    rest = np.ones(len(pts), bool)
+    for n, d in fixed:
+        rest &= np.abs(pts @ n + d) > max_dist
+    found = []
+    for _ in range(rounds):
+        if rest.sum() < min_frac * len(pts):
+            break
+        pcd = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(pts[rest]))
+        (a, b, c, _d), inl = pcd.segment_plane(distance_threshold=max_dist / 2, ransac_n=3, num_iterations=500)
+        n = np.array([a, b, c])
+        idx = np.flatnonzero(rest)[inl]
+        rest[idx] = False                                                  # dù giữ hay bỏ, không tìm lại mặt này
+        if len(inl) < min_frac * len(pts) or abs(n @ up) > np.sin(np.radians(15)):
+            continue
+        n = n - (n @ up) * up
+        n /= np.linalg.norm(n)
+        found.append((n, -float(np.median(pts[idx] @ n))))
+    return found
 
 
 def vertex_colors(verts: np.ndarray, color_cloud) -> Optional[np.ndarray]:
@@ -117,8 +153,7 @@ def run_export(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = prin
     s_m = float(read_json(layout.alignment / "scale.json")["s_m"])
     centers = np.array([c["center"] for c in load_cameras(layout).values()]) * s_m
 
-    if "plane_id" in f:                                    # refined_points cũ (trước khi gate ghi plane_id) thì bỏ qua làm phẳng
-        pts = flatten_to_planes(pts, np.asarray(f["plane_id"]), pl["planes"], float(cfgmod.require(cfg, "export.flatten_planes_m")))
+    pts = flatten_to_planes(pts, pl["planes"], u, float(cfgmod.require(cfg, "export.flatten_planes_m")))
     normals = orient_towards_cameras(pts, estimate_normals(pts, knn), centers)
     verts, faces, n_drop = poisson_mesh(pts, normals, depth, dq, int(cfgmod.require(cfg, "export.smooth_iters")))
     colors = vertex_colors(verts, layout.colmap_metric / "fused_metric.ply")

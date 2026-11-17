@@ -87,6 +87,11 @@ Ablation 2 (ép plane không cổng, `abl_gate`) không có ở đây: theo PDF 
 **Vùng đánh giá (09/11).** Camera để tính tầm nhìn là camera COLMAP (B0) đặt vào hệ scene bằng phép căn bền (`kabsch_rigid_trimmed`), chỉ các view còn lại sau cắt tỉa, không dùng pose ARKit thô. Vùng dựng một lần từ camera B0 rồi áp cho mọi biến thể. `metrics.csv` ghi `region_mode`, `region_gt_kept_frac` (tỉ lệ điểm Faro giữ lại), `region_model_kept_frac` (mô hình giữ lại; trống với `visible_gt`) và `region_n_views` (số view dùng để dựng vùng; `box`: số camera GT dựng hộp); `align_<biến thể>.json` có khoá `region`. Lõi tầm nhìn nằm ở `pipeline/common/visibility.py` (dùng chung với `scripts/annotate_segments.py`).
 | `eval.mode` | manual | `manual` (chọn trên point cloud, thiếu file thì rơi về auto) hoặc `auto` (căn cứng, scale cố định) |
 | `eval.delta_m` | 0.05 | δ của Prec/Rec/F-score [ĐC (35)] |
+| `eval.plane.min_area_m2` | 0.5 | [Suy luận] Replica: segment `plane` của preseg nhỏ hơn thì không là mặt GT |
+| `eval.plane.assign_m` | 0.10 | [Suy luận] điểm mô hình gán cho mẫu GT gần nhất nếu cách ≤ ngưỡng (P2Plane) |
+| `eval.plane.min_points` | 200 | [Suy luận] mặt GT cần ≥ số điểm gán để được chấm |
+| `eval.plane.max_angle_deg` | 10 | [Suy luận] PlaneRecall: mặt "tìm thấy" nếu lệch pháp tuyến ≤ ngưỡng |
+| `eval.plane.max_offset_m` | 0.05 | [Suy luận] PlaneRecall: và lệch vị trí tại tâm ≤ ngưỡng |
 | `eval.b1.stride` | 4 | bước lấy mẫu pixel của point cloud B1 [Suy luận, TẠM] |
 | `eval.b1.c_min` | 0.5 | ngưỡng `c_model` khi nối chunk và dựng B1 [Suy luận, TẠM] |
 | `eval.crop_margin_m` | 1.0 | lề quanh hộp quỹ đạo GT khi cắt Faro/mô hình cho Chamfer/F [Suy luận, TẠM] |

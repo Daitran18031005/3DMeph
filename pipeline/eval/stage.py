@@ -28,6 +28,7 @@ from . import lengths as ln
 from . import region as rg
 from .b1 import build_b1
 from .metrics import ate_after_sim3, delta_percent
+from .plane_gt import load_plane_gt, plane_metrics
 from .variants import VARIANTS, base_layout, camera_centers, cloud_path
 
 MAX_POSE_GAP_S = 0.5     # không nội suy pose GT qua khoảng trống pose lớn hơn thế [Suy luận]
@@ -36,11 +37,15 @@ COLUMNS = ["variant", "length_mode", "n_segments", "n_valid", "mae_cm", "median_
            "n_common", "mae_cm_common", "median_cm_common", "mape_pct_common", "pct_lt5cm_common", "delta_pct_mae_vs_B0", "delta_pct_median_vs_B0",
            "ate_rigid_cm", "ate_rigid_all_cm", "ate_sim3_cm", "n_cameras", "n_cameras_dropped",
            "region_mode", "region_gt_kept_frac", "region_model_kept_frac", "region_n_views", "n_unsnapped_endpoints", "snap_mean_cm", "nn_median_cm",
-           "acc_cm", "comp_cm", "chamfer_cm", "precision", "recall", "f_score", "acc_cm_kabsch", "comp_cm_kabsch", "chamfer_cm_kabsch", "f_score_kabsch"]
+           "acc_cm", "comp_cm", "chamfer_cm", "precision", "recall", "f_score", "acc_cm_kabsch", "comp_cm_kabsch", "chamfer_cm_kabsch", "f_score_kabsch",
+           "p2plane_cm", "plane_recall", "n_gt_planes", "n_planes_scored"]
 
 
 def gt_camera_centers(layout: SceneLayout) -> Dict[int, np.ndarray]:
     """view_id → tâm camera GT (hệ scene, mét) tại `frame_ts` của keyframe, từ `lowres_wide.traj` (nội suy). View ngoài quỹ đạo hoặc nằm trong khoảng trống pose bị bỏ."""
+    if layout.root.parent.name == "replica":                              # Replica: pose GT chính là pose lúc render (gói capture)
+        from ..alignment.ar_metric import ar_cameras, load_capture
+        return {v: c["center"] for v, c in ar_cameras(layout, load_capture(layout)).items()}
     src = layout.raw / "source.json"
     if not src.is_file():
         raise StageError(E_MISSING_INPUT, f"thiếu {src}: chạy stage keyframe trước")
@@ -62,7 +67,8 @@ def _fmt(v):
 
 
 def _eval_variant(name: str, layout: SceneLayout, cfg: Dict, segs: List[Dict], gt_cams: Dict[int, np.ndarray], faro: Optional[np.ndarray],
-                  load_cameras: Callable, log: Callable[[str], None], region: Optional[rg.Region] = None) -> Dict:
+                  load_cameras: Callable, log: Callable[[str], None], region: Optional[rg.Region] = None,
+                  plane_gt: Optional[Dict] = None) -> Dict:
     snap, mode = float(cfgmod.require(cfg, "eval.snap_radius_m")), str(cfgmod.require(cfg, "eval.mode"))
     cloud = geo.load_points(cloud_path(layout, name))
     cams = camera_centers(layout, name, load_cameras)
@@ -105,6 +111,8 @@ def _eval_variant(name: str, layout: SceneLayout, cfg: Dict, segs: List[Dict], g
             "R_gt_to_model": r.tolist(), "t_gt_to_model": t.tolist(), "snap_radius_m": snap, "snap_auto": snap_info}
     if faro is not None:
         model_scene = (cloud - t) @ r                   # Rᵀ(p − t): mô hình → hệ scene
+        if plane_gt is not None:                        # Replica: P2Plane, PlaneRecall (36) trên đám điểm đã căn về hệ GT
+            res.update(plane_metrics(model_scene, plane_gt, cfgmod.require(cfg, "eval.plane")))
         region = region or rg.build_region(layout, cfg, gt_cams, faro, load_cameras)   # một vùng chung cho cả scene; tự dựng nếu gọi riêng lẻ
         model_r, model_frac = region.filter_model(model_scene)
         g = geo.evaluate_geometry(model_r, region.faro, region.box, float(cfgmod.require(cfg, "eval.voxel_m")),
@@ -119,8 +127,11 @@ def _eval_variant(name: str, layout: SceneLayout, cfg: Dict, segs: List[Dict], g
     m = ln.length_metrics(rows)
     log(f"[eval] {name} ({label}): ATE cứng {rms * 100:.1f} cm trên {len(views) - n_drop}/{len(views)} camera (loại {n_drop}; mọi camera {res['ate_rigid_all_cm']:.1f} cm); hợp lệ {m['n_valid']}/{len(segs)} đoạn"
         + (f", MAE {m['mae_cm']:.1f} cm, median {m['median_cm']:.1f} cm" if m["n_valid"] else "")
-        + f"; đầu mút không snap {snap_info['n_unsnapped']}/{snap_info['n_endpoints']} (điểm gần nhất trung vị {snap_info['nn_median_cm']:.1f} cm)"
-        + (f"; Chamfer {res['chamfer_cm']:.1f} cm (sau Kabsch {res['chamfer_cm_kabsch']:.1f}), F {res['f_score']:.3f}" if faro is not None else ""))
+        + (f"; đầu mút không snap {snap_info['n_unsnapped']}/{snap_info['n_endpoints']} (điểm gần nhất trung vị {snap_info['nn_median_cm']:.1f} cm)"
+           if snap_info["n_endpoints"] else "; không có đoạn test")
+        + (f"; Chamfer {res['chamfer_cm']:.1f} cm (sau Kabsch {res['chamfer_cm_kabsch']:.1f}), F {res['f_score']:.3f}" if faro is not None else "")
+        + (f"; P2Plane {res['p2plane_cm']:.2f} cm, PlaneRecall {res['plane_recall']:.2f} ({res['n_planes_scored']}/{res['n_gt_planes']} mặt chấm)"
+           if res.get("p2plane_cm") is not None else ""))
     return res
 
 
@@ -133,18 +144,25 @@ def run_eval(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
     names = list(variants) if explicit else list(VARIANTS)
     bad = [v for v in names if v not in VARIANTS]
     if bad:
-        raise ValueError(f"biến thể không có: {bad} (có: {VARIANTS}); Ablation 2 thuộc M5")
+        raise ValueError(f"biến thể không có: {bad} (có: {VARIANTS})")
     meas_path = base.ground_truth / "measurements.csv"
     if not meas_path.is_file():
         raise StageError(E_MISSING_INPUT, f"thiếu {meas_path}: chạy scripts/annotate_segments.py --finalize")
     segs = ln.test_segments(ln.read_measurements(meas_path))
     gt_cams = gt_camera_centers(base)
-    faro_path = base.faro / "faro_scene_frame.ply"
+    faro_path = base.ground_truth / "gt_points.ply"                       # Replica: điểm lấy mẫu trên mesh GT (render_replica.py)
+    if not faro_path.is_file():
+        faro_path = base.faro / "faro_scene_frame.ply"
     faro = geo.load_points(faro_path) if faro_path.is_file() else None
     if faro is None:
         log(f"[eval] CẢNH BÁO: thiếu {faro_path}: bỏ qua Chamfer/F-score")
     ensure_dir(base.logs)
     region = rg.build_region(base, cfg, gt_cams, faro, load_cameras) if faro is not None else None
+    raw_replica = base.root.parents[2] / "raw" / "replica" / base.root.name
+    plane_gt = None
+    if base.root.parent.name == "replica" and (raw_replica / "preseg.bin").is_file():
+        plane_gt = load_plane_gt(raw_replica, cfgmod.require(cfg, "eval.plane"))
+        log(f"[eval] mặt phẳng GT (preseg): {len(plane_gt['planes'])} mặt ≥ {cfgmod.require(cfg, 'eval.plane.min_area_m2')} m²")
     results, skipped = [], {}
     for name in names:
         try:
@@ -152,7 +170,7 @@ def run_eval(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
                 build_b1(base, cfg, log)
             if not cloud_path(base, name).is_file():
                 raise StageError(E_MISSING_INPUT, f"thiếu {cloud_path(base, name)}")
-            results.append(_eval_variant(name, base, cfg, segs, gt_cams, faro, load_cameras, log, region))
+            results.append(_eval_variant(name, base, cfg, segs, gt_cams, faro, load_cameras, log, region, plane_gt))
         except StageError as e:
             if explicit:
                 raise

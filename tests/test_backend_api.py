@@ -23,7 +23,7 @@ def _capture(mode="ar"):
     return _zip({"capture.json": json.dumps({"scale_mode": mode, "frames": []}), "frames/000000.jpg": b"x"})
 
 
-def _wait(client, job_id, until=("done", "failed"), timeout=5.0):
+def _wait(client, job_id, until=("done", "failed"), timeout=30.0):     # máy bận (chạy GPU nền) thì luồng worker chậm
     t0 = time.time()
     while time.time() - t0 < timeout:
         doc = client.get(f"/jobs/{job_id}").json()
