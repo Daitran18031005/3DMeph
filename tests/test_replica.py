@@ -44,6 +44,12 @@ def test_preseg_chi_so_tu_giac_theo_segment_ra_ma_tam_giac_hai_nua():
     assert quad_segments_to_triangles(ids, meta, 6).tolist() == [7, 3, 7, 7, 3, 7]
 
 
+def test_preseg_phan_cap_la_tro_ve_segment_plane_goc():
+    from pipeline.eval.plane_gt import root_ids
+    meta = [{"id": 0, "parent": "1"}, {"id": 1, "parent": ""}, {"id": 2, "parent": ""}]
+    assert root_ids(meta) == [1, 1, 2]
+
+
 def test_p2plane_va_plane_recall_tren_mat_tong_hop():
     from pipeline.eval.plane_gt import plane_metrics
     rng = np.random.default_rng(0)

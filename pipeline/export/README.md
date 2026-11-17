@@ -54,9 +54,12 @@ Poisson (Open3D) + trimesh là quyết định của nhóm. Chỉ số hình h�
 |---|---|---|
 | `export.poisson_depth` | 8 | Suy luận (8–9) |
 | `export.up_axis` | y | glTF dùng +Y là lên |
-| `export.density_quantile` | 0.05 | TẠM cho M1 [Suy luận]: bỏ đỉnh Poisson có mật độ dưới phân vị này |
+| `export.density_quantile` | 0.2 | [Suy luận] bỏ đỉnh Poisson có mật độ dưới phân vị này (bề mặt bịa); 0,05 → 0,2 ngày 17/11 sau khi so ảnh smi_a_4153. Chỉ mesh để xem |
 | `export.smooth_iters` | 50 | [Suy luận] số vòng làm mịn Taubin sau Poisson (0 = tắt); mesh có màu đỉnh lấy từ điểm MVS gần nhất (`fused_metric.ply`). Chỉ đổi mesh để xem, chỉ số eval tính trên điểm |
 | `export.flatten_planes_m` | 0.08 | [Suy luận] chỉ mesh để xem: điểm cách mặt sàn/tường/trần gần nhất ≤ ngưỡng được chiếu lên mặt đó trước Poisson; giả thiết phòng vuông góc (tường thẳng đứng, sàn/trần nằm ngang); 0 = tắt |
+| `export.fill_vggt_voxel_m` | 0.05 | [Suy luận] chỉ mesh để xem: lấp ô voxel không có điểm MVS (tường trơn) bằng điểm VGGT đã căn; 0 = tắt. `model_points.ply` (chấm đo) và chỉ số eval không đổi |
+| `export.fill_vggt_min_views` | 1 | [Suy luận] ô lấp cần điểm VGGT từ ≥ số view khác nhau |
+| `export.fill_vggt_min_conf` | 0.1 | [Suy luận] c_model tối thiểu của điểm VGGT lấp lỗ cho mesh xem (riêng với `fusion.fill_min_conf`; tường trơn có c_model thấp, trung vị 0,15 ở smi_a_4153) |
 | `measure.tape_readings` | 3 | ĐC §8.3: đo thước dây 3 lần, lấy trung vị |
 | `measure.anchor_min_m` | 1.0 | ĐC §8.1: mốc scale dài 1–2 m |
 | `measure.anchor_max_m` | 2.0 | ĐC §8.1 |

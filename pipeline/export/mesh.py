@@ -119,6 +119,26 @@ def extra_walls(pts: np.ndarray, fixed, up: np.ndarray, max_dist: float, rounds:
     return found
 
 
+def vggt_fill(layout: SceneLayout, cfg: Dict, pts: np.ndarray, s_m: float) -> np.ndarray:
+    """Điểm VGGT (đã căn sang mét như fusion) ở các ô voxel `export.fill_vggt_voxel_m` không có điểm MVS và có ≥ `export.fill_vggt_min_views`
+    view khác nhau. Dùng lại `vggt_candidates`/`fill_points` của fusion (hướng A) với ngưỡng nới cho mesh xem; không vào chỉ số eval."""
+    from ..common.schema import read_keyframes_csv
+    from ..fusion.fill import fill_points
+    from ..fusion.stage import load_accepted_chunks, vggt_candidates
+    from ..vggt.infer import pad_geometry
+    try:
+        chunks = load_accepted_chunks(layout)
+    except StageError:                                     # chưa có align/VGGT: bỏ qua lấp lỗ (chỉ là phần hiển thị)
+        return np.zeros((0, 3))
+    if not chunks:
+        return np.zeros((0, 3))
+    kf = read_keyframes_csv(layout.metadata / "keyframes.csv")
+    geo = pad_geometry(int(kf[0]["w"]), int(kf[0]["h"]))
+    cx, cv, cc = vggt_candidates(layout, chunks, s_m, geo, int(cfgmod.require(cfg, "fusion.fill_stride")), float(cfgmod.require(cfg, "export.fill_vggt_min_conf")))
+    xyz, _, _ = fill_points(cx, cv, cc, pts, float(cfgmod.require(cfg, "export.fill_vggt_voxel_m")), int(cfgmod.require(cfg, "export.fill_vggt_min_views")))
+    return xyz
+
+
 def vertex_colors(verts: np.ndarray, color_cloud) -> Optional[np.ndarray]:
     """Màu mỗi đỉnh = màu điểm gần nhất của đám điểm có màu (MVS B0, cùng hệ COLMAP × s_m). None nếu không có file hoặc không có màu."""
     import open3d as o3d
@@ -148,11 +168,17 @@ def run_export(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = prin
             raise StageError(E_MISSING_INPUT, f"thiếu {p}: chạy stage gate trước")
     f = read_ply(src)
     pts = np.stack([f["x"], f["y"], f["z"]], axis=1).astype(np.float64)
+    pts_measure = pts                                      # model_points.ply (chấm đo) luôn là điểm gốc; lấp lỗ/làm phẳng chỉ cho mesh
     pl = read_json(planes_path)
     u = np.array(pl["up"])
     s_m = float(read_json(layout.alignment / "scale.json")["s_m"])
     centers = np.array([c["center"] for c in load_cameras(layout).values()]) * s_m
 
+    n_fill = 0
+    if float(cfgmod.require(cfg, "export.fill_vggt_voxel_m")) > 0:      # chỉ mesh để xem: lấp chỗ MVS trống (tường trơn) bằng điểm VGGT
+        fill = vggt_fill(layout, cfg, pts, s_m)
+        n_fill = len(fill)
+        pts = np.vstack([pts, fill])
     pts = flatten_to_planes(pts, pl["planes"], u, float(cfgmod.require(cfg, "export.flatten_planes_m")))
     normals = orient_towards_cameras(pts, estimate_normals(pts, knn), centers)
     verts, faces, n_drop = poisson_mesh(pts, normals, depth, dq, int(cfgmod.require(cfg, "export.smooth_iters")))
@@ -163,14 +189,14 @@ def run_export(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = prin
     floors = [p for p in pl["planes"] if p["label"] == "floor"]
     y_floor = float(max(floors, key=lambda p: p["n_inliers"])["height_m"]) if floors else float(np.percentile(pts @ u, 1))
     shift = np.array([0.0, -y_floor, 0.0])
-    v_up, p_up = verts @ rot.T + shift, pts @ rot.T + shift
+    v_up, p_up = verts @ rot.T + shift, pts_measure @ rot.T + shift
     out_dir = ensure_dir(layout.export)
     mesh = trimesh.Trimesh(vertices=v_up, faces=faces, vertex_colors=colors, process=False)
     mesh.export(out_dir / "model.glb")
     write_ply(out_dir / "model_points.ply", {"x": p_up[:, 0].astype(np.float32), "y": p_up[:, 1].astype(np.float32), "z": p_up[:, 2].astype(np.float32),
                                               "w_k": f["w_k"], "g": f["g"]})
     ceilings = [p for p in pl["planes"] if p["label"] == "ceiling"]
-    info = {"unit": "m", "up_axis": "y", "n_vertices": int(len(v_up)), "n_faces": int(len(faces)), "n_points": int(len(pts)), "poisson_depth": depth,
+    info = {"unit": "m", "up_axis": "y", "n_vertices": int(len(v_up)), "n_faces": int(len(faces)), "n_points": int(len(pts_measure)), "n_vggt_fill_mesh_only": n_fill, "poisson_depth": depth,
             "vertices_removed_low_density": n_drop, "bounds_min": v_up.min(axis=0).tolist(), "bounds_max": v_up.max(axis=0).tolist(),
             "extents_m": (v_up.max(axis=0) - v_up.min(axis=0)).tolist(),
             "frame": {"rotation_from_colmap_metric": rot.tolist(), "translation": shift.tolist(), "floor_height_in_colmap_metric_m": y_floor,

@@ -114,9 +114,12 @@ plane:
 export:
   poisson_depth: 8            # Open3D Poisson; [Suy luận] 8–9
   up_axis: y                  # glTF dùng +Y là lên
-  density_quantile: 0.05      # cắt các đỉnh Poisson có mật độ dưới phân vị này; TẠM cho M1 [Suy luận]
+  density_quantile: 0.2       # cắt đỉnh Poisson có mật độ dưới phân vị này (bề mặt bịa ở vùng không có dữ liệu); 0,05 → 0,2 ngày 17/11 sau khi so ảnh smi_a_4153 (0,2 bỏ mảng bịa, 0,35 mất phần thật); chỉ mesh để xem [Suy luận]
   smooth_iters: 50            # làm mịn Taubin sau Poisson (0 = tắt); chỉ đổi mesh để xem, chỉ số eval tính trên điểm [Suy luận]
   flatten_planes_m: 0.08      # chỉ mesh để xem: chiếu điểm lên mặt sàn/tường/trần gần nhất (tường thẳng đứng, sàn ngang) nếu cách ≤ ngưỡng; 0 = tắt [Suy luận]
+  fill_vggt_voxel_m: 0.05     # chỉ mesh để xem: lấp ô voxel MVS trống bằng điểm VGGT (0 = tắt) [Suy luận]
+  fill_vggt_min_views: 1      # ô lấp cần điểm VGGT từ ≥ số view khác nhau [Suy luận]
+  fill_vggt_min_conf: 0.1     # c_model tối thiểu của điểm VGGT dùng lấp lỗ cho mesh xem (tường trơn có c_model thấp) [Suy luận]
 
 measure:                      # scripts/pick_endpoints.py: chọn đầu mút trên mô hình, GT thước dây, so sai số
   tape_readings: 3            # ĐC §8.3: đo thước dây 3 lần, lấy trung vị

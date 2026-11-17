@@ -39,12 +39,26 @@ def quad_segments_to_triangles(ids: np.ndarray, meta, n_tri: int) -> np.ndarray:
     return np.r_[qseg, qseg]
 
 
+def root_ids(meta) -> list:
+    """Bảng id segment → id gốc. Một số scene (room_1, office_3) có preseg phân cấp: segment `plane` có `numPrimitives` 0,
+    mặt thuộc các lá `other-leaf` trỏ `parent` lên nó; room_0 phẳng (parent rỗng) nên id gốc = chính nó."""
+    by_id = {s["id"]: s for s in meta}
+    out = list(range(max(by_id) + 1))
+    for i in by_id:
+        r = i
+        while by_id[r].get("parent", "") not in ("", None):
+            r = int(by_id[r]["parent"])
+        out[i] = r
+    return out
+
+
 def load_plane_gt(raw_dir: Path, cfg_plane: Dict, n_samples: int = 2_000_000, seed: int = 0) -> Dict:
     """Mẫu điểm trên mesh GT kèm chỉ số mặt GT (−1 = không phẳng/nhỏ) và danh sách mặt (n, d)."""
     import trimesh
     mesh = trimesh.load(raw_dir / "mesh.ply", process=False)
     meta = json.loads((raw_dir / "preseg.json").read_text(encoding="utf-8"))["segmentation"]
     seg = quad_segments_to_triangles(np.fromfile(raw_dir / "preseg.bin", dtype=np.uint64), meta, len(mesh.faces))
+    seg = np.asarray(root_ids(meta), dtype=np.int64)[np.maximum(seg, 0)] * (seg >= 0) - (seg < 0)
     plane_ids = {s["id"] for s in meta if s["class"] == "plane"}
     area = np.bincount(np.maximum(seg, 0), weights=mesh.area_faces * (seg >= 0), minlength=int(seg.max()) + 1)
     keep = [i for i in sorted(plane_ids) if i < len(area) and area[i] >= float(cfg_plane["min_area_m2"])]
