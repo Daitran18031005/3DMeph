@@ -71,10 +71,16 @@ class PartStream(io.RawIOBase):
         return 0
 
 
-def target_for(name: str, out_root: Path):
-    """`<...>/<scene>/<file>` → out_root/<scene>/<file> nếu là file nhãn cần lấy và tên an toàn; ngược lại None."""
+def target_for(name: str, out_root: Path, scenes=frozenset()):
+    """`<...>/<scene>/<file>` → out_root/<scene>/<file> nếu là file nhãn cần lấy và tên an toàn; ngược lại None.
+    Scene trong `scenes` (tải lại cả scene): giữ mọi file `replica_v1/<scene>/...` (mesh, textures, nhãn)."""
     p = PurePosixPath(name)                                               # tên trong tar là POSIX: Path của Windows coi "/x" là tương đối
-    if p.is_absolute() or ".." in p.parts or p.name not in WANTED or len(p.parts) < 2:
+    if p.is_absolute() or ".." in p.parts:
+        return None
+    hit = [i for i, part in enumerate(p.parts[:-1]) if part in scenes]   # tar không có thư mục gốc chung: tìm thành phần là tên scene
+    if hit:
+        return out_root.joinpath(*p.parts[hit[0]:])
+    if p.name not in WANTED or len(p.parts) < 2:
         return None
     return out_root / p.parts[-2] / p.name
 
@@ -83,11 +89,14 @@ def main(argv=None) -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", default=str(REPO / "data" / "raw" / "replica"))
+    ap.add_argument("--scenes", nargs="*", default=[], help="tải lại toàn bộ các scene này (mesh, textures, nhãn)")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--yes", action="store_true", help="bắt buộc để tải thật")
     a = ap.parse_args(argv)
     sizes = [head(BASE + p) for p in PARTS]
-    print(f"17 phần, tổng {sum(sizes):,} B ({sum(sizes) / 1e9:.2f} GB) băng thông; chỉ giữ {sorted(WANTED)}")
+    scenes = frozenset(a.scenes)
+    print(f"17 phần, tổng {sum(sizes):,} B ({sum(sizes) / 1e9:.2f} GB) băng thông; giữ nhãn {sorted(WANTED)}"
+          + (f" và toàn bộ scene {sorted(scenes)}" if scenes else ""))
     if a.dry_run or not a.yes:
         print("chỉ dry-run" if a.dry_run else "cần --yes để tải thật")
         return 0
@@ -95,9 +104,11 @@ def main(argv=None) -> int:
     got = 0
     with tarfile.open(fileobj=io.BufferedReader(PartStream(sizes), 1 << 20), mode="r|gz") as tar:
         for m in tar:
-            dst = target_for(m.name, out)
+            dst = target_for(m.name, out, scenes)
             if dst is None or not m.isfile():
                 continue
+            if dst.parts[len(out.parts)] in scenes:
+                dst.parent.mkdir(parents=True, exist_ok=True)
             if not dst.parent.is_dir():
                 print(f"[bỏ] {m.name}: không có scene {dst.parent.name} trên đĩa")
                 continue

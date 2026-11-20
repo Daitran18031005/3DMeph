@@ -110,6 +110,20 @@ plane:
   floor_band_m: 0.0           # m: mặt ngang cách mặt thấp nhất (hoặc cao nhất) không quá giá trị này vẫn là sàn (hoặc trần); chỉ dùng khi floor_rule = lowest. 0 vì gate_A (band 0) đạt; thử 0,10 cũng đạt nhưng không cần
   min_walls: 1                # khoá ngày 15/11 [Suy luận]: số tường tối thiểu, thiếu thì chạy thêm lượt RANSAC mặt đứng; 0 = tắt (cũ)
   extra_wall_passes: 4        # số lượt RANSAC mặt đứng thêm tối đa khi thiếu tường (chỉ dùng khi min_walls > 0)
+  detector: ransac            # lệch #53 [Suy luận]: ransac = RANSAC tuần tự cũ (find_planes); refined = RANSAC mỏng + lọc pháp tuyến + tách mảng DBSCAN + khớp PCA bền (find_planes_refined)
+  gate_scope: struct          # struct = chỉ sàn/trần/tường theo ĐC (24); all = mọi mặt tìm được, kể cả đồ đạc (lệch #54)
+  refined:                    # chỉ dùng khi detector = refined; chọn trên Replica dev (hotel_0, frl_apartment_0), lệch #53
+    ransac_m: 0.02            # m: độ dày RANSAC đề xuất mặt phẳng
+    normal_deg: 20            # độ: pháp tuyến cục bộ của inlier phải lệch mặt đề xuất dưới giá trị này
+    cluster_eps_m: 0.05       # m: bán kính DBSCAN tách inlier thành mảng liền
+    min_points: 2000          # số điểm tối thiểu của một mặt (và của một đề xuất)
+    max_proposals: 60         # số vòng RANSAC đề xuất tối đa
+    merge_deg: 0              # độ: gộp mảng đồng phẳng có pháp tuyến lệch dưới giá trị này (0 = không gộp)
+    merge_m: 0                # m: và mặt này cách tâm mảng kia dưới giá trị này
+  locked:                     # cấu hình gate khoá trên Replica dev cho --variant refined_struct / refined_all (lệch #53/#54); null = chưa khoá
+    # khoá 20/11 từ lưới refined2 (128 cấu hình × 2 dev): ΔP2Plane TB −1,38% (struct), −1,48% (all), ΔF ≥ −0,01 cả hai dev
+    refined_struct: {detector: refined, gate_scope: struct, refined: {ransac_m: 0.01, cluster_eps_m: 0.05, min_points: 500}, tau_w: 0.0, alpha: 1.0}
+    refined_all: {detector: refined, gate_scope: all, refined: {ransac_m: 0.01, cluster_eps_m: 0.10, min_points: 500}, tau_w: 0.0, alpha: 1.0}
 
 export:
   poisson_depth: 8            # Open3D Poisson; [Suy luận] 8–9

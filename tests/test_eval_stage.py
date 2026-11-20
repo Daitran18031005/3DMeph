@@ -100,7 +100,7 @@ def test_eval_manual_dung_file_endpoints_va_roi_ve_auto(scene, cfg):
 def test_eval_mac_dinh_bo_qua_bien_the_thieu_va_loi_khi_chi_dinh(scene, cfg):
     layout, cams = scene
     stats = es.run_eval(layout, cfg, log=lambda m: None, load_cameras=lambda lay: cams)
-    assert stats["variants"] == ["B0", "B3"] and set(stats["skipped"]) == {"B1", "proposed", "abl_quality", "abl_gate"}
+    assert stats["variants"] == ["B0", "B3"] and set(stats["skipped"]) == {"B1", "proposed", "abl_quality", "abl_gate", "refined_struct", "refined_all"}
     with pytest.raises(StageError) as e:
         es.run_eval(layout, cfg, log=lambda m: None, variants=["proposed"], load_cameras=lambda lay: cams)
     assert e.value.code == E_MISSING_INPUT

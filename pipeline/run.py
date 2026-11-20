@@ -214,7 +214,7 @@ def main(argv=None) -> int:
     ap.add_argument("--root", default=str(REPO))
     ap.add_argument("--from-stage", choices=STAGES, default=STAGES[0])
     ap.add_argument("--to-stage", choices=STAGES, default="export", help="mặc định export: stage eval hoãn sang M3 (NOT_IMPLEMENTED)")
-    ap.add_argument("--variant", default=None, choices=["proposed", "B0", "B1", "B3", "abl_quality", "abl_gate"],
+    ap.add_argument("--variant", default=None, choices=["proposed", "B0", "B1", "B3", "abl_quality", "abl_gate", "refined_struct", "refined_all"],
                     help="mặc định (không ghi): fuse/gate/export chạy proposed, eval chấm mọi biến thể có đầu ra; B0/B1/B3 chỉ cho eval; abl_quality cho fuse, gate, eval")
     ap.add_argument("--allow-heldout", action="store_true", help="cho phép scene held-out (chỉ M4, đúng một lần)")
     args = ap.parse_args(argv)
@@ -236,7 +236,7 @@ def main(argv=None) -> int:
     if args.variant in ("B0", "B1", "B3") and todo != ["eval"]:
         print(f"[LỖI] --variant {args.variant} chỉ dùng với --from-stage eval --to-stage eval (B0/B1/B3 do các stage proposed và eval dựng)")
         return 1
-    if args.variant in ("abl_quality", "abl_gate"):
+    if args.variant in ("abl_quality", "abl_gate", "refined_struct", "refined_all"):
         if not set(todo) <= {"fuse", "gate", "eval"} or ("eval" in todo and len(todo) > 1):
             print(f"[LỖI] --variant {args.variant} chỉ chạy --from-stage fuse --to-stage gate, hoặc riêng stage eval")
             return 1
@@ -247,6 +247,16 @@ def main(argv=None) -> int:
         ctx["cfg"] = copy.deepcopy(cfg)
         if args.variant == "abl_quality":
             ctx["cfg"]["fusion"]["use_quality"] = False       # Ablation 1: bỏ q_*
+        elif args.variant.startswith("refined_"):             # lệch #53/#54: bộ dò mặt phẳng cải tiến, cấu hình khoá trên Replica dev
+            locked = cfgmod.get(cfg, f"plane.locked.{args.variant}")
+            if not locked:
+                print(f"[LỖI] --variant {args.variant}: chưa khoá plane.locked.{args.variant} trong config")
+                return 1
+            for k, v in locked.items():
+                if k == "refined":
+                    ctx["cfg"]["plane"]["refined"].update(v)
+                else:
+                    ctx["cfg"]["plane"][k] = v
         else:
             ctx["cfg"]["plane"]["force"] = True               # Ablation 2: ép mọi điểm về mặt phẳng, không cổng
     print(f"[run] {args.scene} ({info['split']}, sky {info['sky_direction']}); stage {args.from_stage} → {args.to_stage}; config_hash "

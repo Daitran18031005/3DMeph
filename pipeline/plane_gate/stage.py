@@ -144,6 +144,93 @@ def find_planes(points: np.ndarray, u: np.ndarray, cam_heights: np.ndarray, tau_
     return restrict_horizontal(planes, floor_rule, floor_band)
 
 
+def robust_fit(points: np.ndarray, iters: int = 2, k_sigma: float = 2.5) -> Tuple[np.ndarray, float, np.ndarray]:
+    """Khớp mặt phẳng PCA, lặp `iters` lần bỏ điểm có |r| > k_sigma·σ. Trả về (n, d, mask điểm giữ)."""
+    keep = np.ones(len(points), bool)
+    for _ in range(iters + 1):
+        c = points[keep].mean(axis=0)
+        n = np.linalg.svd(points[keep] - c, full_matrices=False)[2][-1]
+        d = -float(n @ c)
+        r = points @ n + d
+        sigma = float(np.sqrt(np.mean(r[keep] ** 2)))                     # σ của residual có dấu (không phải của |r|)
+        new = np.abs(r) <= max(k_sigma * sigma, 1e-6)
+        if new.sum() < 3 or (new == keep).all():
+            break
+        keep = new
+    return n, d, keep
+
+
+def cluster_components(points: np.ndarray, eps: float, min_points: int) -> np.ndarray:
+    """Nhãn mảng liền (DBSCAN Open3D, −1 = nhiễu)."""
+    import open3d as o3d
+    pcd = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(np.asarray(points, dtype=np.float64)))
+    return np.asarray(pcd.cluster_dbscan(eps=float(eps), min_points=int(min_points), print_progress=False))
+
+
+def find_planes_refined(points: np.ndarray, normals: np.ndarray, u: np.ndarray, cam_heights: np.ndarray, tau_n_deg: float,
+                        ransac_m: float, normal_deg: float, eps: float, min_points: int, max_proposals: int,
+                        floor_rule: str = "any", floor_band: float = 0.0, dbscan_min: int = 5, merge_deg: float = 0.0, merge_m: float = 0.0) -> List[Dict]:
+    """Bộ dò mặt phẳng cải tiến (lệch #53, [Suy luận]): RANSAC độ dày mỏng `ransac_m` đề xuất (n, d); inlier phải có pháp tuyến cục bộ
+    lệch n < `normal_deg` (bỏ điểm của bề mặt khác nằm trong tấm mỏng); tách inlier thành mảng liền (DBSCAN `eps`), mỗi mảng ≥ `min_points`
+    là một mặt riêng, khớp lại bằng PCA bền (`robust_fit`). Mọi inlier của đề xuất bị loại khỏi tập còn lại để vòng lặp luôn tiến."""
+    remaining = np.arange(len(points))
+    planes: List[Dict] = []
+    for _ in range(int(max_proposals)):
+        if len(remaining) < min_points:
+            break
+        seg = segment_plane(points[remaining], ransac_m)
+        if seg is None or len(seg[2]) < min_points:
+            break
+        n, _, inl = seg
+        cand = remaining[inl]
+        remaining = np.delete(remaining, inl)
+        good = cand[angle_to_plane_deg(normals[cand], n) < normal_deg]
+        if len(good) < min_points:
+            continue
+        lab = cluster_components(points[good], eps, dbscan_min)
+        for c in np.unique(lab[lab >= 0]):
+            comp = good[lab == c]
+            if len(comp) < min_points:
+                continue
+            n2, d2, keep = robust_fit(points[comp])
+            label, a, h = label_plane(n2, d2, u, cam_heights, tau_n_deg)
+            planes.append({"id": len(planes), "n": n2.tolist(), "d": d2, "label": label, "angle_to_up_deg": a, "height_m": None if np.isnan(h) else h,
+                           "n_inliers": int(keep.sum()), "source": "refined", "_members": comp[keep]})
+    if merge_deg > 0 and merge_m > 0:
+        planes = merge_coplanar(points, planes, u, cam_heights, tau_n_deg, merge_deg, merge_m)
+    return restrict_horizontal(planes, floor_rule, floor_band)
+
+
+def merge_coplanar(points: np.ndarray, planes: List[Dict], u: np.ndarray, cam_heights: np.ndarray, tau_n_deg: float,
+                   merge_deg: float, merge_m: float) -> List[Dict]:
+    """Gộp các mảng đồng phẳng (pháp tuyến lệch < `merge_deg`, mặt này cách tâm mảng kia < `merge_m`) rồi khớp lại trên hợp inlier.
+    Sai số MVS gợn sóng tần số thấp: mảng nhỏ khớp theo gợn, mặt lớn trung bình hoá được (lệch #53, [Suy luận])."""
+    parent = list(range(len(planes)))
+
+    def root(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    cos_max = np.cos(np.radians(merge_deg))
+    ns = [np.array(p["n"]) for p in planes]
+    cs = [points[p["_members"]].mean(axis=0) for p in planes]
+    for i in range(len(planes)):
+        for j in range(i + 1, len(planes)):
+            if abs(ns[i] @ ns[j]) >= cos_max and abs(ns[i] @ cs[j] + planes[i]["d"]) < merge_m and abs(ns[j] @ cs[i] + planes[j]["d"]) < merge_m:
+                parent[root(j)] = root(i)
+    out: List[Dict] = []
+    for r in sorted({root(i) for i in range(len(planes))}):
+        idx = np.concatenate([planes[i]["_members"] for i in range(len(planes)) if root(i) == r])
+        n2, d2, keep = robust_fit(points[idx])
+        label, a, h = label_plane(n2, d2, u, cam_heights, tau_n_deg)
+        out.append({"id": len(out), "n": n2.tolist(), "d": d2, "label": label, "angle_to_up_deg": a, "height_m": None if np.isnan(h) else h,
+                    "n_inliers": int(keep.sum()), "source": "refined_merged", "n_patches": int(sum(root(i) == r for i in range(len(planes)))),
+                    "_members": idx[keep]})
+    return out
+
+
 def run_gate(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
              load_cameras: Callable[[SceneLayout], Dict[int, Dict]] = load_colmap_cameras) -> Dict:
     """Stage `gate`. Vào: `proposed/fusion/fused_points.ply`. Ra: `proposed/plane_refinement/{refined_points.ply, planes.json, gate_log.csv}`."""
@@ -170,23 +257,47 @@ def run_gate(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
     u0 = camera_up(cams)
     u, up_info = refine_up(pts, normals, u0, up_deg, tau_r)
     cam_heights = centers @ u
-    planes = find_planes(pts, u, cam_heights, tau_r, tau_n, max_planes, min_frac, normals, floor_rule, floor_band, min_walls, wall_passes)
+    detector, scope = str(cfgmod.get(cfg, "plane.detector") or "ransac"), str(cfgmod.get(cfg, "plane.gate_scope") or "struct")
+    if detector == "refined":
+        rc = cfgmod.require(cfg, "plane.refined")
+        planes = find_planes_refined(pts, normals, u, cam_heights, tau_n, float(rc["ransac_m"]), float(rc["normal_deg"]), float(rc["cluster_eps_m"]),
+                                     int(rc["min_points"]), int(rc["max_proposals"]), floor_rule, floor_band,
+                                     merge_deg=float(rc.get("merge_deg") or 0), merge_m=float(rc.get("merge_m") or 0))
+    elif detector == "ransac":
+        planes = find_planes(pts, u, cam_heights, tau_r, tau_n, max_planes, min_frac, normals, floor_rule, floor_band, min_walls, wall_passes)
+    else:
+        raise ValueError(f"plane.detector phải là ransac hoặc refined, nhận {detector!r}")
+    if scope not in ("struct", "all"):
+        raise ValueError(f"plane.gate_scope phải là struct hoặc all, nhận {scope!r}")
     log(f"[gate] {len(pts):,} điểm; hướng lên: lệch u0 {up_info.get('deviation_deg', float('nan')):.1f}° ({'đã tinh chỉnh' if up_info['refined'] else 'giữ u0'}); "
         f"{len(planes)} mặt phẳng: " + ", ".join(f"{p['label']}({p['n_inliers']:,})" for p in planes))
-    struct = [p for p in planes if p["label"] in ("floor", "ceiling", "wall")]
+    struct = [p for p in planes if scope == "all" or p["label"] in ("floor", "ceiling", "wall")]   # all: lệch #54, cả mặt đồ đạc
     if not struct:
         raise StageError(E_MISSING_INPUT, "không tìm được mặt phẳng cấu trúc nào (sàn, trần, tường); xem planes và plane.min_inlier_fraction")
     pn = np.array([p["n"] for p in struct])
     pd = np.array([p["d"] for p in struct])
-    r_all = np.stack([residual(pts, pn[i], pd[i]) for i in range(len(struct))], axis=1)         # (K, P)
-    nearest = r_all.argmin(axis=1)
-    r_k = r_all[np.arange(len(pts)), nearest]
+    if detector == "refined":
+        # mặt cục bộ: gán điểm cho mặt có mảng inlier gần nhất (≤ cluster_eps_m), không cho mặt vô hạn hút điểm ở xa (lệch #53)
+        from scipy.spatial import cKDTree
+        mem = np.concatenate([p["_members"] for p in struct])
+        owner = np.concatenate([np.full(len(p["_members"]), i) for i, p in enumerate(struct)])
+        dist, j = cKDTree(pts[mem]).query(pts, distance_upper_bound=float(cfgmod.require(cfg, "plane.refined.cluster_eps_m")))
+        supported = np.isfinite(dist)
+        nearest = np.where(supported, owner[np.minimum(j, len(owner) - 1)], 0)
+        r_k = np.abs(np.einsum("ij,ij->i", pts, pn[nearest]) + pd[nearest])
+        members = np.full(len(pts), -1, dtype=np.int32)
+        members[mem] = [struct[i]["id"] for i in owner]
+    else:
+        r_all = np.stack([residual(pts, pn[i], pd[i]) for i in range(len(struct))], axis=1)         # (K, P)
+        nearest = r_all.argmin(axis=1)
+        r_k = r_all[np.arange(len(pts)), nearest]
+        supported, members = np.ones(len(pts), bool), None
     theta_k = np.empty(len(pts))
     for i in range(len(struct)):
         sel = nearest == i
         if sel.any():
             theta_k[sel] = angle_to_plane_deg(normals[sel], pn[i])
-    is_struct = np.ones(len(pts), bool)                                                          # `struct` chỉ gồm mặt phẳng thuộc S_struct
+    is_struct = supported                                                                        # `struct` chỉ gồm mặt phẳng thuộc S_struct; refined: thêm điều kiện có mảng gần
     g = gate_mask(r_k, theta_k, is_struct, w_k, tau_r, tau_n, tau_w)
     refined = force_project(pts, [(pn[i], pd[i]) for i in range(len(struct))], alpha) if force else np.empty_like(pts)
     if not force:
@@ -197,11 +308,15 @@ def run_gate(layout: SceneLayout, cfg: Dict, log: Callable[[str], None] = print,
     disp = np.linalg.norm(refined - pts, axis=1)
 
     out_dir = ensure_dir(layout.plane_refinement)
+    for p in planes:
+        p.pop("_members", None)
+    if members is not None:
+        np.save(out_dir / "plane_members.npy", members)                   # id mặt của điểm inlier (−1 = không thuộc mảng nào), cho A3
     write_ply(out_dir / "refined_points.ply", {"x": refined[:, 0].astype(np.float32), "y": refined[:, 1].astype(np.float32), "z": refined[:, 2].astype(np.float32),
                                                 "w_k": w_k.astype(np.float32), "g": g.astype(np.uint8), "plane_id": np.array([struct[i]["id"] for i in nearest], dtype=np.int32)})
     write_json(out_dir / "planes.json", {"up": u.tolist(), "up_info": up_info, "camera_height_median_m": float(np.median(cam_heights)), "planes": planes,
                                          "structural_plane_ids": [p["id"] for p in struct], "params": {"tau_r": tau_r, "tau_n_deg": tau_n, "tau_w": tau_w, "alpha": alpha, "force": force, "normal_knn": knn,
-                                                                                  "floor_rule": floor_rule, "floor_band_m": floor_band, "min_walls": min_walls}})
+                                                                                  "floor_rule": floor_rule, "floor_band_m": floor_band, "min_walls": min_walls, "detector": detector, "gate_scope": scope}})
     labels = np.array([struct[i]["label"] for i in nearest])
     with open(out_dir / "gate_log.csv", "w", encoding="utf-8", newline="") as fh:
         fh.write("point,plane_id,label,r_m,theta_deg,w_k,g,displacement_m\n")

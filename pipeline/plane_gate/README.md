@@ -51,6 +51,29 @@ dataflow ("chỉ điểm qua gate mới vào GLB") khác đề cương; mặc đ
 | `plane.floor_band_m` | 0.0 | Suy luận (M4 đợt 3d): mặt ngang cách mặt thấp nhất (hoặc cao nhất) ≤ giá trị này (m) vẫn là sàn (trần), vì sàn có thể bị cong/tách đôi (dev: mặt cao hơn 0,08 m, 81 nghìn điểm); chỉ khi `floor_rule: lowest`. 0 vì `gate_A` (band 0) đạt quy tắc, 0,10 cũng đạt nhưng không cần |
 | `plane.min_walls` | 1 | khoá 15/11, Suy luận (M4 đợt 3d): số tường tối thiểu; thiếu thì chạy thêm lượt RANSAC mặt đứng trên điểm có pháp tuyến lệch hướng lên ≥ 60°; 0 = tắt (cũ) |
 | `plane.extra_wall_passes` | 4 | Suy luận (M4 đợt 3d): số lượt RANSAC mặt đứng thêm tối đa (chỉ khi `min_walls` > 0) |
+| `plane.detector` | ransac | lệch #53 [Suy luận]: `ransac` = RANSAC tuần tự cũ (`find_planes`); `refined` = RANSAC mỏng + lọc pháp tuyến + tách mảng DBSCAN + khớp PCA bền (`find_planes_refined`) |
+| `plane.gate_scope` | struct | `struct` = chỉ sàn/trần/tường theo ĐC (24); `all` = mọi mặt tìm được, kể cả đồ đạc (lệch #54) |
+| `plane.refined.ransac_m` | 0.02 | m: độ dày RANSAC đề xuất mặt (chỉ khi `detector: refined`); chọn trên Replica dev |
+| `plane.refined.normal_deg` | 20 | độ: pháp tuyến cục bộ của inlier phải lệch mặt đề xuất dưới giá trị này |
+| `plane.refined.cluster_eps_m` | 0.05 | m: bán kính DBSCAN tách inlier thành mảng liền |
+| `plane.refined.min_points` | 2000 | số điểm tối thiểu của một mặt (và của một đề xuất) |
+| `plane.refined.max_proposals` | 60 | số vòng RANSAC đề xuất tối đa |
+| `plane.refined.merge_deg` | 0 | độ: gộp các mảng đồng phẳng có pháp tuyến lệch dưới giá trị này rồi khớp lại (sai số MVS gợn sóng tần số thấp; mảng lớn trung bình hoá được); 0 = không gộp |
+| `plane.refined.merge_m` | 0 | m: điều kiện gộp thứ hai, mỗi mặt cách tâm mảng kia dưới giá trị này |
+| `plane.locked.refined_struct.detector` | refined | cấu hình khoá 20/11 trên Replica dev (lưới refined2) cho `--variant refined_struct`, phạm vi theo ĐC (24) |
+| `plane.locked.refined_struct.gate_scope` | struct |  |
+| `plane.locked.refined_struct.refined.ransac_m` | 0.01 |  |
+| `plane.locked.refined_struct.refined.cluster_eps_m` | 0.05 |  |
+| `plane.locked.refined_struct.refined.min_points` | 500 |  |
+| `plane.locked.refined_struct.tau_w` | 0.0 |  |
+| `plane.locked.refined_struct.alpha` | 1.0 |  |
+| `plane.locked.refined_all.detector` | refined | như trên cho `--variant refined_all` (`gate_scope: all`, lệch #54) |
+| `plane.locked.refined_all.gate_scope` | all |  |
+| `plane.locked.refined_all.refined.ransac_m` | 0.01 |  |
+| `plane.locked.refined_all.refined.cluster_eps_m` | 0.1 |  |
+| `plane.locked.refined_all.refined.min_points` | 500 |  |
+| `plane.locked.refined_all.tau_w` | 0.0 |  |
+| `plane.locked.refined_all.alpha` | 1.0 |  |
 
 ## Cách chạy riêng
 

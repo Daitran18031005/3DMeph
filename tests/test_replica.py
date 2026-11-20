@@ -26,6 +26,12 @@ def test_tai_nhan_chi_lay_file_nhan_va_chan_duong_dan_doc(tmp_path):
     assert dl.target_for("replica_v1/room_0/mesh.ply", tmp_path) is None              # mesh đã có: bỏ qua
     assert dl.target_for("../evil/preseg.json", tmp_path) is None
     assert dl.target_for("/abs/room_0/glass.sur", tmp_path) is None
+    sc = frozenset({"room_2"})
+    assert dl.target_for("replica_v1/room_2/textures/0-color-ptex.hdr", tmp_path, sc) == tmp_path / "room_2" / "textures" / "0-color-ptex.hdr"
+    assert dl.target_for("replica_v1/room_2/mesh.ply", tmp_path, sc) == tmp_path / "room_2" / "mesh.ply"
+    assert dl.target_for("room_2/textures/a.hdr", tmp_path, sc) == tmp_path / "room_2" / "textures" / "a.hdr"   # tar thật: không có thư mục gốc
+    assert dl.target_for("replica_v1/room_1/mesh.ply", tmp_path, sc) is None
+    assert dl.target_for("replica_v1/../room_2/mesh.ply", tmp_path, sc) is None
 
 
 def test_look_rotation_la_quy_uoc_opencv_z_toi_y_xuong():

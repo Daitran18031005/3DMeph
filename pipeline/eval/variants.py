@@ -14,7 +14,8 @@ import numpy as np
 
 from ..common.io import SceneLayout, read_json
 
-VARIANTS = ["B0", "B1", "B3", "proposed", "abl_quality", "abl_gate"]
+GATE_VARIANTS = ("abl_quality", "abl_gate", "refined_struct", "refined_all")   # có thư mục fusion/plane_refinement riêng
+VARIANTS = ["B0", "B1", "B3", "proposed", *GATE_VARIANTS]
 
 
 @dataclass(frozen=True)
@@ -39,7 +40,7 @@ def base_layout(layout: SceneLayout) -> SceneLayout:
 
 
 def variant_layout(layout: SceneLayout, variant: str) -> SceneLayout:
-    return VariantLayout(layout.root, variant) if variant in ("abl_quality", "abl_gate") else base_layout(layout)
+    return VariantLayout(layout.root, variant) if variant in GATE_VARIANTS else base_layout(layout)
 
 
 def cloud_path(layout: SceneLayout, variant: str) -> Path:
@@ -53,7 +54,7 @@ def cloud_path(layout: SceneLayout, variant: str) -> Path:
         return base.fusion / "fused_points.ply"
     if variant == "proposed":
         return base.plane_refinement / "refined_points.ply"
-    if variant in ("abl_quality", "abl_gate"):
+    if variant in GATE_VARIANTS:
         return variant_layout(base, variant).plane_refinement / "refined_points.ply"
     raise ValueError(f"biến thể không có: {variant!r} (có: {VARIANTS})")
 
