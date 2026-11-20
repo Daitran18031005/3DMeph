@@ -569,6 +569,7 @@ def main(argv=None) -> int:
             stream.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description="Chấm 1 mốc scale + các đoạn test trên Faro đã căn")
     ap.add_argument("--scene", required=True, help="arkitscenes/<video_id>")
+    ap.add_argument("--allow-heldout", action="store_true", help="cho phép scene held-out (chấm GT trước lần chạy duy nhất)")
     ap.add_argument("--root", default=str(REPO))
     mode = ap.add_mutually_exclusive_group()
     mode.add_argument("--view", action="store_true", help="chỉ mở cửa sổ xem point cloud (không chọn)")
@@ -590,7 +591,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     try:
-        info = faro_align.resolve_scene(Path(args.root), args.scene)
+        info = faro_align.resolve_scene(Path(args.root), args.scene, args.allow_heldout)
     except (sp.HeldoutError, sp.LockError, ValueError, FileNotFoundError) as e:
         print(f"[LỖI] {type(e).__name__}: {e}")
         return 1

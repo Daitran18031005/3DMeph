@@ -179,6 +179,7 @@ def main(argv=None) -> int:
             stream.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description="Click mốc scale 2D và tam giác hoá bằng camera COLMAP")
     ap.add_argument("--scene", required=True, help="arkitscenes/<video_id>")
+    ap.add_argument("--allow-heldout", action="store_true", help="cho phép scene held-out (chấm GT trước lần chạy duy nhất)")
     ap.add_argument("--root", default=str(REPO))
     ap.add_argument("--zoom", type=float, default=None,
                     help="phóng ảnh hiển thị; mặc định tự vừa chiều cao màn hình (tối đa 1,5); trong cửa sổ: phím + / - đổi tỉ lệ")
@@ -191,7 +192,7 @@ def main(argv=None) -> int:
     root = Path(args.root)
     try:
         cfg = cfgmod.load_config(root / "configs" / "default.yaml")
-        info = pr.resolve_scene(root, args.scene, cfg)
+        info = pr.resolve_scene(root, args.scene, cfg, args.allow_heldout)
     except (sp.HeldoutError, sp.LockError, ValueError, FileNotFoundError) as e:
         print(f"[LỖI] {type(e).__name__}: {e}")
         return 1

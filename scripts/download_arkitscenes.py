@@ -60,9 +60,10 @@ BATCH_DESC = {
     "B": "Faro, visit của scene dev",
     "C": "vga_wide + intrinsics, 6 Validation",
     "D": "Faro, 6 visit Validation",
+    "H": "vga_wide + intrinsics + Faro, 5 held-out",
 }
 # Số đã báo (GiB, 1024^3) ngày 17/10/2026, đo bằng HEAD; sai lệch trong 1% coi là "khớp".
-REPORTED_GIB = {"A": 0.69, "B": 10.22, "C": 9.53, "D": 46.21}
+REPORTED_GIB = {"A": 0.69, "B": 10.22, "C": 9.53, "D": 46.21, "H": None}   # H: chỉ có số Faro 24,44 GiB đo 17/10, chưa đo vga
 REPORT_TOLERANCE = 0.01
 DEFAULT_MIN_FREE_GIB = 15.0
 DEFAULT_MAX_ATTEMPTS = 5     # số lần chạy curl cho mỗi file (mỗi lần resume từ .part)
@@ -169,7 +170,7 @@ def assert_no_heldout_items(items: List[Item], rows: List[Dict[str, str]]) -> No
 
 
 def build_items(batch: str, rows: List[Dict[str, str]], mapping: Dict[str, List[str]], root: Path,
-                dev_scene: str = "42444738") -> List[Item]:
+                dev_scene: str = "42444738", allow_heldout: bool = False) -> List[Item]:
     by_id = {r["video_id"]: r for r in rows}
     raw_root = Path(root) / "data" / "raw" / "arkitscenes"
     laser_root = raw_root / "laser_scanner_point_clouds"
@@ -203,8 +204,13 @@ def build_items(batch: str, rows: List[Dict[str, str]], mapping: Dict[str, List[
     elif batch == "D":
         visits = sorted({r["visit_id"] for r in val_rows}, key=int)
         items = [it for v in visits for it in faro(v)]
+    elif batch == "H":                                # held-out: chỉ khi người dùng duyệt (17/11) và có --allow-heldout
+        if not allow_heldout:
+            raise sp.HeldoutError("đợt H là held-out: cần --allow-heldout (người dùng duyệt riêng)")
+        held = sorted((r for r in rows if r["split"] == sp.SPLIT_HELDOUT), key=lambda r: int(r["video_id"]))
+        return [it for r in held for it in zips(r)] + [it for v in sorted({r["visit_id"] for r in held}, key=int) for it in faro(v)]
     else:
-        raise ValueError(f"đợt không hợp lệ: {batch!r} (chỉ A, B, C, D)")
+        raise ValueError(f"đợt không hợp lệ: {batch!r} (chỉ A, B, C, D, H)")
     assert_no_heldout_items(items, rows)
     return items
 
@@ -213,6 +219,8 @@ def parse_batches(arg: str) -> List[str]:
     parts = [p.strip().upper() for p in arg.split(",") if p.strip()]
     if parts == ["ALL"]:
         return list(BATCH_ORDER)
+    if parts == ["H"]:
+        return ["H"]
     bad = [p for p in parts if p not in BATCH_ORDER]
     if bad or not parts:
         raise ValueError(f"--batch không hợp lệ: {arg!r} (dùng A, B, C, D, danh sách cách nhau bằng dấu phẩy, hoặc all)")
@@ -248,11 +256,13 @@ def measure(items: List[Item], head: Optional[Callable[[str], int]] = None, work
 
 
 def matches_reported(batch: str, total_bytes: int) -> bool:
+    if REPORTED_GIB[batch] is None:
+        return True
     return abs(total_bytes / GiB - REPORTED_GIB[batch]) <= REPORTED_GIB[batch] * REPORT_TOLERANCE
 
 
-def plan_batch(batch, rows, mapping, root, dev_scene):
-    items = build_items(batch, rows, mapping, root, dev_scene)
+def plan_batch(batch, rows, mapping, root, dev_scene, allow_heldout=False):
+    items = build_items(batch, rows, mapping, root, dev_scene, allow_heldout)
     sizes = measure(items)
     todo = sum(remaining_bytes(it, s) for it, s in zip(items, sizes))
     return items, sizes, todo
@@ -340,6 +350,7 @@ def main(argv=None) -> int:
             stream.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description="Tải ARKitScenes theo đợt A/B/C/D (không giải nén, có resume)")
     ap.add_argument("--batch", required=True, help="A, B, C, D, danh sách cách nhau bằng phẩy, hoặc all")
+    ap.add_argument("--allow-heldout", action="store_true", help="cho phép đợt H (held-out); chỉ dùng khi người dùng đã duyệt")
     ap.add_argument("--dry-run", action="store_true", help="chỉ HEAD và in bảng dung lượng, không tải")
     ap.add_argument("--yes", action="store_true", help="bắt buộc để tải thật")
     ap.add_argument("--root", default=str(REPO), help="thư mục gốc repo (mặc định: repo này)")
@@ -369,7 +380,7 @@ def main(argv=None) -> int:
 
     try:
         rows = load_rows(splits_csv)
-        mapping = fetch_mapping() if any(b in ("B", "D") for b in batches) else {}
+        mapping = fetch_mapping() if any(b in ("B", "D", "H") for b in batches) else {}
     except (sp.LockError, DownloadError, FileNotFoundError) as e:
         print(f"[LỖI] {e}")
         return 1
@@ -381,7 +392,7 @@ def main(argv=None) -> int:
 
     for b in batches:
         try:
-            items, sizes, todo = plan_batch(b, rows, mapping, root, args.dev_scene)
+            items, sizes, todo = plan_batch(b, rows, mapping, root, args.dev_scene, args.allow_heldout)
         except (DownloadError, ValueError, sp.HeldoutError) as e:
             print(f"[LỖI] đợt {b}: {e}")
             return 1
@@ -404,7 +415,7 @@ def main(argv=None) -> int:
 
     print("\nĐợt | mô tả                              | số file | GiB (HEAD) | còn phải tải | khớp số đã báo | ổ còn dư sau (GiB)")
     for b, n, total, todo, match, left_after, ok_space in summary:
-        rep = f"{REPORTED_GIB[b]:.2f}"
+        rep = "chưa có" if REPORTED_GIB[b] is None else f"{REPORTED_GIB[b]:.2f}"
         print(f"{b:^3} | {BATCH_DESC[b]:<34} | {n:>7} | {total / GiB:>10.2f} | {todo / GiB:>12.2f} | "
               f"{'khớp' if match else 'LỆCH'} (đã báo {rep}) | {left_after / GiB:>8.2f}{'' if ok_space else '  < ngưỡng'}")
     tot_all = sum(s[3] for s in summary)

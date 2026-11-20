@@ -92,7 +92,7 @@ def test_script_from_json_ghi_L_model_va_chong_ghi_de(tmp_path, monkeypatch, cap
     c = cams3()
     obs_file = tmp_path / "obs.json"
     obs_file.write_text(json.dumps([{"view": o["view"], "a": list(o["a"]), "b": list(o["b"])} for o in clicks(c, (0, 1))]), encoding="utf-8")
-    monkeypatch.setattr(ca.pr, "resolve_scene", lambda root, scene, cfg: {"layout": layout})
+    monkeypatch.setattr(ca.pr, "resolve_scene", lambda root, scene, cfg, allow_heldout=False: {"layout": layout})
     monkeypatch.setattr(ca, "load_colmap_cameras", lambda lay: c)
     monkeypatch.setattr(ca, "model_fingerprint", lambda lay: "abc123")
     argv = ["--scene", "arkitscenes/777", "--from-json", str(obs_file)]

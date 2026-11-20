@@ -18,6 +18,7 @@ confidence head, Replica (hoãn đến M5).
 1. Lệnh trực tiếp của người dùng trong chat.
 2. `docs/PLAN_v4.md` (kế hoạch v4).
 3. PDF đề cương `Docs/TaiTao3D_Metric_3DMeph.pdf` (ngoài repo, thư mục `3D_Metric/`; 52 trang vật lý, bản Revised 10/2026).
+   **Đọc kèm `Docs/TaiTao3D_Metric_3DMeph_DinhChinh.pdf`** (bản đính chính 20/11: chỗ lệch đề cương, lý do, số đo); ở mục nào bản đính chính nêu thì bản đính chính thắng PDF.
 4. Ba file HTML trong `PipelineFlowChart/` (ngoài repo, **không sửa**). Chỗ lệch với PDF đã liệt kê ở §2c của kế hoạch;
    **mặc định theo PDF** (ví dụ: gate theo (24), điểm không qua cổng vẫn giữ; fusion cần 4 đường vào thiếu trên sơ đồ).
 

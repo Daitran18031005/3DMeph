@@ -54,7 +54,7 @@ class StopError(RuntimeError):
 # ---------------------------------------------------------------------------
 
 
-def resolve_scene(root: Path, scene: str) -> Dict:
+def resolve_scene(root: Path, scene: str, allow_heldout: bool = False) -> Dict:
     """`arkitscenes/<video_id>` → thông tin scene. Chỉ nhận train/val; held-out → HeldoutError."""
     try:
         dataset, vid = scene.split("/", 1)
@@ -64,7 +64,7 @@ def resolve_scene(root: Path, scene: str) -> Dict:
         raise ValueError(f"chưa hỗ trợ dataset {dataset!r}")
     splits_csv = root / "data" / "splits.csv"
     splits = sp.load_splits(splits_csv)                 # kiểm splits.lock
-    if splits.get(vid) == sp.SPLIT_HELDOUT:
+    if splits.get(vid) == sp.SPLIT_HELDOUT and not allow_heldout:
         raise sp.HeldoutError(f"scene {vid} là held-out: không căn/chấm Faro ở bước này (chạy đúng một lần)")
     if vid not in splits:
         raise ValueError(f"scene {vid} không có trong splits.csv")
@@ -731,6 +731,7 @@ def main(argv=None) -> int:
     ap.add_argument("--scene", required=True, help="arkitscenes/<video_id>")
     ap.add_argument("--root", default=str(REPO))
     ap.add_argument("--phase", type=int, default=0, help="1 = chỉ kiểm giả thuyết dữ liệu Faro; 0 (mặc định) = pha 2–7, ghi bản ứng viên")
+    ap.add_argument("--allow-heldout", action="store_true", help="cho phép scene held-out (chỉ chuẩn bị GT trước lần chạy duy nhất)")
     ap.add_argument("--commit", action="store_true", help="ghi bản chính thức từ bản ứng viên (chỉ sau khi đã đọc báo cáo và đồng ý)")
     ap.add_argument("--source", choices=("faro", "highres_depth"), default="faro", help="nguồn GT khi --commit (highres_depth = dự phòng)")
     ap.add_argument("--gt-voxel", type=float, default=0.01, help="voxel (m) của faro_scene_frame.ply khi --commit")
@@ -739,7 +740,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     try:
-        info = resolve_scene(Path(args.root), args.scene)
+        info = resolve_scene(Path(args.root), args.scene, args.allow_heldout)
     except (sp.HeldoutError, sp.LockError, ValueError, FileNotFoundError) as e:
         print(f"[LỖI] {type(e).__name__}: {e}")
         return 1
