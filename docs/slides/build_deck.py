@@ -1,4 +1,4 @@
-"""Dựng bộ slide báo cáo dự án 3DMeph (30 slide) bằng python-pptx.
+"""Dựng bộ slide báo cáo dự án 3DMeph (34 slide) bằng python-pptx.
 
 Chạy (Python hệ thống có python-pptx; ảnh đã tạo trước bằng crop_pdf_figs.py, crop_paper_figs.py,
 render_results.py, render_equations.py trong cùng thư mục):
@@ -17,7 +17,7 @@ from PIL import Image
 from pptx import Presentation
 from pptx.chart.data import CategoryChartData
 from pptx.dml.color import RGBColor
-from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION, XL_LEGEND_POSITION
+from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION, XL_LEGEND_POSITION, XL_TICK_LABEL_POSITION
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
@@ -42,7 +42,7 @@ GREEN = RGBColor(0x3E, 0x9B, 0x6B)
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 HEAD, BODY = "Cambria", "Calibri"
 SW, SH = 13.333, 7.5
-TOTAL = 30
+TOTAL = 34
 WARN = []
 
 
@@ -84,7 +84,12 @@ def seg_errors(variant):
     return {r["id"]: float(r["err_m"]) * 100 for r in rows if r["valid"] == "True"}
 
 
-ERR_B0, ERR_PROP = seg_errors("B0"), seg_errors("proposed")
+ERR_B0, ERR_PROP, ERR_B1 = seg_errors("B0"), seg_errors("proposed"), seg_errors("B1")
+ERRM = METRICS
+EVAL = ROOT / "outputs" / "eval_results"
+SUMMARY = {(r["split"], r["variant"]): r for r in load_csv(EVAL / "summary.csv")}
+PER_SCENE = load_csv(EVAL / "per_scene.csv")
+REPLICA8 = load_csv(EVAL / "replica_test8_gate.csv")
 
 
 def f(v, nd=2):
@@ -370,7 +375,7 @@ s = new_slide(
     notes=(
         "Kính chào thầy cô. Em là Trần Quang Đại, xin báo cáo tiến độ đồ án 3DMeph: dựng lại mô hình 3D có đơn vị mét "
         "của một căn phòng từ video quay bằng điện thoại thường. Báo cáo gồm năm phần: khái niệm và phương pháp, mục tiêu, "
-        "kế hoạch, cách thực hiện, và kết quả hiện tại cùng các bước còn lại. Trạng thái tính đến ngày 06/11/2026."
+        "kế hoạch, cách thực hiện, và kết quả hiện tại cùng các bước còn lại. Trạng thái tính đến ngày 20/11/2026."
     ),
 )
 rect(s, 0, 0, SW - 5.625, SH, fill=INK, line=None, shape=MSO_SHAPE.RECTANGLE)
@@ -391,7 +396,7 @@ txt(
     font=HEAD,
 )
 txt(s, 0.7, 4.5, 6.6, 0.4, "Báo cáo tiến độ dự án · Đồ án 2026", size=18, color=WHITE)
-txt(s, 0.7, 5.0, 6.6, 0.4, "Trạng thái ngày 06/11/2026", size=16, color=RGBColor(0xA9, 0xBC, 0xC4))
+txt(s, 0.7, 5.0, 6.6, 0.4, "Trạng thái ngày 20/11/2026", size=16, color=RGBColor(0xA9, 0xBC, 0xC4))
 txt(
     s,
     0.7,
@@ -406,12 +411,12 @@ txt(
 s = new_slide(
     "Giới thiệu đề tài và người thực hiện",
     "Mở đầu",
-    source="README.md, WORKING_LOG.md (06/11/2026)",
+    source="README.md, WORKING_LOG.md (20/11/2026); bản đính chính đề cương §8.1",
     notes=(
         "Đề tài tên đầy đủ là Tái tạo 3D metric trong nhà từ ảnh điện thoại. Dự án do em thực hiện một mình, dưới sự hướng dẫn "
         "của cô Lê Thị Vĩnh Thanh. Bài toán: quay video một đến hai phút trong phòng, hệ thống trả về mô hình 3D tính bằng mét, "
         "người dùng chọn hai điểm để đọc khoảng cách. Mục tiêu thử nghiệm là sai số trung vị dưới 5 cm cho phòng 3 đến 5 mét, "
-        "sau một lần neo tỉ lệ bằng một đoạn dài 1 đến 2 mét. Đây là mục tiêu, chưa phải kết quả."
+        "sau một lần neo tỉ lệ bằng một đoạn dài 1,8 đến 2,5 mét (theo bản đính chính; đề cương gốc ghi 1 đến 2 mét). Đây là mục tiêu, chưa phải kết quả."
     ),
 )
 card(
@@ -450,7 +455,7 @@ stat(
     7.8,
     5.1,
     5.0,
-    "1 đoạn 1–2 m",
+    "1 đoạn 1,8–2,5 m",
     "mốc scale chỉ cần làm một lần để đổi toàn bộ mô hình sang mét",
     h=1.7,
     big_size=30,
@@ -480,8 +485,13 @@ items = [
         "chín stage: keyframe, COLMAP, VGGT, căn tỉ lệ, fusion, plane gate, xuất, đánh giá",
         "16–24",
     ),
-    ("E", "Kết quả hiện tại", "chạy thật scene dev, số đo chiều dài, kiểm tra trên 6 scene Validation", "25–27"),
-    ("F", "Còn lại và kết luận", "các bước hoàn thiện, kết luận hiện tại, tài liệu tham khảo", "28–30"),
+    (
+        "E",
+        "Kết quả hiện tại",
+        "scene dev, Validation ARKit, Replica (plane gate), phòng tự thu, ứng dụng điện thoại",
+        "25–31",
+    ),
+    ("F", "Còn lại và kết luận", "các bước hoàn thiện, kết luận hiện tại, tài liệu tham khảo", "32–34"),
 ]
 for i, (k, t1, t2, pg) in enumerate(items):
     y = 1.5 + i * 0.9
@@ -543,7 +553,7 @@ txt(
         ],
         [
             ("Mục tiêu đo: ", {"bold": True, "color": TEAL}),
-            ("sai số trung vị < 5 cm cho phòng 3–5 m, sau một lần neo scale bằng đoạn 1–2 m [ĐC trang 1].", {}),
+            ("sai số trung vị < 5 cm cho phòng 3–5 m, sau một lần neo scale bằng một đoạn mốc (ĐC: 1–2 m; đính chính §8.1: 1,8–2,5 m).", {}),
         ],
         [("Lưu ý: ", {"bold": True, "color": RED}), ("đây là mục tiêu thử nghiệm, chưa phải kết quả.", {})],
     ],
@@ -569,7 +579,7 @@ s = new_slide(
     notes=(
         "Cả COLMAP lẫn VGGT đều không tự cho ra mét. Ví dụ trong đề cương: một chiếc bàn dài 1,40 m. COLMAP đo ra 0,688 đơn vị tuỳ ý, "
         "VGGT ra 0,215 đơn vị của riêng nó. Nếu ứng dụng đọc 0,688 thành 0,688 mét thì sai gần gấp đôi. "
-        "Vì vậy phải neo bằng một đoạn thật dài 1 đến 2 mét: lấy chiều dài thật chia cho chiều dài trong mô hình ta được hệ số s_m đổi toàn bộ mô hình sang mét. "
+        "Vì vậy phải neo bằng một đoạn thật dài 1,8 đến 2,5 mét (bản đính chính; đề cương gốc ghi 1 đến 2 mét): lấy chiều dài thật chia cho chiều dài trong mô hình ta được hệ số s_m đổi toàn bộ mô hình sang mét. "
         "Đây là số ví dụ của đề cương, không phải kết quả thí nghiệm."
     ),
 )
@@ -603,7 +613,7 @@ card(
     4.65,
     6.0,
     2.25,
-    "Cách giải: một đoạn mốc 1–2 m",
+    "Cách giải: một đoạn mốc 1,8–2,5 m",
     [
         "Chọn một đoạn dễ thấy, không nằm trên gương hoặc kính, đo chiều dài thật L_real.",
         "Hệ số mét của cả scene (công thức (4)):",
@@ -793,9 +803,11 @@ s = new_slide(
     "A · Khái niệm",
     source="README.md §4; ĐC Hình 4, 5, 13; Baruch và cs., ARKitScenes, NeurIPS 2021 (Hình 1); Straub và cs., Replica, 2019 (Hình 1)",
     notes=(
-        "Dự án dùng ba nguồn dữ liệu với ba bộ số riêng, không trộn kết quả. Một: ARKitScenes, tập con có laser Faro làm ground truth, hiện có bốn mươi scene "
-        "chia ba mươi chín trên venue, sáu validation và năm held-out theo venue với seed 42. Held-out chỉ chạy đúng một lần và không bao giờ dùng để chỉnh tham số. "
-        "Hai: Replica, mười tám scene thực chất là mười ba không gian độc lập, dùng để test một lần. Ba: video tự thu sáu đến tám phòng, hiện chưa có."
+        "Dự án dùng ba nguồn dữ liệu với ba bộ số riêng, không trộn kết quả. Một: ARKitScenes, tập con có laser Faro làm ground truth, bốn mươi scene "
+        "chia hai mươi chín train, sáu validation và năm held-out theo venue với seed 42. Một scene validation bị loại vì SfM vỡ; một scene held-out bị loại vì căn Faro lệch nặng, "
+        "quyết định trước khi chạy pipeline. Held-out chỉ chạy đúng một lần và không dùng để chỉnh tham số; hiện chưa chạy. "
+        "Hai: Replica, em tự render ảnh bằng Open3D và tải nhãn mặt phẳng preseg; đã dùng mười scene: hai để chọn tham số plane gate, tám để test một lần. "
+        "Ba: video tự thu bằng điện thoại, đo thước dây; đã có mười video, ba phòng đã chấm xong."
     ),
 )
 table(
@@ -804,10 +816,10 @@ table(
     1.45,
     [1.75, 1.75, 3.2],
     [
-        ["Nguồn", "Vai trò", "Hiện có"],
-        ["ARKitScenes", "train / val / held-out", "40 scene (29 / 6 / 5), RGB + laser Faro"],
-        ["Replica", "test, chạy một lần", "18 scene = 13 không gian; thiếu nhãn phẳng"],
-        ["Tự thu", "cross-domain, đo ngoài đời", "6–8 phòng [ĐC §5]: chưa có"],
+        ["Nguồn", "Vai trò", "Hiện có (20/11)"],
+        ["ARKitScenes", "train / val / held-out", "29 / 6 / 5 scene + laser Faro; dùng 5 val, 4 held-out"],
+        ["Replica", "plane gate, chạy một lần", "nhãn preseg 16/18; 2 dev + 8 test đã chạy"],
+        ["Tự thu", "cross-domain, thước dây", "10 video; 3 phòng đã chấm (19 đoạn)"],
     ],
     size=12,
     row_h=0.62,
@@ -867,7 +879,8 @@ s = new_slide(
     notes=(
         "Đây là kiến trúc tổng thể theo đề cương. Điện thoại chỉ thu video và hiển thị; máy GPU phía sau làm toàn bộ phần tính nặng, FastAPI đứng giữa quản lý job. "
         "Bên trong máy GPU có bảy bước từ A đến G: lọc keyframe, rồi hai nhánh độc lập là COLMAP và VGGT, căn bằng Umeyama và đổi mét, "
-        "fusion sáu tín hiệu, plane gate và xuất file. Lưu ý phạm vi hiện tại: em mới làm lõi dòng lệnh; FastAPI và Unity thuộc mốc cuối M6."
+        "fusion sáu tín hiệu, plane gate và xuất file. Phạm vi hiện tại: lõi dòng lệnh chạy được trên ARKit, Replica và video tự thu; "
+        "backend FastAPI và app Unity Android đã build được, nhưng app chưa thử trên điện thoại thật."
     ),
 )
 pic(
@@ -903,7 +916,7 @@ card(
     4.33,
     1.65,
     "Phạm vi hiện tại",
-    ["Đã làm: lõi dòng lệnh chạy 1 scene. Chưa làm: FastAPI, Unity (mốc M6)."],
+    ["Đã làm: lõi dòng lệnh, FastAPI, app Unity (APK). Chưa thử app trên điện thoại thật."],
     size=14,
     accent=AMBER,
 )
@@ -1039,19 +1052,19 @@ txt(
 s = new_slide(
     "Mục tiêu cuối cùng: mặt thực tế",
     "B · Mục tiêu",
-    source="README.md §1; ĐC §19, Hình 25 (giao diện minh họa, số minh họa; ứng dụng chưa làm)",
+    source="README.md §1; app/README.md; ảnh chụp bản Windows của app (Build/Preview/shot_measure.png)",
     notes=(
         "Về mặt thực tế, mục tiêu là ai cũng đo được một căn phòng bằng điện thoại thường, không cần máy LiDAR đắt tiền hay thước dây dài. "
-        "Người dùng quay một đến hai phút, chọn một đoạn mốc dài một đến hai mét một lần, rồi chạm hai điểm trên mô hình để đọc khoảng cách. "
-        "Ảnh bên phải là giao diện minh họa của đề cương với số minh họa. Ứng dụng này thuộc mốc M6, hiện em mới làm lõi dòng lệnh, đo hai điểm bằng lệnh measure."
+        "Người dùng quay một đến hai phút, chọn một đoạn mốc dài 1,8 đến 2,5 mét một lần, rồi chạm hai điểm trên mô hình để đọc khoảng cách. "
+        "Ảnh bên phải là màn hình đo của app em làm, chụp từ bản Windows trên mô hình phòng tự thu. App Android đã build được nhưng chưa thử trên điện thoại thật."
     ),
 )
 for i, (t1, t2) in enumerate(
     [
         ("Không cần thiết bị đặc biệt", "Chỉ cần video từ điện thoại thường, không cần LiDAR hay thước dây dài."),
-        ("Một lần neo, đo nhiều lần", "Chọn một đoạn mốc 1–2 m một lần; sau đó đo mọi khoảng cách khác trên mô hình."),
+        ("Một lần neo, đo nhiều lần", "Chọn một đoạn mốc 1,8–2,5 m một lần; sau đó đo mọi khoảng cách khác trên mô hình."),
         ("Đủ chính xác cho phòng ở", "Mục tiêu sai số trung vị dưới 5 cm cho phòng 3–5 m."),
-        ("Hiện trạng", "Đo hai điểm đã chạy bằng dòng lệnh; ứng dụng điện thoại (FastAPI + Unity) thuộc mốc M6."),
+        ("Hiện trạng", "Đo hai điểm chạy bằng dòng lệnh và trong app (FastAPI + Unity); app chưa thử trên điện thoại thật."),
     ]
 ):
     y = 1.5 + i * 1.35
@@ -1076,13 +1089,24 @@ for i, (t1, t2) in enumerate(
     txt(s, 1.55, y + 0.5, 5.8, 0.68, t2, size=13, color=MUTED)
 pic(
     s,
-    "pdf_fig_25.png",
+    "app_measure.png",
     7.9,
     1.45,
     4.93,
-    5.4,
-    "Giao diện đo minh họa, số minh họa [ĐC Hình 25]",
-    alt="Giao diện điện thoại hiển thị mô hình phòng và khoảng cách giữa hai điểm",
+    3.3,
+    "Màn hình đo của app 3DMeph (bản Windows, phòng tự thu IMG_4127)",
+    alt="App hiển thị mesh phòng và khoảng cách 213,2 cm giữa hai điểm vàng",
+)
+pic(
+    s,
+    "pdf_fig_25.png",
+    7.9,
+    4.55,
+    4.93,
+    2.0,
+    "Giao diện đề cương, số minh họa [ĐC Hình 25]",
+    alt="Giao diện điện thoại minh họa trong đề cương",
+    cap_size=9,
 )
 
 s = new_slide(
@@ -1162,23 +1186,24 @@ txt(
 s = new_slide(
     "Kế hoạch đặt ra và tiến độ",
     "C · Kế hoạch",
-    source="README.md §7; WORKING_LOG.md bảng mốc (06/11/2026); ĐC §25, Hình 30",
+    source="README.md §7; WORKING_LOG.md bảng mốc và mục Đã làm (20/11/2026); ĐC §25, Hình 30",
     notes=(
-        "Kế hoạch chia thành các mốc. M0a dựng môi trường, cấu hình và lõi toán: xong. M0b chọn và chia scene, tải dữ liệu, căn Faro, chấm mốc và đoạn test: xong cho scene dev. "
-        "M1 chạy cả chín stage trên một scene: xong có điều kiện. M2 khoá ngưỡng keyframe trên sáu scene Validation: gần xong. "
-        "M3 đánh giá và ablation trên một scene: đang làm. M4 nhiều scene ARKit, M5 Replica và tự thu, M6 ứng dụng và báo cáo: chưa bắt đầu. "
-        "Đề cương chỉ nêu tổng thời gian và ưu tiên tuần đầu là một scene chạy xuyên suốt, chưa train confidence head; cách chia tuần là ước tính."
+        "Kế hoạch chia thành các mốc. M0a, M0b: xong. M1 chạy cả chín stage trên một scene: xong có điều kiện. "
+        "M2 khoá ngưỡng keyframe trên sáu scene Validation: xong có điều kiện, một scene dưới 90 phần trăm đăng ký. "
+        "M3 đánh giá và ablation trên scene dev: xong có điều kiện, năm biến thể. M4 nhiều scene ARKit: có bảng năm scene Validation, "
+        "nhưng held-out chưa chạy. M5: Replica mười scene và ba phòng tự thu đã có số; còn sáu video tự thu mới. "
+        "M6: backend và app đã build, chưa thử trên điện thoại thật; báo cáo đang viết. Cách chia tuần là ước tính của em."
     ),
 )
 ms = [
     ("M0a", "Môi trường, config, lõi toán, README", "Xong", GREEN),
-    ("M0b", "Chia scene, tải dữ liệu, căn Faro, chấm mốc và 12 đoạn test", "Xong (scene dev)", GREEN),
+    ("M0b", "Chia scene, tải dữ liệu, căn Faro, chấm mốc và 12 đoạn test", "Xong", GREEN),
     ("M1", "Chín stage chạy trên scene 42444738", "Xong có điều kiện", GREEN),
-    ("M2", "Khoá ngưỡng keyframe trên 6 Validation", "Gần xong", AMBER),
-    ("M3", "Eval đủ chỉ số, B0/B1/B3/đề xuất/ablation", "Đang làm", AMBER),
-    ("M4", "Nhiều scene ARKit; held-out chạy một lần", "Chưa", MUTED),
-    ("M5", "Replica và video tự thu", "Chưa", MUTED),
-    ("M6", "FastAPI + Unity, báo cáo", "Chưa", MUTED),
+    ("M2", "Khoá ngưỡng keyframe trên 6 Validation", "Xong có điều kiện", GREEN),
+    ("M3", "Eval đủ chỉ số, B0/B1/B3/đề xuất/ablation", "Xong có điều kiện", GREEN),
+    ("M4", "Nhiều scene ARKit; held-out chạy một lần", "Val xong, held-out chưa", AMBER),
+    ("M5", "Replica và video tự thu", "Đang làm (có số)", AMBER),
+    ("M6", "FastAPI + Unity, báo cáo", "Đang làm", AMBER),
 ]
 for i, (m, d, st, col) in enumerate(ms):
     y = 1.45 + i * 0.66
@@ -1223,7 +1248,7 @@ s = new_slide(
         "Quy trình gồm chín stage chạy bằng một lệnh: keyframe, sfm, mvs, vggt, align, fuse, gate, export, eval. Các stage chỉ giao tiếp qua file, "
         "vì GPU chỉ 8 GB nên COLMAP và VGGT không thể nằm trong bộ nhớ cùng lúc. Mỗi stage ghi run_meta.json gồm thời gian, VRAM đỉnh, hash cấu hình và mã lỗi. "
         "Các số giây ở hàng dưới đo thật trên scene dev: MVS tốn nhiều nhất, khoảng mười hai phút; các bước ghép và làm phẳng chỉ vài giây. "
-        "Stage eval đang trong mốc M3, nên có viền vàng."
+        "Stage eval có viền vàng vì là bước đánh giá, nằm ngoài luồng dữ liệu chính."
     ),
 )
 stages = [
@@ -1293,7 +1318,7 @@ txt(
     3.35,
     12.3,
     0.3,
-    "Thời gian chạy thật trên scene dev 42444738 (eval chạy được nhưng còn hoàn thiện ở M3).",
+    "Thời gian chạy thật trên scene dev 42444738; eval chạy cho 5 biến thể (B0, B1, B3, đề xuất, ablation chất lượng).",
     size=11,
     color=MUTED,
     italic=True,
@@ -1515,7 +1540,8 @@ s = new_slide(
     source="pipeline/alignment/README.md; scale.json, align_result.json, scale_anchor.json; ĐC Hình 8 (ví dụ ĐC)",
     notes=(
         f"Căn tỉ lệ có hai việc. Một, đưa từng chunk VGGT về hệ COLMAP bằng Sim(3). Đề cương dùng tâm camera với RANSAC và Umeyama; "
-        "trên scene dev tâm camera của nhiều chunk chỉ trải dưới 0,6 mét nên căn kém điều kiện, em đã đổi sang cách lấy xoay từ hướng camera, tỉ lệ từ điểm, và tịnh tiến từ tâm camera. "
+        "trên scene dev tâm camera của nhiều chunk chỉ trải dưới 0,6 mét nên căn kém điều kiện, em đã đổi sang cách lấy xoay từ hướng camera, còn tỉ lệ và tịnh tiến "
+        "khớp trực tiếp điểm VGGT với điểm MVS. Lý do đo được: tỉ lệ cũ làm điểm VGGT co 4 đến 17 phần trăm trong mỗi chunk. "
         "Đây là chỗ lệch có chủ ý so với đề cương, đã được ghi trong nhật ký. Hai, đổi sang mét bằng một đoạn mốc. "
         f"Mốc của scene dev là chiều dài tủ trắng {vn(SCALE['L_real'], 4)} m đo trên laser Faro; trong mô hình dài {vn(SCALE['L_model'], 4)} đơn vị COLMAP, "
         f"nên s_m bằng {vn(SCALE['s_m'], 4)} mét trên đơn vị. Cả {ALIGN['n_accepted']} trên {ALIGN['n_chunks']} chunk được nhận."
@@ -1538,7 +1564,7 @@ card(
     3.7,
     2.45,
     "Cách chọn mốc",
-    ["Một đoạn 1–2 m, dễ thấy, không trên gương hoặc kính.", "Mốc bị loại khỏi chỉ số test [ĐC §8.1]."],
+    ["Một đoạn 1,8–2,5 m (đính chính §8.1; ĐC gốc 1–2 m), dễ thấy, không trên gương, kính hay vật di chuyển được.", "Mốc bị loại khỏi chỉ số test [ĐC §8.1]."],
     size=13,
     bullet=True,
 )
@@ -1551,7 +1577,7 @@ card(
     "Chỗ lệch có chủ ý",
     [
         "Đề cương căn bằng tâm camera. Trên scene dev tâm camera nhiều chunk trải < 0,6 m nên căn kém điều kiện.",
-        "Em đổi sang xoay từ hướng camera, tỉ lệ từ điểm (orientation_depth).",
+        "Em lấy xoay từ hướng camera; tỉ lệ và tịnh tiến khớp điểm VGGT với điểm MVS (lệch #37, #43).",
     ],
     size=12,
     accent=AMBER,
@@ -1635,7 +1661,8 @@ s = new_slide(
         "gần mặt phẳng, pháp tuyến cục bộ cùng hướng, thuộc loại cấu trúc, và độ tin cậy w_k đủ cao. Điểm đạt được kéo một phần theo hệ số alpha (25); điểm không đạt giữ nguyên. "
         f"Kết quả thật trên scene dev: {GATE['n_planes']} mặt phẳng, chỉ {GATE['n_gate_pass']} trên {vi(GATE['n_points'])} điểm, tức {vn(GATE['frac_gate_pass'] * 100, 2)} phần trăm, qua cổng. "
         f"Điều kiện chặn chủ yếu là w_k lớn hơn ngưỡng: chỉ {vn(pc['w_k>tau_w'] * 100, 1)} phần trăm điểm đạt, và điều kiện pháp tuyến {vn(pc['theta<tau_n'] * 100, 1)} phần trăm. "
-        "Nghĩa là cổng đang quá chặt nên hầu như chưa làm phẳng được gì; đây là việc cần xem lại, dùng validation, không dùng held-out."
+        "Nghĩa là trên scene dev cổng gần như chưa làm phẳng được gì. Em đã thử nới ngưỡng tau_w trên Validation nhưng không qua kiểm tra bỏ từng scene, nên giữ nguyên; "
+        "phần làm lại bộ dò mặt phẳng và kết quả trên Replica ở slide 29."
     ),
 )
 pic(
@@ -1698,7 +1725,7 @@ txt(
                 {},
             ),
         ],
-        [("Nút cổ chai là w_k và pháp tuyến, nên cổng đang quá chặt.", {"color": RED, "bold": True})],
+        [("Nút cổ chai là w_k: cổng gần như không kéo điểm nào (Replica: slide 29).", {"color": RED, "bold": True})],
     ],
     size=13,
     space=4,
@@ -1707,22 +1734,23 @@ txt(
 s = new_slide(
     "Xuất mô hình GLB và đo hai điểm",
     "D · Cách thực hiện",
-    source="pipeline/export/README.md; ĐC §19 (công thức (30)); model.glb scene 42444738",
+    source="pipeline/export/README.md; ĐC §19 (công thức (30)); model.glb của smi_a_4127 (ảnh trái) và 42444738 (ảnh phải)",
     notes=(
-        "Bước cuối tạo mô hình để xem và đo. Từ điểm sau làm phẳng, em tính pháp tuyến, dựng mặt bằng Poisson, cắt vùng mật độ thấp, xoay về trục lên là +Y và ghi GLB đơn vị mét. "
-        "Đo hai điểm là khoảng cách Euclid theo công thức (30); lệnh measure đã chạy được. Ví dụ trong đề cương: A bằng 0,52; 0,75; 1,20 và B bằng 1,90; 0,75; 1,20 cho 1,38 mét. "
-        "Hình mesh bên trái là mô hình thật của scene dev. Em cho xem thẳng để thấy chất lượng hình học hiện còn thấp, mesh còn nhiều mảnh vỡ; đây là một lý do cần cải thiện gate và fusion."
+        "Bước cuối tạo mô hình để xem và đo. Từ điểm sau làm phẳng, em chiếu điểm sàn, tường, trần lên mặt phẳng, dựng mặt bằng Poisson độ sâu 8, "
+        "làm mịn Taubin, tô màu đỉnh từ điểm MVS gần nhất, xoay về trục lên +Y và ghi GLB đơn vị mét. Mesh chỉ để xem; mọi số đánh giá tính trên điểm, không trên mesh, "
+        "vì em đã thử đo trên mesh và số đoạn đo được giảm. Đo hai điểm là khoảng cách Euclid theo công thức (30). "
+        "Ảnh trái là mesh có màu của phòng tự thu trong app; mesh vẫn còn gợn ở tường nhiễu và lỗ ở chỗ ít ảnh."
     ),
 )
 pic(
     s,
-    "res_mesh.png",
+    "app_viewer.png",
     0.5,
     1.45,
     6.2,
     4.4,
-    "Mesh Poisson (GLB) của scene dev: chất lượng hình học còn thấp",
-    alt="Mesh phòng dựng từ điểm, còn nhiều mảnh vỡ",
+    "Mesh GLB có màu của phòng tự thu IMG_4127, xem trong app",
+    alt="Mesh phòng có màu thật: giường, tường hồng, cửa",
 )
 pic(s, "res_b0_3d.png", 6.9, 1.45, 5.93, 3.2, "Mây điểm COLMAP đã ra mét, góc nhìn xiên", alt="Mây điểm 3D của phòng")
 txt(
@@ -1731,7 +1759,7 @@ txt(
     6.2,
     6.2,
     0.7,
-    "Pháp tuyến PCA → Poisson (độ sâu 9) → cắt mật độ thấp → xoay +Y lên → GLB (mét).",
+    "Làm phẳng tường/sàn → Poisson (độ sâu 8) → làm mịn Taubin → màu đỉnh từ MVS → GLB (mét). Mesh chỉ để xem; chỉ số tính trên điểm.",
     size=13,
     bold=True,
     color=TEAL,
@@ -1780,12 +1808,12 @@ table(
     [2.2, 4.23],
     [
         ["Hạng mục", "Cách làm"],
-        ["Mốc scale", "1 đoạn (S06, tủ trắng 2,41 m), loại khỏi chỉ số test"],
-        ["Đoạn test", "12 đoạn chấm tay trên Faro (S01–S13, trừ mốc)"],
-        ["Biến thể", "B0, B1, B3, đề xuất, ablation bỏ chất lượng ảnh"],
+        ["Mốc scale", "1 đoạn mỗi scene (dev: S06 tủ trắng 2,41 m), loại khỏi test"],
+        ["Đoạn test", "ARKit: chấm trên Faro (62 đoạn, 6 scene); tự thu: thước dây"],
+        ["Biến thể", "B0, B1, B3, đề xuất, ablation chất lượng; Replica: ablation gate"],
         ["Chiều dài", "MAE, median, MAPE, % dưới 5 cm (32)–(33)"],
-        ["Hình học", "ATE, Chamfer, F-score (δ = 5 cm)"],
-        ["Quy tắc", "Held-out chạy đúng một lần; chỉnh tham số chỉ trên validation"],
+        ["Hình học", "ATE, Chamfer, F-score (δ = 5 cm); Replica: P2Plane, PlaneRecall (36)"],
+        ["Quy tắc", "Quy tắc nhận ghi trước; held-out chạy một lần; chỉnh chỉ trên val/dev"],
     ],
     size=12,
     row_h=0.6,
@@ -1793,7 +1821,7 @@ table(
 eq(s, "mae", 6.5, 5.85, 4.2, 0.9)
 
 # =====================================================================
-# E. KẾT QUẢ (25–27)
+# E. KẾT QUẢ (25–31)
 # =====================================================================
 s = new_slide(
     "Kết quả chạy thật trên scene dev 42444738",
@@ -1814,7 +1842,7 @@ tiles = [
     (f"{VGGT['n_chunks']} chunk", f"VGGT, {vn(VGGT['seconds'], 0)} s, {vi(VGGT['peak_vram_mib'])} MiB", TEAL),
     (f"{vn(SCALE['s_m'], 4)}", "s_m (m / đv COLMAP)", AMBER),
     (vi(FUS["n_points_fused"]), "điểm sau fusion", TEAL),
-    (f"{GATE['n_gate_pass']}", "điểm qua cổng (1,09%)", RED),
+    (vi(GATE["n_gate_pass"]), f"điểm qua cổng ({vn(GATE['frac_gate_pass'] * 100, 2)}%)", RED),
 ]
 for i, (b, label, col) in enumerate(tiles):
     x = 8.75 + (i % 2) * 2.1
@@ -1829,7 +1857,7 @@ card(
     "Ý nghĩa",
     [
         "Pipeline đã chạy xuyên suốt trên một scene thật: từ video ra mô hình mét, có số đo theo thời gian và VRAM.",
-        "Đây chưa phải bảng sai số: chất lượng hình học còn thấp và gate đang quá chặt (xem slide 22 và 26).",
+        "Đây chưa phải bảng sai số: sai số chiều dài ở slide 26; gate trên scene dev gần như không kéo điểm nào (slide 22).",
     ],
     size=14,
     bullet=True,
@@ -1837,21 +1865,22 @@ card(
 
 b0, pr = METRICS["B0"], METRICS["proposed"]
 s = new_slide(
-    "Kết quả đo chiều dài: chỉ 3 đoạn hợp lệ",
+    "Scene dev: chiều dài 3 đoạn chấm mù, 5 biến thể",
     "E · Kết quả",
-    source="evaluation/metrics.csv, lengths_B0_manual.csv, lengths_proposed_manual.csv (scene 42444738, chấm mù 05/11)",
+    source="evaluation/metrics.csv, lengths_*_manual*.csv (scene 42444738; chấm mù S01–S03, B1 chấm 07/11; sau sửa lỗi ánh xạ ảnh, lệch #44)",
     notes=(
-        f"Đây là kết quả đo thật nhưng rất nhỏ: một scene và chỉ ba đoạn hợp lệ là S01, S02, S03, do các đoạn còn lại chưa chấm hoặc không bám được vào mô hình. "
-        f"Với B0, MAE {f(b0['mae_cm'])} cm, trung vị {f(b0['median_cm'])} cm. Với đề xuất, MAE {f(pr['mae_cm'])} cm, trung vị {f(pr['median_cm'])} cm. "
-        "Nghĩa là hiện đề xuất chưa tốt hơn B0, và ba đoạn không đủ để kết luận thống kê. B1 chưa có đoạn hợp lệ nào vì chưa chấm. "
-        f"Về hình học, ATE cứng khoảng {f(b0['ate_rigid_cm'])} cm cho B0. Chamfer của B0 và đề xuất còn cao, chưa phân tích hết nguyên nhân. "
-        "Mục tiêu dưới 5 cm đạt trên ba đoạn này, nhưng em không coi đó là kết quả cuối."
+        f"Đây là kết quả trên scene dev với ba đoạn chấm mù S01, S02, S03; các đoạn khác không chấm được vì không thấy cạnh hoặc mô hình không có trần, sàn. "
+        f"B0 MAE {f(b0['mae_cm'])} cm, trung vị {f(b0['median_cm'])} cm. Đề xuất MAE {f(pr['mae_cm'])} cm, trung vị {f(pr['median_cm'])} cm. "
+        f"B1 MAE {f(ERRM['B1']['mae_cm'])} cm. Cả năm biến thể đều dưới 5 cm trên ba đoạn này. "
+        "Chênh lệch giữa các biến thể nhỏ hơn nhiễu chấm tay: cùng một đoạn từng lệch từ âm 4 đến cộng 3 cm giữa các lần chấm, nên em không kết luận đề xuất tốt hơn B0. "
+        f"Về hình học, ATE cứng {f(b0['ate_rigid_cm'])} cm trên 66 camera sau khi cắt tỉa. B1 dày hơn nên F-score cao hơn, nhưng ATE của B1 lớn."
     ),
 )
 cd = CategoryChartData()
-ids = sorted(set(ERR_B0) & set(ERR_PROP))
+ids = sorted(set(ERR_B0) & set(ERR_PROP) & set(ERR_B1))
 cd.categories = ids
 cd.add_series("B0 (COLMAP thuần)", [round(ERR_B0[i], 2) for i in ids])
+cd.add_series("B1 (VGGT thuần)", [round(ERR_B1[i], 2) for i in ids])
 cd.add_series("Đề xuất", [round(ERR_PROP[i], 2) for i in ids])
 gf = s.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, Inches(0.5), Inches(1.45), Inches(5.6), Inches(4.0), cd)
 ch = gf.chart
@@ -1865,7 +1894,7 @@ dl.number_format, dl.number_format_is_linked, dl.position, dl.font.size = (
     XL_LABEL_POSITION.OUTSIDE_END,
     Pt(12),
 )
-for ser, col in zip(ch.plots[0].series, (TEAL, AMBER)):
+for ser, col in zip(ch.plots[0].series, (TEAL, MUTED, AMBER)):
     ser.format.fill.solid()
     ser.format.fill.fore_color.rgb = col
 ch.value_axis.has_title = True
@@ -1908,9 +1937,9 @@ txt(
     2.1,
     [
         [("Đọc đúng con số này", {"bold": True, "color": RED, "size": 15})],
-        "1 scene, 3 đoạn: chưa phải kết luận thống kê.",
-        "Đề xuất hiện chưa tốt hơn B0 (median 2,53 so với 1,12 cm).",
-        "B1 chưa có đoạn hợp lệ (chưa chấm); Chamfer còn cao, chưa phân tích nguyên nhân.",
+        "1 scene, 3 đoạn, một người chấm: chưa phải kết luận thống kê.",
+        f"Đề xuất {f(pr['mae_cm'])} cm so với B0 {f(b0['mae_cm'])} cm, nhưng chênh nằm trong nhiễu chấm tay (±3–4 cm).",
+        "Bảng nhiều scene (đo bán tự động) ở slide 28.",
     ],
     size=13,
     bullet=False,
@@ -1927,7 +1956,8 @@ s = new_slide(
     notes=(
         f"Mốc M2 kiểm tra quy trình chọn keyframe và SfM trên sáu scene Validation. Tiêu chí: số keyframe từ 40 đến 80, từ 90 phần trăm keyframe đăng ký SfM, và VRAM đỉnh dưới 8 GB. "
         f"Số keyframe đạt 78 đến 80 ở cả sáu scene. Tỉ lệ đăng ký trung vị {vn(median_ratio, 1)} phần trăm, nhưng scene 47204552 chỉ {vn(ratios[-1][1], 1)} phần trăm, dưới ngưỡng, và SfM tách thành {ratios[-1][2]} model rời. "
-        "VGGT đo trên scene 42897599 có VRAM đỉnh 6.021 MiB. Phần chưa xong: chưa khoá lại ngưỡng overlap và exposure với SfM mới; các giá trị đó còn là tạm."
+        "VGGT đo trên scene 42897599 có VRAM đỉnh 6.021 MiB. Ngày 07/11 em quét lại ngưỡng overlap và exposure: kết quả gần như không đổi nên khoá overlap 0,3 và exposure 0,5. "
+        "Scene 47204552 được ghi là ngoại lệ và loại khỏi M4, không chỉnh riêng tham số cho nó."
     ),
 )
 cd = CategoryChartData()
@@ -1984,52 +2014,292 @@ card(
     4.35,
     4.43,
     2.55,
-    "Còn tồn tại",
+    "Kết luận M2 (đóng 07/11)",
     [
-        f"47204552 chỉ {vn(ratios[-1][1], 1)}% (SfM tách {ratios[-1][2]} model).",
-        "Chưa khoá lại ngưỡng overlap và exposure với SfM mới (giá trị tạm).",
+        "Khoá q_drop 0,35; overlap.min 0,3; exposure 0,5 (quét lại: gần như không đổi).",
+        f"47204552 chỉ {vn(ratios[-1][1], 1)}% ({ratios[-1][2]} model): ngoại lệ, loại khỏi M4.",
     ],
     size=13,
     accent=RED,
     bullet=True,
 )
 
+# ---------- M4: 5 Validation (bảng chéo scene) ----------
+sv = {v: SUMMARY[("val", v)] for v in ("B0", "B1", "B3", "proposed")}
+s = new_slide(
+    "M4: năm scene Validation ARKit",
+    "E · Kết quả",
+    source="outputs/eval_results/{summary,per_scene}.csv (scripts/aggregate_eval.py, 16/11); WORKING_LOG.md M4 (đo chiều dài v2, đoạn dài)",
+    notes=(
+        f"Mốc M4 chạy toàn bộ pipeline trên năm scene Validation, bỏ 47204552 vì SfM vỡ. Trung bình năm scene: B0 F-score {f(sv['B0']['f_score'], 3)}, "
+        f"Chamfer {f(sv['B0']['chamfer_cm'], 1)} cm; đề xuất F-score {f(sv['proposed']['f_score'], 3)}, Chamfer {f(sv['proposed']['chamfer_cm'], 1)} cm. "
+        "Đề xuất chính xác hơn B0 về khoảng cách từ mô hình đến Faro, nhưng F-score ngang nhau. "
+        f"Chiều dài đo bán tự động, bán kính bám 5 cm: đo được {sv['proposed']['len5_valid']} đoạn; trên đoạn đo được trung vị khoảng 1 cm. "
+        "Nhưng gần một nửa số đoạn không đo được vì mô hình không phủ đầu mút, nên chưa kết luận mục tiêu dưới 5 cm cho mọi đoạn. "
+        "Held-out bốn scene đã chạy đến VGGT, chưa chạy căn tỉ lệ và đánh giá; cấu hình không được chỉnh trước lượt chạy đó."
+    ),
+)
+val_scenes = sorted({r["scene"] for r in PER_SCENE if r["split"] == "val"})
+psv = {(r["scene"], r["variant"]): r for r in PER_SCENE}
+cd = CategoryChartData()
+cd.categories = val_scenes
+cd.add_series("B0 (COLMAP thuần)", [round(float(psv[(sc, "B0")]["chamfer_cm"]), 1) for sc in val_scenes])
+cd.add_series("Đề xuất", [round(float(psv[(sc, "proposed")]["chamfer_cm"]), 1) for sc in val_scenes])
+gf = s.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, Inches(0.5), Inches(1.45), Inches(6.2), Inches(4.3), cd)
+ch = gf.chart
+style_chart(ch)
+ch.plots[0].gap_width = 70
+ch.plots[0].has_data_labels = True
+dl = ch.plots[0].data_labels
+dl.number_format, dl.number_format_is_linked, dl.position, dl.font.size = ("0.0", False, XL_LABEL_POSITION.OUTSIDE_END, Pt(11))
+for ser, col in zip(ch.plots[0].series, (TEAL, AMBER)):
+    ser.format.fill.solid()
+    ser.format.fill.fore_color.rgb = col
+ch.value_axis.has_title = True
+ch.value_axis.axis_title.text_frame.text = "Chamfer so với Faro (cm, thấp hơn là tốt)"
+ch.value_axis.axis_title.text_frame.paragraphs[0].runs[0].font.size = Pt(12)
+ch.value_axis.axis_title.text_frame.paragraphs[0].runs[0].font.bold = False
+txt(s, 0.5, 5.85, 6.2, 0.35, "Chamfer từng scene Validation (bỏ 47204552: SfM vỡ).", size=11, color=MUTED, italic=True)
+rows = [["Biến thể", "Số scene", "F-score", "Chamfer (cm)", "ATE (cm)", "Đoạn đo được"]]
+for v, lab in (("B0", "B0"), ("B1", "B1"), ("B3", "B3"), ("proposed", "Đề xuất")):
+    m = sv[v]
+    rows.append(
+        [lab, m["n_scenes"], f(m["f_score"], 3), f(m["chamfer_cm"], 1), f(m["ate_rigid_cm"], 1), m["len5_valid"]]
+    )
+table(s, 6.95, 1.45, [1.15, 0.95, 0.9, 1.1, 0.85, 0.93], rows, size=12, row_h=0.45, aligns=["l"] + ["c"] * 5)
+rect(s, 6.95, 3.95, 5.88, 2.95, fill=PALE)
+txt(
+    s,
+    7.1,
+    4.03,
+    5.6,
+    2.85,
+    [
+        [("Đọc bảng", {"bold": True, "color": TEAL, "size": 15})],
+        "Đề xuất ≈ B0 về F-score; Chamfer thấp hơn khoảng 2 cm.",
+        "Chiều dài: trên đoạn đo được trung vị ≈ 1 cm, nhưng chỉ đo được khoảng 2/3 số đoạn (bán kính bám 5 cm).",
+        "Đoạn > 2 m: đề xuất đo được 9/19, trung vị 1,5 cm, lớn nhất 3,3 cm.",
+        [("Held-out (4 scene): mới chạy đến VGGT, chưa có số.", {"bold": True, "color": RED})],
+    ],
+    size=12,
+    space=4,
+)
+
+# ---------- M5: Replica, plane gate ----------
+r8 = {}
+for r in REPLICA8:
+    r8.setdefault(r["variant"], []).append(r)
+r8_mean = {v: sum(float(x["d_p2plane_pct"]) for x in rs) / len(rs) for v, rs in r8.items()}
+r8_df = {v: sum(float(x["d_f"]) for x in rs) / len(rs) for v, rs in r8.items()}
+n8 = len(r8["proposed"])
+s = new_slide(
+    "M5: plane gate trên Replica (8 scene test)",
+    "E · Kết quả",
+    source="outputs/eval_results/replica_test8_gate.csv; replica_ransac_plane_error_dev.csv; WORKING_LOG.md 17–20/11 (lệch #53, #54)",
+    notes=(
+        f"Plane gate chỉ đánh giá được trên Replica vì có nhãn mặt phẳng. Em chọn tham số trên hai scene dev, rồi test một lần trên {n8} scene. "
+        f"So với B3 là fusion không gate: plane gate gốc đổi sai số điểm đến mặt phẳng {vn(r8_mean['proposed'], 2)} phần trăm, gần như không đổi. "
+        f"Bộ dò mặt phẳng cải tiến giảm {vn(-r8_mean['refined_struct'], 2)} đến {vn(-r8_mean['refined_all'], 2)} phần trăm, ở cả tám scene, có ý nghĩa thống kê, "
+        "và F-score không giảm. Nhưng mục tiêu của đề cương là giảm 15 đến 20 phần trăm, nên không đạt. "
+        f"Ablation hai, ép mọi điểm về mặt phẳng không có cổng, làm sai số tăng {vn(r8_mean['abl_gate'], 1)} phần trăm và F-score giảm {vn(-r8_df['abl_gate'], 2)}: "
+        "nghĩa là cổng an toàn. Nguyên nhân em đo được: RANSAC gộp nhiều mặt thật thành một mặt, lệch đến hàng chục cm; khi thay bằng mặt ground truth và nới cổng thì giảm được khoảng 30 phần trăm."
+    ),
+)
+labels = [
+    ("proposed", "Gate gốc (RANSAC)"),
+    ("refined_struct", "Bộ dò cải tiến, tường/sàn"),
+    ("refined_all", "Bộ dò cải tiến, mọi mặt"),
+    ("abl_gate", "Ablation 2: ép phẳng, không cổng"),
+]
+cd = CategoryChartData()
+cd.categories = [lab for _, lab in labels]
+cd.add_series("ΔP2Plane so với B3 (%)", [round(r8_mean[v], 2) for v, _ in labels])
+gf = s.shapes.add_chart(XL_CHART_TYPE.BAR_CLUSTERED, Inches(0.5), Inches(1.45), Inches(7.3), Inches(4.0), cd)
+ch = gf.chart
+style_chart(ch, legend=False)
+ch.plots[0].gap_width = 60
+ch.plots[0].has_data_labels = True
+dl = ch.plots[0].data_labels
+dl.number_format, dl.number_format_is_linked, dl.position, dl.font.size = ("+0.0;-0.0", False, XL_LABEL_POSITION.OUTSIDE_END, Pt(12))
+ser = ch.plots[0].series[0]
+ser.invert_if_negative = False
+for i, (v, _) in enumerate(labels):
+    pt = ser.points[i]
+    pt.format.fill.solid()
+    pt.format.fill.fore_color.rgb = RED if r8_mean[v] > 0 else (TEAL if r8_mean[v] < -1 else MUTED)
+for dpt in ser._element.findall(qn("c:dPt")):  # PowerPoint tô rỗng thanh âm nếu thiếu cờ ở từng điểm
+    inv = dpt.makeelement(qn("c:invertIfNegative"), {"val": "0"})
+    dpt.find(qn("c:idx")).addnext(inv)
+ch.value_axis.minimum_scale, ch.value_axis.maximum_scale = -20, 40
+ch.category_axis.tick_label_position = XL_TICK_LABEL_POSITION.LOW
+ch.value_axis.has_title = True
+ch.value_axis.axis_title.text_frame.text = "ΔP2Plane so với B3 (%), âm là tốt; mục tiêu ĐC ≤ −15%"
+ch.value_axis.axis_title.text_frame.paragraphs[0].runs[0].font.size = Pt(12)
+ch.value_axis.axis_title.text_frame.paragraphs[0].runs[0].font.bold = False
+txt(
+    s,
+    0.5,
+    5.55,
+    7.3,
+    0.4,
+    f"Trung bình {n8} scene test (room_0–2, office_0–4), chạy một lần sau khi khoá tham số trên hotel_0, frl_apartment_0.",
+    size=11,
+    color=MUTED,
+    italic=True,
+)
+stat(s, 8.1, 1.45, 2.3, f"{vn(r8_mean['refined_all'], 1).replace('-', '−')}%", "tốt nhất (8/8 scene, p = 0,004)", big_size=26, h=1.25)
+stat(s, 10.53, 1.45, 2.3, "−15%", "mục tiêu ĐC §21: không đạt", big_size=26, h=1.25, color=RED)
+card(
+    s,
+    8.1,
+    2.9,
+    4.73,
+    4.0,
+    "Vì sao chưa đạt",
+    [
+        "Cổng an toàn: F-score không giảm (Ablation 2 thì F −0,17).",
+        "RANSAC gộp nhiều mặt thật thành một: 10/16 mặt dev bị gộp, lệch 1–72°, tới 37 cm.",
+        "Thay bằng mặt GT và nới cổng: giảm khoảng 30% (oracle) ⇒ nút cổ chai là bộ dò mặt phẳng.",
+    ],
+    size=13,
+    bullet=True,
+    accent=AMBER,
+)
+
+# ---------- M5: phòng tự thu ----------
+s = new_slide(
+    "M5: video tự thu bằng điện thoại, đo thước dây",
+    "E · Kết quả",
+    source="WORKING_LOG.md 16–20/11 (IMG_4127, IMG_4153, IMG_4169; 6 video mới); compare --gt measurements.csv",
+    notes=(
+        "Để kiểm ngoài dữ liệu ARKit, em tự quay video bằng điện thoại và đo bằng thước dây. Ba phòng đã chạy hết pipeline và chấm mù: "
+        "phòng ngủ IMG_4127 bốn đoạn, phòng IMG_4153 ba đoạn, bếp IMG_4169 mười hai đoạn. Gộp mười chín đoạn: trung vị 3,05 cm, MAE 3,10 cm, "
+        "mười lăm trên mười chín đoạn dưới 5 cm. Hạn chế: mỗi đoạn chỉ đo thước một lần; chấm trên bản điểm đã lọc nhiễu; ở bếp mười trên mười hai đoạn bị ngắn đi khoảng 3 phần trăm, "
+        "em nghi do mốc chỉ có hai view ở một đầu, nhưng không chỉnh mốc theo kết quả test. Sáu video mới đã chạy đến VGGT, chưa chọn mốc."
+    ),
+)
+pic(s, "app_viewer.png", 0.5, 1.45, 5.6, 3.15, "Phòng tự thu IMG_4127 sau khi dựng (mesh để xem)", alt="Mesh phòng ngủ tự thu")
+table(
+    s,
+    6.4,
+    1.45,
+    [1.9, 1.05, 1.1, 1.15, 1.23],
+    [
+        ["Phòng (video)", "Đoạn", "MAE (cm)", "Median (cm)", "< 5 cm"],
+        ["IMG_4127 phòng ngủ", "4", "2,64", "1,47", "3/4"],
+        ["IMG_4153 phòng", "3", "2,78", "0,82", "2/3"],
+        ["IMG_4169 bếp", "12", "3,33", "3,13", "10/12"],
+        [[("Gộp 3 phòng", {"bold": True})], "19", "3,10", "3,05", "15/19"],
+    ],
+    size=12,
+    row_h=0.5,
+    aligns=["l", "c", "c", "c", "c"],
+)
+stat(s, 6.4, 4.2, 3.1, "3,05 cm", "median 19 đoạn (mục tiêu < 5 cm)", big_size=28, h=1.3, color=GREEN)
+stat(s, 9.73, 4.2, 3.1, "10 video", "đã quay; 6 video mới chạy đến VGGT", big_size=28, h=1.3)
+card(
+    s,
+    0.5,
+    5.05,
+    5.6,
+    1.85,
+    "Chi tiết dựng",
+    ["SfM đăng ký 98,9–100% ảnh, 1 model mỗi phòng.", "VGGT 8 chunk, VRAM đỉnh khoảng 6 GB."],
+    size=13,
+    bullet=True,
+)
+rect(s, 6.4, 5.65, 6.43, 1.25, fill=RGBColor(0xFB, 0xEE, 0xEC), line=RED)
+txt(
+    s,
+    6.55,
+    5.7,
+    6.15,
+    1.15,
+    [
+        [("Hạn chế: ", {"bold": True, "color": RED}), ("3 phòng, mỗi đoạn đo thước 1 lần; chấm trên bản lọc nhiễu.", {})],
+        "Bếp: 10/12 đoạn ngắn đi ≈ 3%, nghi do mốc (2 view); không chỉnh mốc theo test.",
+    ],
+    size=12,
+    space=3,
+)
+
+# ---------- M6: ứng dụng ----------
+s = new_slide(
+    "M6: ứng dụng điện thoại và backend",
+    "E · Kết quả",
+    source="app/README.md; app/backend_fastapi/main.py; app/unity_app (APK 27 MB); WORKING_LOG.md 16–17/11 (lệch ĐC §8.1 ở chế độ ar)",
+    notes=(
+        "Mốc M6 có hai phần. Backend FastAPI trên máy GPU nhận ảnh và pose, xếp hàng một job, chạy chín stage và trả file GLB. "
+        "App Android viết bằng Unity với AR Foundation và ARCore: quay, gửi, xem mô hình có màu và chạm hai điểm để đo. "
+        "Có hai cách đổi sang mét: chế độ tape là chạm hai đầu một đoạn rồi nhập số thước dây, đúng đề cương; chế độ ar lấy tỉ lệ từ quỹ đạo ARCore, "
+        "nhanh hơn nhưng lệch đề cương mục 8.1 và em đo thấy quỹ đạo tự nó lệch khoảng 2 phần trăm. "
+        "Em mới kiểm qua HTTP bằng dữ liệu ARKit đóng vai ARCore, cả hai job chạy xong; APK build được nhưng chưa thử trên điện thoại thật."
+    ),
+)
+for i, (img, cap) in enumerate(
+    [
+        ("app_capture.png", "1. Quay: đi chậm quanh phòng"),
+        ("app_viewer.png", "2. Xem mesh có màu"),
+        ("app_measure.png", "3. Chạm 2 điểm để đo"),
+    ]
+):
+    pic(s, img, 0.5 + i * 4.18, 1.45, 3.97, 2.25, cap, alt=cap)
+card(
+    s,
+    0.5,
+    4.25,
+    6.05,
+    2.65,
+    "Đã làm",
+    [
+        "Backend FastAPI: hàng đợi 1 job, chạy tiếp job dở khi khởi động lại.",
+        "App Unity (AR Foundation, ARCore): APK 27 MB build 0 lỗi.",
+        "Kiểm qua HTTP thật: 2 job done, trả GLB 18–20 MB.",
+    ],
+    size=13,
+    bullet=True,
+)
+card(
+    s,
+    6.78,
+    4.25,
+    6.05,
+    2.65,
+    "Chưa kiểm chứng và lưu ý",
+    [
+        "Chưa thử app trên điện thoại thật.",
+        "Chế độ ar (tỉ lệ từ quỹ đạo ARCore) lệch ĐC §8.1; quỹ đạo lệch ≈ 2%.",
+        "Chế độ tape (chạm 2 đầu + số thước) đúng công thức (4).",
+    ],
+    size=13,
+    bullet=True,
+    accent=RED,
+)
+
 # =====================================================================
-# F. CÒN LẠI, KẾT LUẬN (28–30)
+# F. CÒN LẠI, KẾT LUẬN (32–34)
 # =====================================================================
 s = new_slide(
     "Các bước còn lại để hoàn thiện dự án",
     "F · Còn lại",
-    source="WORKING_LOG.md (mục chưa làm, câu hỏi mở); README.md §7, §10; AGENTS.md §6",
+    source="WORKING_LOG.md (mục Chưa làm được, Đã làm 16–20/11); AGENTS.md §6",
     notes=(
-        "Các việc còn lại theo thứ tự ưu tiên. Một, đóng M3: chấm đoạn cho B1, các đoạn S04, S09, S10, và nhờ người khác chấm mù để bỏ thiên lệch vì em nhớ ground truth. "
-        "Hai, khoá lại ngưỡng overlap và exposure với SfM mới và xử lý scene 47204552 dưới 90 phần trăm. "
-        "Ba, xem lại cổng plane gate đang quá chặt, chỉnh trên validation, không dùng held-out. "
-        "Bốn, M4: chạy nhiều scene ARKit, ngưỡng khoá trên validation, held-out chạy đúng một lần. "
-        "Năm, M5: Replica, cần render bằng Habitat-Sim, nhưng khả năng cài trên Windows chưa kiểm chứng, và thiếu nhãn phẳng; cùng với thu sáu đến tám phòng thật. "
-        "Sáu, M6: FastAPI, Unity và báo cáo."
+        "Các việc còn lại theo thứ tự ưu tiên. Một, chạy held-out bốn scene đúng một lần với cấu hình hiện tại: đã chạy đến VGGT, còn chọn mốc, căn tỉ lệ, chấm đoạn và đánh giá. "
+        "Hai, sáu video tự thu mới: chọn mốc, chạy từ căn tỉ lệ đến xuất, chấm mù; thêm phòng để đạt tối thiểu sáu phòng theo đề cương. "
+        "Ba, thử app trên điện thoại thật với chế độ tape. "
+        "Bốn, tăng độ phủ đo chiều dài: hiện chỉ khoảng hai phần ba số đoạn đo được. "
+        "Năm, plane gate: bộ dò mặt phẳng là nút cổ chai; hướng tách mặt phẳng tốt hơn, nhưng chỉ chỉnh trên dev. "
+        "Sáu, viết báo cáo cuối và bản đính chính đề cương."
     ),
 )
 rows = [
     ["#", "Việc cần làm", "Mục đích", "Mốc", "Ưu tiên"],
-    ["1", "Chấm B1, S04/S09/S10; chấm mù bởi người khác", "Đóng M3, bỏ thiên lệch người chấm", "M3", "Cao"],
-    ["2", "Khoá lại overlap, exposure; xử lý 47204552 (< 90%)", "Đạt tiêu chí M2 trên mọi scene", "M2", "Cao"],
-    [
-        "3",
-        "Xem lại cổng plane gate (w_k > τ_w chặn nhiều nhất)",
-        "Để gate thật sự làm phẳng, chỉnh trên validation",
-        "M3–M4",
-        "Cao",
-    ],
-    ["4", "Chạy nhiều scene ARKit; held-out chạy một lần", "Có bảng val và held-out riêng", "M4", "Trung bình"],
-    [
-        "5",
-        "Replica (Habitat-Sim, nhãn phẳng) và thu 6–8 phòng thật",
-        "Test cross-domain; Ablation 2",
-        "M5",
-        "Trung bình",
-    ],
-    ["6", "FastAPI + Unity, báo cáo cuối", "Ứng dụng đo trên điện thoại", "M6", "Sau"],
+    ["1", "Held-out 4 scene: mốc, align → eval, chạy đúng một lần", "Bảng held-out riêng, không chỉnh tham số", "M4", "Cao"],
+    ["2", "6 video tự thu mới: chọn mốc, align → export, chấm mù", "Đủ ≥ 6 phòng tự thu [ĐC §21]", "M5", "Cao"],
+    ["3", "Thử app trên điện thoại thật (chế độ tape)", "Chứng minh luồng quay → đo chạy thật", "M6", "Cao"],
+    ["4", "Tăng độ phủ đo chiều dài (≈ 2/3 đoạn đo được)", "Kết luận được mục tiêu < 5 cm", "M4–M5", "Trung bình"],
+    ["5", "Bộ dò mặt phẳng tốt hơn (chỉ chỉnh trên dev)", "Tiến tới mục tiêu −15% P2Plane", "M5", "Trung bình"],
+    ["6", "Báo cáo cuối, bản đính chính đề cương", "Nộp và bảo vệ", "M6", "Cao"],
 ]
 table(
     s,
@@ -2049,7 +2319,7 @@ card(
     12.33,
     1.0,
     "Rủi ro đã biết",
-    ["Replica thiếu nhãn phẳng; Habitat-Sim chưa cài được trên Windows (chưa kiểm chứng); GPU chỉ 8 GB."],
+    ["GPU 8 GB và bộ nhớ ảo (VGGT từng lỗi pagefile khi app khác chạy); ổ D còn ít chỗ; một người chấm, nhớ GT ở scene dev."],
     size=13,
     accent=RED,
 )
@@ -2058,12 +2328,12 @@ s = new_slide(
     "Kết luận hiện tại",
     "F · Còn lại",
     dark=True,
-    source="WORKING_LOG.md, metrics.csv (06/11/2026)",
+    source="WORKING_LOG.md; outputs/eval_results/*.csv; metrics.csv scene dev (20/11/2026)",
     notes=(
-        "Kết luận hiện tại. Đã làm được: toàn bộ pipeline chín stage chạy xuyên suốt trên một scene thật, có ground truth Faro đã căn, có số đo thời gian và VRAM, "
-        "và SfM đạt trung vị 95,9 phần trăm đăng ký trên sáu scene Validation. Chưa chứng minh được: phương pháp đề xuất chưa tốt hơn B0 trên ba đoạn hợp lệ, "
-        "cổng plane gate quá chặt nên hầu như chưa làm phẳng; dưới 5 cm mới đạt trên ba đoạn của một scene, chưa phải kết luận. "
-        "Hướng tiếp theo: đóng M3 với chấm mù, chỉnh gate trên validation, rồi mở rộng sang nhiều scene và Replica."
+        "Kết luận hiện tại. Đã làm được: pipeline chín stage chạy trên ARKit, Replica và video tự thu; bảng năm scene Validation; "
+        "ba phòng tự thu đo thước dây cho trung vị 3,05 cm trên mười chín đoạn; app và backend đã build. "
+        "Chưa chứng minh: đề xuất chưa hơn B0 rõ rệt về chiều dài; plane gate chỉ giảm khoảng 2 đến 3 phần trăm sai số mặt phẳng, chưa đạt 15 phần trăm; "
+        "held-out chưa chạy; app chưa thử trên điện thoại thật. Hướng tiếp theo: held-out một lần, thêm phòng tự thu, thử app, rồi viết báo cáo."
     ),
 )
 cols = [
@@ -2071,27 +2341,27 @@ cols = [
         "Đã làm được",
         GREEN,
         [
-            "Pipeline 9 stage chạy xuyên suốt trên một scene thật.",
-            "Ground truth Faro đã căn; 1 mốc + 12 đoạn test.",
-            f"SfM đăng ký trung vị {vn(median_ratio, 1)}% trên 6 Validation.",
+            "Pipeline 9 stage chạy trên ARKit, Replica, video tự thu.",
+            "Tự thu 3 phòng: median 3,05 cm, 15/19 đoạn < 5 cm.",
+            "Bảng 5 Validation; app + backend đã build.",
         ],
     ),
     (
         "Chưa chứng minh",
         RED,
         [
-            "Đề xuất chưa tốt hơn B0 (3 đoạn, 1 scene).",
-            "Plane gate quá chặt: chỉ 1,09% điểm qua cổng.",
-            "Mục tiêu < 5 cm mới đạt trên 3 đoạn, chưa phải kết luận.",
+            "Đề xuất chưa hơn B0 rõ rệt về chiều dài.",
+            f"Plane gate: {vn(r8_mean['refined_all'], 1).replace('-', '−')}% P2Plane, chưa đạt −15%.",
+            "Held-out chưa chạy; app chưa thử trên điện thoại.",
         ],
     ),
     (
         "Hướng tiếp theo",
         AMBER,
         [
-            "Đóng M3 với chấm mù, chỉnh gate trên validation.",
-            "M4: nhiều scene, held-out chạy một lần.",
-            "M5–M6: Replica, tự thu, ứng dụng.",
+            "Held-out 4 scene, chạy một lần.",
+            "Thêm phòng tự thu; thử app thật.",
+            "Báo cáo cuối và bảo vệ.",
         ],
     ),
 ]
