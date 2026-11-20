@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 296" width="460" height="296" role="img" aria-label="Chia dữ liệu: ARKitScenes 29/6/5 theo visit_id (dùng 5 val, 4 held-out), Replica 2 dev + 8 test, 10 video tự thu">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B73"/></marker>
+  </defs>
+  <rect width="460" height="296" fill="#FFFFFF"/>
+  <g font-family="Calibri, Arial, sans-serif" fill="#10303A">
+    <text x="4" y="15" font-size="13" font-weight="bold">ARKitScenes · 40 scene · chia theo visit_id, seed 42</text>
+    <rect x="4" y="24" width="146" height="66" rx="6" fill="#E8F2F4" stroke="#1E7A8C"/>
+    <text x="77" y="44" font-size="15" font-weight="bold" fill="#1E7A8C" text-anchor="middle">29 train</text>
+    <text x="77" y="62" font-size="12" text-anchor="middle">dev 42444738</text>
+    <text x="77" y="78" font-size="12" text-anchor="middle" fill="#5B6B73">viết mã, chạy thử</text>
+    <rect x="157" y="24" width="146" height="66" rx="6" fill="#E8F2F4" stroke="#1E7A8C"/>
+    <text x="230" y="44" font-size="15" font-weight="bold" fill="#1E7A8C" text-anchor="middle">6 val → dùng 5</text>
+    <text x="230" y="62" font-size="12" text-anchor="middle">loại 47204552: SfM vỡ</text>
+    <text x="230" y="78" font-size="12" text-anchor="middle" fill="#5B6B73">khoá ngưỡng, bảng val</text>
+    <rect x="310" y="24" width="146" height="66" rx="6" fill="#FDF3E3" stroke="#E8A33D"/>
+    <text x="383" y="44" font-size="15" font-weight="bold" fill="#B9781B" text-anchor="middle">5 held-out → 4</text>
+    <text x="383" y="62" font-size="12" text-anchor="middle">loại 44796254: Faro lệch</text>
+    <text x="383" y="78" font-size="12" text-anchor="middle" fill="#C8453B" font-weight="bold">chạy 1 lần · chưa chạy</text>
+    <text x="230" y="107" font-size="11.5" text-anchor="middle" fill="#5B6B73" font-style="italic">Một nhà (venue) không nằm ở hai tập; không chỉnh tham số trên held-out.</text>
+
+    <text x="4" y="133" font-size="13" font-weight="bold">Replica · nhãn preseg 16/18 scene · render Open3D</text>
+    <rect x="4" y="142" width="200" height="52" rx="6" fill="#E8F2F4" stroke="#1E7A8C"/>
+    <text x="104" y="163" font-size="14" font-weight="bold" fill="#1E7A8C" text-anchor="middle">2 dev: chỉnh plane gate</text>
+    <text x="104" y="182" font-size="12" text-anchor="middle">hotel_0, frl_apartment_0</text>
+    <line x1="206" y1="168" x2="252" y2="168" stroke="#5B6B73" stroke-width="1.5" marker-end="url(#a)"/>
+    <text x="229" y="161" font-size="11" text-anchor="middle" fill="#5B6B73">khoá</text>
+    <rect x="256" y="142" width="200" height="52" rx="6" fill="#FDF3E3" stroke="#E8A33D"/>
+    <text x="356" y="163" font-size="14" font-weight="bold" fill="#B9781B" text-anchor="middle">8 test: chạy 1 lần</text>
+    <text x="356" y="182" font-size="12" text-anchor="middle">room_0–2, office_0–4</text>
+
+    <text x="4" y="221" font-size="13" font-weight="bold">Video tự thu bằng điện thoại · đo thước dây</text>
+    <rect x="4" y="230" width="146" height="58" rx="6" fill="#E9F5EE" stroke="#3E9B6B"/>
+    <text x="77" y="252" font-size="14" font-weight="bold" fill="#2E7A52" text-anchor="middle">3 phòng chấm xong</text>
+    <text x="77" y="272" font-size="12" text-anchor="middle">19 đoạn thước dây</text>
+    <rect x="157" y="230" width="146" height="58" rx="6" fill="#F4F7F8" stroke="#D5DEE2"/>
+    <text x="230" y="252" font-size="14" font-weight="bold" text-anchor="middle">6 video mới</text>
+    <text x="230" y="272" font-size="12" text-anchor="middle">đã chạy đến VGGT</text>
+    <rect x="310" y="230" width="146" height="58" rx="6" fill="#FBEEEC" stroke="#C8453B"/>
+    <text x="383" y="252" font-size="14" font-weight="bold" fill="#C8453B" text-anchor="middle">1 bị từ chối</text>
+    <text x="383" y="272" font-size="11.5" text-anchor="middle">E_TOO_FEW_KEYFRAMES</text>
+  </g>
+</svg>

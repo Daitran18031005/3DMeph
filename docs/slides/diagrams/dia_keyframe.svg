@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 250" width="760" height="250" role="img" aria-label="Chọn keyframe trên scene dev: 1.804 khung, 121 ứng viên, lọc còn 111 ảnh dày, SfM đăng ký 108, chọn 80 keyframe từ ảnh đã đăng ký">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B73"/></marker>
+  </defs>
+  <rect width="760" height="250" fill="#FFFFFF"/>
+  <g font-family="Calibri, Arial, sans-serif" fill="#10303A">
+    <!-- stage brackets -->
+    <path d="M2 30 V20 H538 V30" fill="none" stroke="#1E7A8C" stroke-width="1.5"/>
+    <text x="270" y="14" font-size="13" font-weight="bold" fill="#1E7A8C" text-anchor="middle">stage keyframe: lọc ra tập ứng viên dày</text>
+    <path d="M552 30 V20 H758 V30" fill="none" stroke="#B9781B" stroke-width="1.5"/>
+    <text x="655" y="14" font-size="13" font-weight="bold" fill="#B9781B" text-anchor="middle">stage sfm</text>
+
+    <rect x="2" y="38" width="96" height="96" rx="6" fill="#F4F7F8" stroke="#D5DEE2"/>
+    <text x="50" y="60" font-size="13" font-weight="bold" text-anchor="middle">Video</text>
+    <text x="50" y="90" font-size="20" font-weight="bold" fill="#1E7A8C" text-anchor="middle">1.804</text>
+    <text x="50" y="116" font-size="12" fill="#5B6B73" text-anchor="middle">khung</text>
+    <line x1="98" y1="86" x2="110" y2="86" stroke="#5B6B73" stroke-width="1.5" marker-end="url(#a)"/>
+    <rect x="112" y="38" width="96" height="96" rx="6" fill="#F4F7F8" stroke="#D5DEE2"/>
+    <text x="160" y="60" font-size="13" font-weight="bold" text-anchor="middle">Lấy 2 khung/s</text>
+    <text x="160" y="90" font-size="20" font-weight="bold" fill="#1E7A8C" text-anchor="middle">121</text>
+    <text x="160" y="116" font-size="12" fill="#5B6B73" text-anchor="middle">ứng viên</text>
+    <line x1="208" y1="86" x2="220" y2="86" stroke="#5B6B73" stroke-width="1.5" marker-end="url(#a)"/>
+    <rect x="222" y="38" width="96" height="96" rx="6" fill="#F4F7F8" stroke="#D5DEE2"/>
+    <text x="270" y="60" font-size="13" font-weight="bold" text-anchor="middle">Lọc mờ (3)</text>
+    <text x="270" y="90" font-size="20" font-weight="bold" fill="#1E7A8C" text-anchor="middle">112</text>
+    <text x="270" y="116" font-size="12" fill="#5B6B73" text-anchor="middle">q_drop 0,35</text>
+    <line x1="318" y1="86" x2="330" y2="86" stroke="#5B6B73" stroke-width="1.5" marker-end="url(#a)"/>
+    <rect x="332" y="38" width="96" height="96" rx="6" fill="#F4F7F8" stroke="#D5DEE2"/>
+    <text x="380" y="60" font-size="13" font-weight="bold" text-anchor="middle">Phơi sáng (20)</text>
+    <text x="380" y="90" font-size="20" font-weight="bold" fill="#1E7A8C" text-anchor="middle">112</text>
+    <text x="380" y="116" font-size="12" fill="#5B6B73" text-anchor="middle">q_drop 0,5</text>
+    <line x1="428" y1="86" x2="440" y2="86" stroke="#5B6B73" stroke-width="1.5" marker-end="url(#a)"/>
+    <rect x="442" y="38" width="96" height="96" rx="6" fill="#F4F7F8" stroke="#D5DEE2"/>
+    <text x="490" y="60" font-size="13" font-weight="bold" text-anchor="middle">Bỏ gần trùng (1)</text>
+    <text x="490" y="90" font-size="20" font-weight="bold" fill="#1E7A8C" text-anchor="middle">111</text>
+    <text x="490" y="116" font-size="12" fill="#5B6B73" text-anchor="middle">overlap 0,3–0,99</text>
+    <line x1="538" y1="86" x2="550" y2="86" stroke="#5B6B73" stroke-width="1.5" marker-end="url(#a)"/>
+    <rect x="552" y="38" width="96" height="96" rx="6" fill="#1E7A8C"/>
+    <text x="600" y="60" font-size="13" font-weight="bold" fill="#FFFFFF" text-anchor="middle">SfM tập dày</text>
+    <text x="600" y="90" font-size="20" font-weight="bold" fill="#FFFFFF" text-anchor="middle">108/111</text>
+    <text x="600" y="116" font-size="12" fill="#FFFFFF" text-anchor="middle">đăng ký (97,3%)</text>
+    <line x1="648" y1="86" x2="660" y2="86" stroke="#5B6B73" stroke-width="1.5" marker-end="url(#a)"/>
+    <rect x="662" y="38" width="96" height="96" rx="6" fill="#E8A33D"/>
+    <text x="710" y="60" font-size="13" font-weight="bold" text-anchor="middle">Chọn keyframe</text>
+    <text x="710" y="90" font-size="20" font-weight="bold" text-anchor="middle">80</text>
+    <text x="710" y="116" font-size="12" text-anchor="middle">trong 40–80</text>
+
+    <!-- explanation row -->
+    <rect x="2" y="156" width="536" height="86" rx="6" fill="#E8F2F4"/>
+    <text x="14" y="178" font-size="13" font-weight="bold" fill="#1E7A8C">Chỉ bỏ ảnh xấu, không thưa ảnh</text>
+    <text x="14" y="198" font-size="12.5">Mờ, tối/cháy và khung gần trùng bị loại; ảnh còn lại giữ hết</text>
+    <text x="14" y="216" font-size="12.5">để SfM có đủ ảnh liền nhau mà nối chuỗi.</text>
+    <text x="14" y="234" font-size="12" fill="#5B6B73">Ngưỡng q_drop, overlap khoá trên 6 scene Validation.</text>
+    <rect x="552" y="156" width="206" height="86" rx="6" fill="#FDF3E3"/>
+    <text x="564" y="178" font-size="13" font-weight="bold" fill="#B9781B">Chọn sau khi đăng ký</text>
+    <text x="564" y="198" font-size="12.5">Mọi keyframe đều có pose.</text>
+    <text x="564" y="216" font-size="12.5">Dưới 40 keyframe: dừng,</text>
+    <text x="564" y="234" font-size="12.5">E_TOO_FEW_KEYFRAMES.</text>
+  </g>
+</svg>

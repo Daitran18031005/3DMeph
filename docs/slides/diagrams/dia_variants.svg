@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 250" width="840" height="250" role="img" aria-label="Các biến thể đánh giá: B0 COLMAP và B1 VGGT ghép thành B3, thêm plane gate thành Đề xuất; hai ablation bỏ tín hiệu chất lượng và ép phẳng không cổng; B2 chưa làm">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5B6B73"/></marker>
+  </defs>
+  <rect width="840" height="250" fill="#FFFFFF"/>
+  <g font-family="Calibri, Arial, sans-serif" fill="#10303A">
+    <rect x="6" y="20" width="170" height="74" rx="6" fill="#E8F2F4" stroke="#1E7A8C"/>
+    <text x="91" y="46" font-size="15" font-weight="bold" fill="#1E7A8C" text-anchor="middle">B0 · COLMAP thuần</text>
+    <text x="91" y="66" font-size="12.5" text-anchor="middle">điểm MVS × s_m</text>
+    <text x="91" y="83" font-size="11.5" fill="#5B6B73" text-anchor="middle">hình học, thưa</text>
+    <rect x="6" y="140" width="170" height="74" rx="6" fill="#E8F2F4" stroke="#1E7A8C"/>
+    <text x="91" y="166" font-size="15" font-weight="bold" fill="#1E7A8C" text-anchor="middle">B1 · VGGT thuần</text>
+    <text x="91" y="186" font-size="12.5" text-anchor="middle">nối chunk, scale từ mốc</text>
+    <text x="91" y="203" font-size="11.5" fill="#5B6B73" text-anchor="middle">học sâu, dày</text>
+
+    <path d="M176 57 H200 V112 H228" fill="none" stroke="#5B6B73" stroke-width="1.5" marker-end="url(#a)"/>
+    <path d="M176 177 H200 V132 H228" fill="none" stroke="#5B6B73" stroke-width="1.5" marker-end="url(#a)"/>
+
+    <rect x="230" y="85" width="180" height="74" rx="6" fill="#1E7A8C"/>
+    <text x="320" y="111" font-size="15" font-weight="bold" fill="#FFFFFF" text-anchor="middle">B3 · fusion</text>
+    <text x="320" y="131" font-size="12.5" fill="#FFFFFF" text-anchor="middle">6 tín hiệu (19)–(22)</text>
+    <text x="320" y="148" font-size="11.5" fill="#FFFFFF" text-anchor="middle">không plane gate</text>
+    <line x1="410" y1="122" x2="448" y2="122" stroke="#5B6B73" stroke-width="1.5" marker-end="url(#a)"/>
+    <text x="429" y="114" font-size="11.5" fill="#5B6B73" text-anchor="middle">+ cổng</text>
+
+    <rect x="450" y="85" width="180" height="74" rx="6" fill="#E8A33D"/>
+    <text x="540" y="111" font-size="15" font-weight="bold" text-anchor="middle">Đề xuất</text>
+    <text x="540" y="131" font-size="12.5" text-anchor="middle">B3 + plane gate (24)–(25)</text>
+    <text x="540" y="148" font-size="11.5" text-anchor="middle">ARKit + Replica + tự thu</text>
+
+    <path d="M630 105 H648 V57 H666" fill="none" stroke="#5B6B73" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#a)"/>
+    <path d="M630 140 H648 V177 H666" fill="none" stroke="#5B6B73" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#a)"/>
+    <rect x="668" y="20" width="166" height="74" rx="6" fill="#FFFFFF" stroke="#E8A33D"/>
+    <text x="751" y="45" font-size="14" font-weight="bold" text-anchor="middle">Ablation 1</text>
+    <text x="751" y="64" font-size="12" text-anchor="middle">bỏ 3 tín hiệu chất lượng</text>
+    <text x="751" y="81" font-size="11.5" fill="#5B6B73" text-anchor="middle">ARKit + Replica</text>
+    <rect x="668" y="140" width="166" height="74" rx="6" fill="#FFFFFF" stroke="#E8A33D"/>
+    <text x="751" y="165" font-size="14" font-weight="bold" text-anchor="middle">Ablation 2</text>
+    <text x="751" y="184" font-size="12" text-anchor="middle">ép mọi điểm về mặt phẳng</text>
+    <text x="751" y="201" font-size="11.5" fill="#5B6B73" text-anchor="middle">không cổng · chỉ Replica</text>
+
+    <rect x="230" y="186" width="180" height="50" rx="6" fill="#FFFFFF" stroke="#5B6B73" stroke-dasharray="4 3"/>
+    <text x="320" y="207" font-size="13" font-weight="bold" fill="#5B6B73" text-anchor="middle">B2 · depth mét</text>
+    <text x="320" y="225" font-size="11.5" fill="#5B6B73" text-anchor="middle">mở rộng · chưa làm</text>
+  </g>
+</svg>

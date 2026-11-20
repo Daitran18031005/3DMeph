@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 490" width="460" height="490" role="img" aria-label="Quy tắc mốc scale theo bản đính chính: đoạn 1,8–2,5 m, mỗi đầu mút thấy ở ít nhất 5 view với góc tia ít nhất 15 độ; mốc S06 dài 2,41 m cho s_m 0,3562">
+  <rect width="460" height="490" fill="#FFFFFF"/>
+  <g font-family="Calibri, Arial, sans-serif" fill="#10303A">
+    <text x="6" y="16" font-size="12" fill="#5B6B73" font-style="italic">Mặt bằng minh hoạ (nhìn từ trên xuống)</text>
+    <rect x="20" y="26" width="420" height="236" fill="#F4F7F8" stroke="#10303A" stroke-width="2"/>
+    <!-- cabinet -->
+    <rect x="110" y="28" width="200" height="16" fill="#FFFFFF" stroke="#D5DEE2"/>
+    <!-- rays to A (110,44) and B (310,44) -->
+    <g stroke="#1E7A8C" stroke-width="1" opacity="0.75">
+      <line x1="80" y1="150" x2="110" y2="44"/>
+      <line x1="120" y1="190" x2="110" y2="44"/>
+      <line x1="170" y1="212" x2="110" y2="44"/>
+      <line x1="230" y1="220" x2="110" y2="44"/>
+      <line x1="290" y1="212" x2="110" y2="44"/>
+      <line x1="170" y1="212" x2="310" y2="44"/>
+      <line x1="230" y1="220" x2="310" y2="44"/>
+      <line x1="290" y1="212" x2="310" y2="44"/>
+      <line x1="340" y1="190" x2="310" y2="44"/>
+      <line x1="380" y1="150" x2="310" y2="44"/>
+    </g>
+    <!-- anchor -->
+    <line x1="110" y1="44" x2="310" y2="44" stroke="#E8A33D" stroke-width="5"/>
+    <circle cx="110" cy="44" r="5" fill="#E8A33D" stroke="#10303A"/>
+    <circle cx="310" cy="44" r="5" fill="#E8A33D" stroke="#10303A"/>
+    <text x="210" y="62" font-size="12.5" font-weight="bold" text-anchor="middle">mốc S06 · tủ trắng · 2,41 m</text>
+    <text x="98" y="56" font-size="12" font-weight="bold" text-anchor="end">A</text>
+    <text x="322" y="56" font-size="12" font-weight="bold">B</text>
+    <!-- trajectory -->
+    <path d="M60 120 Q80 228 230 230 Q380 228 400 120" fill="none" stroke="#5B6B73" stroke-dasharray="3 3"/>
+    <g fill="#1E7A8C">
+      <circle cx="80" cy="150" r="5"/><circle cx="120" cy="190" r="5"/><circle cx="170" cy="212" r="5"/>
+      <circle cx="230" cy="220" r="5"/><circle cx="290" cy="212" r="5"/><circle cx="340" cy="190" r="5"/><circle cx="380" cy="150" r="5"/>
+    </g>
+    <text x="230" y="250" font-size="11.5" fill="#5B6B73" text-anchor="middle">quỹ đạo camera · mỗi chấm là một view</text>
+    <!-- test segments -->
+    <line x1="420" y1="70" x2="420" y2="240" stroke="#5B6B73" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="414" y="110" font-size="11.5" fill="#5B6B73" text-anchor="end">đoạn test</text>
+    <line x1="40" y1="70" x2="40" y2="200" stroke="#5B6B73" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="46" y="92" font-size="11.5" fill="#5B6B73">đoạn test</text>
+
+    <!-- rules -->
+    <text x="6" y="294" font-size="14" font-weight="bold" fill="#1E7A8C">Quy tắc chọn mốc [đính chính §8.1]</text>
+    <g font-size="12.5">
+      <circle cx="12" cy="312" r="3.5" fill="#1E7A8C"/><text x="22" y="316">1,8 m ≤ L_real ≤ 2,5 m</text>
+      <circle cx="12" cy="334" r="3.5" fill="#1E7A8C"/><text x="22" y="338">Mỗi đầu mút ≥ 5 view, góc tia ≥ 15°; không đạt thì báo, không nới</text>
+      <circle cx="12" cy="356" r="3.5" fill="#1E7A8C"/><text x="22" y="360">Không trên gương, kính, vật di chuyển được (người dùng xác nhận)</text>
+      <circle cx="12" cy="378" r="3.5" fill="#1E7A8C"/><text x="22" y="382">Click 2D ≥ 2 view mỗi đầu; gắn SHA-256 của model COLMAP</text>
+      <circle cx="12" cy="400" r="3.5" fill="#1E7A8C"/><text x="22" y="404">Mốc bị loại khỏi chỉ số test</text>
+    </g>
+    <rect x="6" y="420" width="448" height="62" rx="6" fill="#FDF3E3" stroke="#E8A33D"/>
+    <text x="230" y="446" font-size="15" font-weight="bold" text-anchor="middle">s_m = 2,4105 m / 6,7676 đv = 0,3562 m/đv</text>
+    <text x="230" y="469" font-size="12" text-anchor="middle" fill="#5B6B73">Click lệch ≈ 1 cm mỗi đầu: mốc 2 m sai ≈ 0,7%, mốc 1,2 m sai ≈ 1,2%</text>
+  </g>
+</svg>

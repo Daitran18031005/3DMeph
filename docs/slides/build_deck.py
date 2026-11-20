@@ -753,32 +753,38 @@ pic(
 s = new_slide(
     "Cơ sở lý thuyết 3: Sim(3), Umeyama và mốc scale",
     "A · Khái niệm",
-    source="Umeyama, IEEE TPAMI 13(4), 1991; ĐC §15, Hình 16–17; pipeline/alignment/README.md",
+    source="Umeyama, IEEE TPAMI 13(4), 1991; ĐC §15; đính chính §15.1; align_result.json, scale.json scene 42444738",
     notes=(
-        "Để ghép hai nhánh, ta cần đưa tâm camera VGGT về cùng hệ với COLMAP. Phép biến đổi đồng dạng Sim(3) gồm tỉ lệ s, xoay R và tịnh tiến t. "
-        "Thuật toán Umeyama năm 1991 cho nghiệm dạng đóng bằng SVD của ma trận hiệp phương sai. Bước này chỉ cho cùng hệ toạ độ, chưa ra mét. "
-        "Chỉ mốc scale ngoài đời mới đổi sang mét, bằng công thức (4) và (18). Hình dưới là ví dụ bốn camera quanh bàn ăn với s bằng 3,20."
+        "Mỗi chunk VGGT có gốc toạ độ riêng nên phải đưa về hệ COLMAP bằng phép đồng dạng Sim(3): tỉ lệ s, xoay R, tịnh tiến t. "
+        "Thuật toán Umeyama năm 1991 cho nghiệm dạng đóng bằng SVD. Em lấy xoay R từ hướng camera, còn s và t giải bằng Umeyama trên các cặp điểm VGGT và MVS cùng pixel. "
+        "Bước này chỉ cho cùng hệ toạ độ, chưa ra mét. Chỉ mốc scale ngoài đời mới đổi sang mét, bằng công thức (4) và (18): trên scene dev s_m bằng 0,3562."
     ),
 )
 pic(
     s,
-    "pdf_fig_16.png",
+    "dia_align.png",
     0.5,
     1.45,
     7.2,
     2.0,
-    "Hai bước: Umeyama đưa về cùng hệ, mốc scale đổi sang mét [ĐC Hình 16]",
-    alt="Sơ đồ hai bước Umeyama và mốc scale",
+    "Hai bước: Sim(3) từng chunk, rồi mốc scale ra mét [đính chính §15.1]",
+    alt="Chunk VGGT, xoay R, tỉ lệ s và dịch t, hệ COLMAP, nhân s_m, ra mét",
 )
-pic(
+card(
     s,
-    "pdf_fig_17.png",
     0.5,
     3.95,
     7.2,
-    2.7,
-    "Ví dụ 4 camera quanh bàn ăn: s = 3,20, R = 90° (ví dụ ĐC Hình 17)",
-    alt="Bốn camera VGGT và COLMAP quanh bàn ăn",
+    2.95,
+    "Umeyama dùng ở đâu, vì sao không căn bằng tâm camera",
+    [
+        "Umeyama giải s, t trên cặp điểm VGGT ↔ MVS cùng pixel (cắt tỉa 4 vòng, giữ 80% cặp ít lệch nhất).",
+        "Tâm camera của một chunk 12 ảnh quay cầm tay chỉ trải 0,26–0,57 m: căn theo tâm camera lệch 40–203 cm, xoay lệch 9–37°.",
+        "Sau khi đổi: xoay lệch 0,7–2,8°; lệch VGGT–COLMAP trung vị 36,8 → 8,9 cm (scene dev).",
+    ],
+    size=13,
+    bullet=True,
+    accent=AMBER,
 )
 card(s, 8.0, 1.45, 4.83, 5.45, "Công thức", ["Căn Sim(3) (13)–(17):"], size=14)
 eq(s, "umeyama1", 8.2, 2.2, 2.2, 0.55)
@@ -860,12 +866,12 @@ txt(
 )
 pic(
     s,
-    "pdf_fig_13.png",
+    "dia_split.png",
     8.3,
     1.45,
     4.53,
     3.1,
-    "Chia dữ liệu theo venue [ĐC Hình 13]",
+    "Chia và dùng dữ liệu đến 20/11 [đính chính §10–§12]",
     alt="Sơ đồ chia train, validation, held-out theo venue",
 )
 stat(s, 8.3, 5.0, 1.4, "29", "train", h=1.2, big_size=26)
@@ -875,22 +881,22 @@ stat(s, 11.46, 5.0, 1.37, "5", "held-out", h=1.2, big_size=26, color=AMBER)
 s = new_slide(
     "Kiến trúc mô hình tổng thể",
     "A · Khái niệm",
-    source="ĐC Hình 1 (Docs/TaiTao3D_Metric_3DMeph.pdf); pipeline/README.md",
+    source="Bản đính chính §7, §15.1, §21 (vẽ lại ĐC Hình 1); pipeline/README.md; app/README.md",
     notes=(
-        "Đây là kiến trúc tổng thể theo đề cương. Điện thoại chỉ thu video và hiển thị; máy GPU phía sau làm toàn bộ phần tính nặng, FastAPI đứng giữa quản lý job. "
-        "Bên trong máy GPU có bảy bước từ A đến G: lọc keyframe, rồi hai nhánh độc lập là COLMAP và VGGT, căn bằng Umeyama và đổi mét, "
+        "Đây là kiến trúc hiện tại, vẽ lại theo bản đính chính. Điện thoại chỉ thu video và hiển thị; máy GPU phía sau làm toàn bộ phần tính nặng, FastAPI đứng giữa quản lý job. "
+        "Bên trong máy GPU có chín stage: lọc keyframe thành tập dày, SfM trên tập dày rồi mới chọn keyframe, hai nhánh độc lập MVS và VGGT, căn chunk vào COLMAP và đổi mét, "
         "fusion sáu tín hiệu, plane gate và xuất file. Phạm vi hiện tại: lõi dòng lệnh chạy được trên ARKit, Replica và video tự thu; "
         "backend FastAPI và app Unity Android đã build được, nhưng app chưa thử trên điện thoại thật."
     ),
 )
 pic(
     s,
-    "pdf_fig_01.png",
+    "dia_arch.png",
     0.5,
     1.45,
     7.7,
     5.4,
-    "Kiến trúc triển khai [ĐC Hình 1]",
+    "Kiến trúc hiện tại: app, backend, 9 stage [đính chính §7, §15.1, §21]",
     alt="Kiến trúc điện thoại, FastAPI, máy GPU với các bước A đến G",
 )
 card(
@@ -1026,12 +1032,12 @@ pic(
 )
 pic(
     s,
-    "pdf_fig_26.png",
+    "dia_variants.png",
     8.45,
     4.2,
     4.38,
     1.6,
-    "Chuỗi cấu hình B0 → Đề xuất [ĐC Hình 26]",
+    "Các biến thể đánh giá hiện tại [đính chính §20]",
     alt="Chuỗi B0, B1, B2, B3, đề xuất và hai ablation",
 )
 txt(
@@ -1157,12 +1163,12 @@ card(
 )
 pic(
     s,
-    "pdf_fig_26.png",
+    "dia_variants.png",
     0.5,
     4.3,
     8.4,
     2.5,
-    "Chuỗi cấu hình B0 → Đề xuất và hai ablation [ĐC Hình 26]",
+    "Các biến thể đánh giá và hai ablation [đính chính §20]",
     alt="Chuỗi cấu hình B0, B1, B2, B3, đề xuất",
 )
 txt(
@@ -1174,7 +1180,7 @@ txt(
     [
         "B0: COLMAP thuần.",
         "B1: VGGT thuần.",
-        "B2: thêm depth mét (mở rộng).",
+        "B2: depth mét (mở rộng, chưa làm).",
         "B3: fusion không gate.",
         "Đề xuất: fusion + plane gate.",
     ],
@@ -1362,34 +1368,45 @@ kst = KF
 s = new_slide(
     "Keyframe: lọc ảnh sạch trước khi dựng",
     "D · Cách thực hiện",
-    source="pipeline/keyframe/README.md; ĐC Hình 6 (số ví dụ ĐC); run_meta.json scene 42444738",
+    source="pipeline/keyframe/README.md; đính chính §6.1, §7; run_meta.json scene 42444738",
     notes=(
         f"Stage đầu tiên chọn ảnh. Từ video lấy hai khung mỗi giây, xoay ảnh về đứng theo hướng sky_direction của ARKit, rồi lọc: bỏ ảnh mờ bằng q_blur theo công thức (3), "
         f"đo độ phơi sáng theo (20), và bỏ ảnh trùng hoặc đứt kết nối theo overlap (1). Lý do: ảnh mờ làm SfM lệch hoặc không đăng ký được, ảnh trùng chỉ tốn thời gian. "
         f"Trên scene dev: {vi(kst['n_frames'])} khung, {kst['n_candidates']} ứng viên, sau lọc mờ còn {kst['n_after_blur']}, sau lọc trùng còn {kst['n_after_overlap']}; "
-        f"sau SfM chọn lại {SFM['n_keyframes']} keyframe. Hình trên là ví dụ trong đề cương với con số 72, chỉ minh họa."
+        f"sau SfM chọn lại {SFM['n_keyframes']} keyframe. Sơ đồ trên vẽ theo bản đính chính: SfM chạy trên tập dày, keyframe chọn sau khi đăng ký nên keyframe nào cũng có pose. Trong công thức phơi sáng, N nhỏ 5 là số pixel quá tối, N lớn 250 là số pixel cháy, chia cho tổng số pixel; đề cương viết bằng dấu thăng, nghĩa là đếm số phần tử."
     ),
 )
 pic(
     s,
-    "pdf_fig_06.png",
+    "dia_keyframe.png",
     0.5,
     1.45,
     7.6,
     2.5,
-    "Từ video đến keyframe (số ví dụ của ĐC, Hình 6)",
-    alt="Sơ đồ từ video 90 giây đến 72 keyframe",
+    "Chọn keyframe sau SfM, số thật scene dev [đính chính §6.1, §7]",
+    alt="Từ 1.804 khung đến 80 keyframe chọn sau SfM trên scene dev",
 )
 txt(s, 0.5, 4.45, 3.6, 0.35, "Độ mờ (3) và phơi sáng (20):", size=13, bold=True, color=TEAL)
 eq(s, "qblur", 0.5, 4.85, 7.6, 0.75)
-eq(s, "qexp", 0.5, 5.7, 5.8, 0.75)
+eq(s, "qexp", 0.5, 5.7, 4.6, 0.75)
+txt(
+    s,
+    5.2,
+    5.68,
+    2.95,
+    0.8,
+    ["N_≤5: số pixel quá tối (≤ 5)", "N_≥250: số pixel cháy (≥ 250)", "N_pixel: tổng số pixel của ảnh"],
+    size=11,
+    color=MUTED,
+    space=0,
+)
 txt(
     s,
     0.5,
     6.5,
     7.6,
     0.45,
-    "Overlap giữa hai keyframe liên tiếp (1): mục tiêu 60–80% theo đề cương.",
+    "Overlap (1) chỉ dùng để bỏ khung gần trùng (0,3–0,99), không thưa ảnh trước SfM.",
     size=12,
     color=MUTED,
     italic=True,
@@ -1537,7 +1554,7 @@ card(
 s = new_slide(
     "Căn tỉ lệ: Sim(3) vào COLMAP, rồi đổi sang mét",
     "D · Cách thực hiện",
-    source="pipeline/alignment/README.md; scale.json, align_result.json, scale_anchor.json; ĐC Hình 8 (ví dụ ĐC)",
+    source="pipeline/alignment/README.md; scale.json, align_result.json, scale_anchor.json; đính chính §8.1",
     notes=(
         f"Căn tỉ lệ có hai việc. Một, đưa từng chunk VGGT về hệ COLMAP bằng Sim(3). Đề cương dùng tâm camera với RANSAC và Umeyama; "
         "trên scene dev tâm camera của nhiều chunk chỉ trải dưới 0,6 mét nên căn kém điều kiện, em đã đổi sang cách lấy xoay từ hướng camera, còn tỉ lệ và tịnh tiến "
@@ -1549,12 +1566,12 @@ s = new_slide(
 )
 pic(
     s,
-    "pdf_fig_08.png",
+    "dia_anchor.png",
     0.5,
     1.45,
     4.6,
     4.9,
-    "Một mốc 1,50 m và các đoạn test (ví dụ ĐC Hình 8)",
+    "Quy tắc mốc scale và mốc S06 của scene dev [đính chính §8.1]",
     alt="Mặt bằng phòng với mốc scale và đoạn test",
 )
 card(
@@ -1667,12 +1684,12 @@ s = new_slide(
 )
 pic(
     s,
-    "pdf_fig_20.png",
+    "dia_gate.png",
     0.5,
     1.45,
     6.2,
     3.55,
-    "Cổng bốn điều kiện quyết định điểm nào được kéo (ngưỡng ví dụ, ĐC Hình 20)",
+    "Cổng bốn điều kiện (24), tỉ lệ đạt trên scene dev [đính chính §17]",
     alt="Sơ đồ cổng bốn điều kiện AND",
 )
 eq(s, "gate", 0.5, 5.3, 6.2, 0.5)

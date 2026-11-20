@@ -21,7 +21,7 @@ EQ = {
     "overlap": r"$\mathrm{Overlap}=\dfrac{W-\Delta}{W}\times 100\%$",  # (1)
     "nchunk": r"$N_{chunk}=\left\lceil\dfrac{N_{kf}-o}{c-o}\right\rceil$",  # (2)
     "qblur": r"$q_{blur}=\min\left(1,\dfrac{V}{V_{ref}}\right),\ \ V=\mathrm{Var}(\nabla^{2}I)$",  # (3)
-    "qexp": r"$q_{exposure}=1-\dfrac{\#\{I\leq 5\}+\#\{I\geq 250\}}{\#\mathrm{pixel}}$",  # (20)
+    "qexp": r"$q_{exposure}=1-\dfrac{N_{\leq 5}+N_{\geq 250}}{N_{pixel}}$",  # (20)
     "qtex": r"$q_{texture}=\min\left(1,\dfrac{\|\nabla I\|_{N(k)}}{G_{ref}}\right)$",  # (20)
     # COLMAP / VGGT
     "ereproj": r"$e_{reproj}=\left\|\pi(RX+t)-x\right\|$",
